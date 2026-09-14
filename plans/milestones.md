@@ -12,7 +12,7 @@ the verification contract, command help as the canonical documentation, and
 the `exit-codes` and `output-formats` help topics kept current.
 
 
-## 1. Read the plan
+## 1. Read the plan ([#1](https://github.com/jmcampanini/ynab-cli/issues/1))
 
 The repository scaffold plus enough reads to prove the token, the config, and
 the output contract work.
@@ -27,7 +27,7 @@ Test by hand: put a token in the config file, run `ynab plans list`, set
 `plan`, run `ynab accounts list` and `ynab accounts list --jsonl | jq`.
 
 
-## 2. Read the budget
+## 2. Read the budget ([#2](https://github.com/jmcampanini/ynab-cli/issues/2))
 
 Categories and months, which introduce name resolution, month arguments, and
 currency formatting.
@@ -42,7 +42,7 @@ list --month 2026-08` shows last month's assigned, activity, and available;
 `ynab categories get "Bills: Internet"` resolves by name.
 
 
-## 3. Read transactions
+## 3. Read transactions ([#3](https://github.com/jmcampanini/ynab-cli/issues/3))
 
 The register, its filters, and the remaining read-only nouns.
 
@@ -56,7 +56,7 @@ august.csv`; `ynab transactions review` shows what needs attention;
 `ynab plans status` gives the one-screen summary.
 
 
-## 4. Write transactions
+## 4. Write transactions ([#4](https://github.com/jmcampanini/ynab-cli/issues/4))
 
 The write posture and the transaction verbs that carry the monthly work.
 
@@ -70,7 +70,7 @@ changes nothing; without `--allow-writes` it exits 3; with it, the
 transaction appears in YNAB; `ynab transactions delete ID` prints it back.
 
 
-## 5. Move money and maintain the plan
+## 5. Move money and maintain the plan ([#5](https://github.com/jmcampanini/ynab-cli/issues/5))
 
 The month writes and the remaining create and update verbs.
 
@@ -84,7 +84,7 @@ Test by hand: `ynab months move 50 --from "Dining Out" --to Groceries
 --dry-run`, then for real, and the YNAB app shows both categories changed.
 
 
-## 6. Reports and the escape hatch
+## 6. Reports and the escape hatch ([#6](https://github.com/jmcampanini/ynab-cli/issues/6))
 
 Derived reads and the raw API passthrough.
 
