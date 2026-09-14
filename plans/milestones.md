@@ -27,7 +27,7 @@ Test by hand: put a token in the config file, run `ynab plans list`, set
 `plan`, run `ynab accounts list` and `ynab accounts list --jsonl | jq`.
 
 
-## 2. Read the budget ([#2](https://github.com/jmcampanini/ynab-cli/issues/2))
+## 2. Read categories and months ([#2](https://github.com/jmcampanini/ynab-cli/issues/2))
 
 Categories and months, which introduce name resolution, month arguments, and
 currency formatting.

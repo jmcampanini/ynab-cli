@@ -2,5 +2,6 @@
 - Read [plans/milestones.md](plans/milestones.md) to find the current slice. Each milestone has a GitHub issue describing its implementation; work the issue, not beyond it.
 - Follow the Gibson wiki in the sibling `gibson` checkout for the `go` and `cli` facets: `wiki/cli/` and `wiki/go/`.
 - Command help is the canonical user-facing documentation; the README is a landing page.
-- Use `make check` for local and CI verification once the Go scaffold exists.
+- Use `make check` for local and CI verification. Keep formatting and dependency updates in their separate write-mode targets.
+- The `output-formats` help topic in `cmd/output_formats.go` is written by hand. Update it in the same change as any edit to the record structs it describes: `planRecord`, `accountRecord`, and `configRecord`.
 - Say `plan`, never `budget`. Say `assigned`, `available`, `ready to assign`, and `target` in user-facing text, as the domain map's terminology table defines them.
