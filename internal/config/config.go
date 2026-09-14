@@ -26,10 +26,6 @@ type Config struct {
 	Token       string `toml:"token"`
 }
 
-func defaults() Config {
-	return Config{}
-}
-
 // Redact returns a copy safe to print: a nonempty token becomes Redacted.
 func (c Config) Redact() Config {
 	if c.Token != "" {
@@ -79,7 +75,7 @@ func Load(path string, flags *pflag.FlagSet) (Loaded, error) {
 	if err != nil {
 		return Loaded{}, err
 	}
-	cfg, report, err := configloader.Load(defaults(), fileLoader, envLoader, flagLoader)
+	cfg, report, err := configloader.Load(Config{}, fileLoader, envLoader, flagLoader)
 	if err != nil {
 		return Loaded{}, fmt.Errorf("load config %q: %w", path, redactParseError(err))
 	}

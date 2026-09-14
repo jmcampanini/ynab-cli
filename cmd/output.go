@@ -44,14 +44,25 @@ func writeJSONL[T any](w io.Writer, records []T) error {
 // per record with the same values JSONL would carry: strings unquoted,
 // numbers and booleans as JSON text, and absent values empty.
 func writeCSV[T any](w io.Writer, records []T) error {
+	fields := jsonFields(reflect.TypeFor[T]())
+	header := make([]string, len(fields))
+	for i, field := range fields {
+		header[i] = field.name
+	}
+
 	writer := csv.NewWriter(w)
-	if err := writer.Write(jsonFieldNames[T]()); err != nil {
+	if err := writer.Write(header); err != nil {
 		return err
 	}
 	for _, record := range records {
-		row, err := csvRow(record)
-		if err != nil {
-			return err
+		value := reflect.ValueOf(record)
+		row := make([]string, len(fields))
+		for i, field := range fields {
+			text, err := csvCell(value.FieldByIndex(field.index).Interface())
+			if err != nil {
+				return err
+			}
+			row[i] = text
 		}
 		if err := writer.Write(row); err != nil {
 			return err
@@ -61,41 +72,43 @@ func writeCSV[T any](w io.Writer, records []T) error {
 	return writer.Error()
 }
 
-func jsonFieldNames[T any]() []string {
-	var names []string
-	for _, field := range reflect.VisibleFields(reflect.TypeFor[T]()) {
-		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
-		if name != "" && name != "-" {
-			names = append(names, name)
-		}
-	}
-	return names
+// jsonField is one struct field that JSON output carries: its JSON name and
+// its index for reflect.Value.FieldByIndex.
+type jsonField struct {
+	name  string
+	index []int
 }
 
-func csvRow(record any) ([]string, error) {
-	value := reflect.ValueOf(record)
-	var row []string
-	for _, field := range reflect.VisibleFields(value.Type()) {
+// jsonFields returns the fields of a record type that JSON output carries,
+// in declaration order, so the CSV header and rows use the same columns.
+func jsonFields(recordType reflect.Type) []jsonField {
+	var fields []jsonField
+	for _, field := range reflect.VisibleFields(recordType) {
 		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
-		if name == "" || name == "-" {
-			continue
+		if name != "" && name != "-" {
+			fields = append(fields, jsonField{name: name, index: field.Index})
 		}
-		encoded, err := json.Marshal(value.FieldByIndex(field.Index).Interface())
-		if err != nil {
-			return nil, err
-		}
-		text := string(encoded)
-		switch {
-		case text == "null":
-			text = ""
-		case strings.HasPrefix(text, `"`):
-			if err := json.Unmarshal(encoded, &text); err != nil {
-				return nil, err
-			}
-		}
-		row = append(row, text)
 	}
-	return row, nil
+	return fields
+}
+
+// csvCell renders one field value as its JSON text, with strings unquoted
+// and null empty.
+func csvCell(value any) (string, error) {
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return "", err
+	}
+	text := string(encoded)
+	switch {
+	case text == "null":
+		return "", nil
+	case strings.HasPrefix(text, `"`):
+		if err := json.Unmarshal(encoded, &text); err != nil {
+			return "", err
+		}
+	}
+	return text, nil
 }
 
 // cell is one human table cell: plain text plus an optional paint applied

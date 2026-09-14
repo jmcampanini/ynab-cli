@@ -84,16 +84,18 @@ func (c *Client) get(ctx context.Context, path string, out any) error {
 // documented error envelope still yields an *Error carrying the status.
 func decodeError(response *http.Response) error {
 	body, _ := io.ReadAll(io.LimitReader(response.Body, maxErrorBody))
-	apiError := &Error{Status: response.StatusCode}
 	var envelope struct {
 		Error Error `json:"error"`
 	}
 	if err := json.Unmarshal(body, &envelope); err == nil && envelope.Error.ID != "" {
-		apiError.ID, apiError.Name, apiError.Detail = envelope.Error.ID, envelope.Error.Name, envelope.Error.Detail
-		return apiError
+		apiError := envelope.Error
+		apiError.Status = response.StatusCode
+		return &apiError
 	}
-	apiError.ID = fmt.Sprint(response.StatusCode)
-	apiError.Name = http.StatusText(response.StatusCode)
-	apiError.Detail = string(body)
-	return apiError
+	return &Error{
+		Status: response.StatusCode,
+		ID:     fmt.Sprint(response.StatusCode),
+		Name:   http.StatusText(response.StatusCode),
+		Detail: string(body),
+	}
 }

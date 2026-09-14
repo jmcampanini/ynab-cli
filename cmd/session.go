@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/jmcampanini/ynab-cli/internal/config"
@@ -45,33 +46,41 @@ func selectedPlan(ctx context.Context, client *ynab.Client, cfg config.Config) (
 	case 1:
 		return matches[0], nil
 	case 0:
-		return ynab.Plan{}, fmt.Errorf("plan %q not found; the token can read: %s", cfg.Plan, joinPlanNames(plans))
+		return ynab.Plan{}, fmt.Errorf("plan %q not found; the token can read: %s", cfg.Plan, quoteAll(planNames(plans)))
 	default:
-		return ynab.Plan{}, fmt.Errorf("plan %q matches %d plans; use an ID from 'ynab plans list': %s", cfg.Plan, len(matches), joinPlanNames(matches))
+		return ynab.Plan{}, fmt.Errorf("plan %q matches %d plans; use an ID from 'ynab plans list': %s", cfg.Plan, len(matches), quoteAll(planNames(matches)))
 	}
 }
 
 // matchPlan returns the plans whose ID equals the query or whose name
 // equals it ignoring case.
 func matchPlan(query string, plans []ynab.Plan) []ynab.Plan {
-	planNames := make([]string, len(plans))
-	for i, plan := range plans {
+	for _, plan := range plans {
 		if plan.ID == query {
 			return []ynab.Plan{plan}
 		}
-		planNames[i] = plan.Name
 	}
 	var matches []ynab.Plan
-	for _, i := range names.Match(query, planNames) {
+	for _, i := range names.Match(query, planNames(plans)) {
 		matches = append(matches, plans[i])
 	}
 	return matches
 }
 
-func joinPlanNames(plans []ynab.Plan) string {
-	quoted := make([]string, len(plans))
+func planNames(plans []ynab.Plan) []string {
+	list := make([]string, len(plans))
 	for i, plan := range plans {
-		quoted[i] = fmt.Sprintf("%q", plan.Name)
+		list[i] = plan.Name
+	}
+	return list
+}
+
+// quoteAll joins values as a comma-separated list of quoted strings for an
+// error message.
+func quoteAll(values []string) string {
+	quoted := make([]string, len(values))
+	for i, value := range values {
+		quoted[i] = strconv.Quote(value)
 	}
 	return strings.Join(quoted, ", ")
 }

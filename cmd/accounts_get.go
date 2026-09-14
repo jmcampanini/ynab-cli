@@ -104,11 +104,3 @@ func findAccount(query string, accounts []ynab.Account) (ynab.Account, error) {
 		return ynab.Account{}, fmt.Errorf("account %q matches %d accounts; use an ID: %s", query, len(matches), strings.Join(matched, ", "))
 	}
 }
-
-func quoteAll(values []string) string {
-	quoted := make([]string, len(values))
-	for i, value := range values {
-		quoted[i] = strconv.Quote(value)
-	}
-	return strings.Join(quoted, ", ")
-}

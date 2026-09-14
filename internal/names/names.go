@@ -33,9 +33,10 @@ func Closest(query string, candidates []string, limit int) []string {
 	}
 	sort.SliceStable(ranking, func(i, j int) bool { return ranking[i].distance < ranking[j].distance })
 
-	closest := make([]string, 0, min(limit, len(ranking)))
-	for _, entry := range ranking[:cap(closest)] {
-		closest = append(closest, candidates[entry.index])
+	limit = min(limit, len(ranking))
+	closest := make([]string, limit)
+	for i, entry := range ranking[:limit] {
+		closest[i] = candidates[entry.index]
 	}
 	return closest
 }

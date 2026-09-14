@@ -49,7 +49,7 @@ Example configuration:
 			}
 
 			redacted := loaded.Config.Redact()
-			reporter := configreporter.New(redacted, loaded.Report)
+			out := cmd.OutOrStdout()
 			if output.jsonl {
 				record := configRecord{AllowWrites: redacted.AllowWrites, Plan: redacted.Plan, Token: redacted.Token}
 				if provenance {
@@ -58,15 +58,17 @@ Example configuration:
 						record.Sources[configKey(path)] = source
 					}
 				}
-				return writeJSONL(cmd.OutOrStdout(), []configRecord{record})
+				return writeJSONL(out, []configRecord{record})
 			}
-			if err := reporter.WriteTOML(cmd.OutOrStdout()); err != nil {
+
+			reporter := configreporter.New(redacted, loaded.Report)
+			if err := reporter.WriteTOML(out); err != nil {
 				return err
 			}
 			if provenance {
 				for _, row := range reporter.ProvenanceRows() {
 					row[0] = configKey(row[0])
-					if _, err := fmt.Fprintf(cmd.OutOrStdout(), "# %s\n", strings.Join(row, " | ")); err != nil {
+					if _, err := fmt.Fprintf(out, "# %s\n", strings.Join(row, " | ")); err != nil {
 						return err
 					}
 				}
