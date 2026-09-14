@@ -16,8 +16,23 @@ describes exit statuses, and `ynab help output-formats` describes every
 
 ## Install
 
-ynab-cli distributes from source only; the repository is private and there
-is no Homebrew tap or release channel yet.
+ynab-cli distributes from HEAD only; there is no release channel or tagged
+binary.
+
+### Homebrew
+
+```sh
+brew tap jmcampanini/ynab-cli https://github.com/jmcampanini/ynab-cli
+brew install --HEAD jmcampanini/ynab-cli/ynab
+```
+
+Upgrade to the latest commit:
+
+```sh
+brew upgrade --fetch-HEAD ynab
+```
+
+### From source
 
 ```sh
 make build
