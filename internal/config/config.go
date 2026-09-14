@@ -3,8 +3,10 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/BurntSushi/toml"
 	"github.com/jmcampanini/go-config-loader/configloader"
 	"github.com/jmcampanini/go-config-loader/pflagloader"
 	"github.com/spf13/pflag"
@@ -79,7 +81,7 @@ func Load(path string, flags *pflag.FlagSet) (Loaded, error) {
 	}
 	cfg, report, err := configloader.Load(defaults(), fileLoader, envLoader, flagLoader)
 	if err != nil {
-		return Loaded{}, fmt.Errorf("load config %q: %w", path, err)
+		return Loaded{}, fmt.Errorf("load config %q: %w", path, redactParseError(err))
 	}
 
 	// go-config-loader registers a flag for every env-backed field, so the
@@ -90,4 +92,15 @@ func Load(path string, flags *pflag.FlagSet) (Loaded, error) {
 		report.Updates["token"] = configloader.SourceEnv
 	}
 	return Loaded{Config: cfg, Path: path, Report: report}, nil
+}
+
+// redactParseError hides the parser's message for a failure on the token
+// key, because that message echoes the unparsed value, as in an unquoted
+// token = abc123. Other keys keep the parser's detail.
+func redactParseError(err error) error {
+	var parseErr toml.ParseError
+	if !errors.As(err, &parseErr) || parseErr.LastKey != "token" {
+		return err
+	}
+	return fmt.Errorf("toml: line %d: the token value could not be parsed; write it as token = \"...\"", parseErr.Position.Line)
 }

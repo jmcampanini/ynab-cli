@@ -7,6 +7,7 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/spf13/cobra"
 )
@@ -117,11 +118,11 @@ type column struct {
 func writeTable(w io.Writer, columns []column, rows [][]cell) error {
 	widths := make([]int, len(columns))
 	for i, col := range columns {
-		widths[i] = len(col.name)
+		widths[i] = utf8.RuneCountInString(col.name)
 	}
 	for _, row := range rows {
 		for i, c := range row {
-			widths[i] = max(widths[i], len(c.text))
+			widths[i] = max(widths[i], utf8.RuneCountInString(c.text))
 		}
 	}
 
@@ -133,7 +134,7 @@ func writeTable(w io.Writer, columns []column, rows [][]cell) error {
 	for _, row := range append([][]cell{header}, rows...) {
 		var line strings.Builder
 		for i, c := range row {
-			padding := strings.Repeat(" ", widths[i]-len(c.text))
+			padding := strings.Repeat(" ", widths[i]-utf8.RuneCountInString(c.text))
 			text := c.text
 			if c.paint != nil {
 				text = c.paint(text)
@@ -158,7 +159,7 @@ func writeTable(w io.Writer, columns []column, rows [][]cell) error {
 func writeFields(w io.Writer, fields [][2]string) error {
 	width := 0
 	for _, field := range fields {
-		width = max(width, len(field[0]))
+		width = max(width, utf8.RuneCountInString(field[0]))
 	}
 	var out strings.Builder
 	for _, field := range fields {

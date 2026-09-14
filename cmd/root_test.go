@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -66,6 +67,10 @@ func newHarness(t *testing.T) *harness {
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(t.TempDir(), "missing"))
 	t.Setenv("YNAB_TOKEN", "good-token")
 	t.Setenv("YNAB_PLAN", "household")
+	t.Setenv("YNAB_ALLOW_WRITES", "")
+	if err := os.Unsetenv("YNAB_ALLOW_WRITES"); err != nil {
+		t.Fatal(err)
+	}
 	return h
 }
 

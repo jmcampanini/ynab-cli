@@ -11,6 +11,19 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// isolateEnv clears every YNAB_* variable the loader reads, so a
+// developer's exported settings cannot leak into a test; each test then
+// sets the variables it needs.
+func isolateEnv(t *testing.T) {
+	t.Helper()
+	for _, name := range []string{"YNAB_PLAN", "YNAB_TOKEN", "YNAB_ALLOW_WRITES"} {
+		t.Setenv(name, "")
+		if err := os.Unsetenv(name); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func flags(t *testing.T, args ...string) *pflag.FlagSet {
 	t.Helper()
 	f := pflag.NewFlagSet("test", pflag.ContinueOnError)
@@ -35,6 +48,7 @@ func TestTokenHasNoFlag(t *testing.T) {
 }
 
 func TestLayersProvenanceAndRoundTrip(t *testing.T) {
+	isolateEnv(t)
 	path := filepath.Join(t.TempDir(), "ynab.toml")
 	if err := os.WriteFile(path, []byte("plan = \"From File\"\ntoken = \"file-token\"\nallow_writes = true\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -80,6 +94,7 @@ func TestLayersProvenanceAndRoundTrip(t *testing.T) {
 }
 
 func TestDiscoveryToleratesAbsentFileAndExplicitFileMustExist(t *testing.T) {
+	isolateEnv(t)
 	root := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", root)
 	t.Setenv("YNAB_TOKEN", "env-token")
@@ -97,6 +112,7 @@ func TestDiscoveryToleratesAbsentFileAndExplicitFileMustExist(t *testing.T) {
 }
 
 func TestUnknownKeysAndBadValuesFail(t *testing.T) {
+	isolateEnv(t)
 	root := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", root)
 	path := filepath.Join(root, "ynab", "ynab.toml")
@@ -121,7 +137,28 @@ func TestUnknownKeysAndBadValuesFail(t *testing.T) {
 	}
 }
 
+func TestUnquotedTokenParseErrorHidesTheValue(t *testing.T) {
+	isolateEnv(t)
+	path := filepath.Join(t.TempDir(), "ynab.toml")
+	if err := os.WriteFile(path, []byte("token = deadbeefdeadbeef\nplan = 3\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := Load(path, flags(t))
+
+	if err == nil || strings.Contains(err.Error(), "deadbeef") || !strings.Contains(err.Error(), "line 1") {
+		t.Errorf("Load(unquoted token) = %v; want a parse error naming the line but not the value", err)
+	}
+	if err := os.WriteFile(path, []byte("plan = nope\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Load(path, flags(t)); err == nil || !strings.Contains(err.Error(), "nope") {
+		t.Errorf("Load(unquoted plan) = %v; want the parser's detail kept for other keys", err)
+	}
+}
+
 func TestEmptyTokenEnvDoesNotOverrideFile(t *testing.T) {
+	isolateEnv(t)
 	path := filepath.Join(t.TempDir(), "ynab.toml")
 	if err := os.WriteFile(path, []byte("token = \"file-token\"\n"), 0o600); err != nil {
 		t.Fatal(err)
