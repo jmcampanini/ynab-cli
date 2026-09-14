@@ -162,7 +162,8 @@ func writeFields(w io.Writer, fields [][2]string) error {
 	}
 	var out strings.Builder
 	for _, field := range fields {
-		fmt.Fprintf(&out, "%-*s  %s\n", width, field[0], field[1])
+		out.WriteString(strings.TrimRight(fmt.Sprintf("%-*s  %s", width, field[0], field[1]), " "))
+		out.WriteByte('\n')
 	}
 	_, err := io.WriteString(w, out.String())
 	return err

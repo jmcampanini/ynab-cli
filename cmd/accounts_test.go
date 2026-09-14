@@ -106,6 +106,10 @@ func TestAccountsGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	closed, err := h.execute(t, "accounts", "get", "a3")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	want := `id                 a1
 name               Chase Checking
@@ -125,6 +129,9 @@ last reconciled    2026-08-31 00:00:00
 	}
 	if !strings.HasPrefix(byID, `{"id":"a3","name":"Old Savings"`) || strings.Count(byID, "\n") != 1 {
 		t.Errorf("accounts get a3 --jsonl = %q; closed accounts must resolve", byID)
+	}
+	if !strings.Contains(closed, "\nnote\nbalance") || !strings.Contains(closed, "\nlast reconciled\n") {
+		t.Errorf("empty fields carry trailing spaces:\n%q", closed)
 	}
 }
 
