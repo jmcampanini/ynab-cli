@@ -22,10 +22,10 @@ type planRecord struct {
 func newPlanRecord(plan ynab.Plan, configured bool) planRecord {
 	record := planRecord{
 		Configured:     configured,
-		FirstMonth:     month(plan.FirstMonth),
+		FirstMonth:     shortMonth(plan.FirstMonth),
 		ID:             plan.ID,
 		LastModifiedOn: plan.LastModifiedOn,
-		LastMonth:      month(plan.LastMonth),
+		LastMonth:      shortMonth(plan.LastMonth),
 		Name:           plan.Name,
 	}
 	if plan.CurrencyFormat != nil {
@@ -35,14 +35,6 @@ func newPlanRecord(plan ynab.Plan, configured bool) planRecord {
 		record.DateFormat = plan.DateFormat.Format
 	}
 	return record
-}
-
-// month shortens the API's first-of-month date to YYYY-MM.
-func month(date string) string {
-	if len(date) >= 7 {
-		return date[:7]
-	}
-	return date
 }
 
 func newPlans(a *app) *cobra.Command {

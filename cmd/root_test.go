@@ -2,19 +2,24 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
-// fixture is a fake YNAB API with one plan and three accounts. Plan "p2"
-// exists so a name lookup can be exercised against several plans.
+// fixture is a fake YNAB API with two plans; plan "p1" has three accounts,
+// five category groups, and two months. Plan "p2" exists so a name lookup
+// can be exercised against several plans. The clock is fixed in September
+// 2026, so "current" is 2026-09.
 const (
 	fixturePlans = `{"data":{"plans":[
 {"id":"p1","name":"Household","last_modified_on":"2026-09-01T12:00:00Z","first_month":"2024-01-01","last_month":"2026-10-01",
@@ -27,7 +32,94 @@ const (
 {"id":"a2","name":"Visa","type":"creditCard","on_budget":true,"closed":false,"note":null,"balance":-97810,"cleared_balance":-97810,"uncleared_balance":0,"transfer_payee_id":"tp2","direct_import_linked":true,"direct_import_in_error":true,"last_reconciled_at":null,"deleted":false},
 {"id":"a3","name":"Old Savings","type":"savings","on_budget":false,"closed":true,"note":null,"balance":0,"cleared_balance":0,"uncleared_balance":0,"transfer_payee_id":null,"direct_import_linked":false,"direct_import_in_error":false,"last_reconciled_at":null,"deleted":false}
 ]}}`
+	// fixtureCategoryGroups carries September's amounts: Dining Out is
+	// overspent, Old Hobby is hidden, Wishes is a hidden group whose
+	// Internet shares its name with Bills' Internet, and the two internal
+	// groups hold a credit card payment and the inflow category.
+	fixtureCategoryGroups = `{"data":{"category_groups":[
+{"id":"g1","name":"Bills","hidden":false,"internal":false,"deleted":false,"categories":[
+ {"id":"c1","category_group_id":"g1","category_group_name":"Bills","name":"Internet","hidden":false,"internal":false,"note":"Fiber","budgeted":80000,"activity":-79990,"balance":10,"goal_type":"NEED","goal_needs_whole_amount":true,"goal_day":null,"goal_cadence":1,"goal_cadence_frequency":1,"goal_creation_month":"2025-08-01","goal_target":80000,"goal_target_date":null,"goal_percentage_complete":100,"goal_months_to_budget":1,"goal_under_funded":0,"goal_overall_funded":80000,"goal_overall_left":0,"goal_snoozed_at":null,"deleted":false},
+ {"id":"c2","category_group_id":"g1","category_group_name":"Bills","name":"Rent","hidden":false,"internal":false,"note":null,"budgeted":1500000,"activity":-1500000,"balance":0,"goal_type":"MF","goal_needs_whole_amount":null,"goal_day":null,"goal_cadence":1,"goal_cadence_frequency":1,"goal_creation_month":"2024-01-01","goal_target":1500000,"goal_target_date":null,"goal_percentage_complete":100,"goal_months_to_budget":1,"goal_under_funded":0,"goal_overall_funded":1500000,"goal_overall_left":0,"goal_snoozed_at":null,"deleted":false}]},
+{"id":"g2","name":"Fun","hidden":false,"internal":false,"deleted":false,"categories":[
+ {"id":"c3","category_group_id":"g2","category_group_name":"Fun","name":"Dining Out","hidden":false,"internal":false,"note":null,"budgeted":200000,"activity":-225000,"balance":-25000,"goal_type":null,"goal_needs_whole_amount":null,"goal_day":null,"goal_cadence":null,"goal_cadence_frequency":null,"goal_creation_month":null,"goal_target":0,"goal_target_date":null,"goal_percentage_complete":null,"goal_months_to_budget":null,"goal_under_funded":null,"goal_overall_funded":null,"goal_overall_left":null,"goal_snoozed_at":null,"deleted":false},
+ {"id":"c4","category_group_id":"g2","category_group_name":"Fun","name":"Old Hobby","hidden":true,"internal":false,"note":null,"budgeted":0,"activity":0,"balance":5000,"goal_type":null,"goal_needs_whole_amount":null,"goal_day":null,"goal_cadence":null,"goal_cadence_frequency":null,"goal_creation_month":null,"goal_target":0,"goal_target_date":null,"goal_percentage_complete":null,"goal_months_to_budget":null,"goal_under_funded":null,"goal_overall_funded":null,"goal_overall_left":null,"goal_snoozed_at":null,"deleted":false}]},
+{"id":"g3","name":"Wishes","hidden":true,"internal":false,"deleted":false,"categories":[
+ {"id":"c5","category_group_id":"g3","category_group_name":"Wishes","name":"Internet","hidden":true,"internal":false,"note":null,"budgeted":0,"activity":0,"balance":100000,"goal_type":"TBD","goal_needs_whole_amount":null,"goal_day":null,"goal_cadence":null,"goal_cadence_frequency":null,"goal_creation_month":"2026-05-01","goal_target":500000,"goal_target_date":"2027-01-01","goal_percentage_complete":20,"goal_months_to_budget":4,"goal_under_funded":100000,"goal_overall_funded":100000,"goal_overall_left":400000,"goal_snoozed_at":null,"deleted":false}]},
+{"id":"g4","name":"Credit Card Payments","hidden":false,"internal":true,"deleted":false,"categories":[
+ {"id":"c6","category_group_id":"g4","category_group_name":"Credit Card Payments","name":"Visa","hidden":false,"internal":false,"note":null,"budgeted":97810,"activity":97810,"balance":97810,"goal_type":null,"goal_needs_whole_amount":null,"goal_day":null,"goal_cadence":null,"goal_cadence_frequency":null,"goal_creation_month":null,"goal_target":0,"goal_target_date":null,"goal_percentage_complete":null,"goal_months_to_budget":null,"goal_under_funded":null,"goal_overall_funded":null,"goal_overall_left":null,"goal_snoozed_at":null,"deleted":false}]},
+{"id":"g5","name":"Internal Master Category","hidden":false,"internal":true,"deleted":false,"categories":[
+ {"id":"c7","category_group_id":"g5","category_group_name":"Internal Master Category","name":"Inflow: Ready to Assign","hidden":false,"internal":true,"note":null,"budgeted":0,"activity":0,"balance":0,"goal_type":null,"goal_needs_whole_amount":null,"goal_day":null,"goal_cadence":null,"goal_cadence_frequency":null,"goal_creation_month":null,"goal_target":0,"goal_target_date":null,"goal_percentage_complete":null,"goal_months_to_budget":null,"goal_under_funded":null,"goal_overall_funded":null,"goal_overall_left":null,"goal_snoozed_at":null,"deleted":false}]}
+]}}`
+	// fixtureAugustCategories are the same categories with August's
+	// amounts, in an order unlike the groups' to prove grouping does not
+	// rely on the month endpoint's order.
+	fixtureAugustCategories = `[
+{"id":"c3","category_group_id":"g2","category_group_name":"Fun","name":"Dining Out","hidden":false,"internal":false,"note":null,"budgeted":200000,"activity":-180000,"balance":20000,"goal_type":null,"goal_target":0,"deleted":false},
+{"id":"c1","category_group_id":"g1","category_group_name":"Bills","name":"Internet","hidden":false,"internal":false,"note":"Fiber","budgeted":80000,"activity":-80000,"balance":0,"goal_type":"NEED","goal_needs_whole_amount":true,"goal_day":null,"goal_cadence":1,"goal_cadence_frequency":1,"goal_creation_month":"2025-08-01","goal_target":80000,"goal_target_date":null,"goal_percentage_complete":100,"goal_months_to_budget":1,"goal_under_funded":0,"goal_overall_funded":80000,"goal_overall_left":0,"goal_snoozed_at":null,"deleted":false},
+{"id":"c2","category_group_id":"g1","category_group_name":"Bills","name":"Rent","hidden":false,"internal":false,"note":null,"budgeted":1500000,"activity":-1500000,"balance":0,"goal_type":"MF","goal_cadence":1,"goal_cadence_frequency":1,"goal_creation_month":"2024-01-01","goal_target":1500000,"goal_percentage_complete":100,"goal_months_to_budget":1,"goal_under_funded":0,"goal_overall_funded":1500000,"goal_overall_left":0,"deleted":false},
+{"id":"c4","category_group_id":"g2","category_group_name":"Fun","name":"Old Hobby","hidden":true,"internal":false,"note":null,"budgeted":0,"activity":0,"balance":5000,"goal_type":null,"goal_target":0,"deleted":false},
+{"id":"c5","category_group_id":"g3","category_group_name":"Wishes","name":"Internet","hidden":true,"internal":false,"note":null,"budgeted":0,"activity":0,"balance":100000,"goal_type":"TBD","goal_creation_month":"2026-05-01","goal_target":500000,"goal_target_date":"2027-01-01","goal_percentage_complete":20,"goal_months_to_budget":5,"goal_under_funded":100000,"goal_overall_funded":100000,"goal_overall_left":400000,"deleted":false},
+{"id":"c6","category_group_id":"g4","category_group_name":"Credit Card Payments","name":"Visa","hidden":false,"internal":false,"note":null,"budgeted":50000,"activity":50000,"balance":50000,"goal_type":null,"goal_target":0,"deleted":false},
+{"id":"c7","category_group_id":"g5","category_group_name":"Internal Master Category","name":"Inflow: Ready to Assign","hidden":false,"internal":true,"note":null,"budgeted":0,"activity":0,"balance":0,"goal_type":null,"goal_target":0,"deleted":false}
+]`
+	fixtureAugustTotals    = `"month":"2026-08-01","note":"August","income":3000000,"budgeted":1780000,"activity":-1710000,"to_be_budgeted":1220000,"age_of_money":30,"deleted":false`
+	fixtureSeptemberTotals = `"month":"2026-09-01","note":null,"income":0,"budgeted":1780000,"activity":-1707180,"to_be_budgeted":-500000,"age_of_money":null,"deleted":false`
 )
+
+func notFound(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNotFound)
+	_, _ = io.WriteString(w, `{"error":{"id":"404.2","name":"resource_not_found","detail":"Resource not found"}}`)
+}
+
+// fixtureNow is the harness clock.
+var fixtureNow = time.Date(2026, time.September, 15, 12, 0, 0, 0, time.UTC)
+
+// fixtureCurrentCategories flattens the group fixture into the month
+// endpoint's shape so September's month detail carries the same amounts
+// as the categories endpoint.
+func fixtureCurrentCategories(t *testing.T) string {
+	t.Helper()
+	var groups struct {
+		Data struct {
+			Groups []struct {
+				Categories []json.RawMessage `json:"categories"`
+			} `json:"category_groups"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(fixtureCategoryGroups), &groups); err != nil {
+		t.Fatal(err)
+	}
+	var categories []json.RawMessage
+	for _, group := range groups.Data.Groups {
+		categories = append(categories, group.Categories...)
+	}
+	flattened, err := json.Marshal(categories)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(flattened)
+}
+
+// fixtureCategoryIn returns one category of a month fixture array by ID.
+func fixtureCategoryIn(t *testing.T, categories, id string) (string, bool) {
+	t.Helper()
+	var entries []json.RawMessage
+	if err := json.Unmarshal([]byte(categories), &entries); err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		var header struct {
+			ID string `json:"id"`
+		}
+		if err := json.Unmarshal(entry, &header); err != nil {
+			t.Fatal(err)
+		}
+		if header.ID == id {
+			return string(entry), true
+		}
+	}
+	return "", false
+}
 
 // harness runs a fresh root against a fake API in an isolated environment
 // and records the API paths each execution requested.
@@ -48,14 +140,29 @@ func newHarness(t *testing.T) *harness {
 			_, _ = io.WriteString(w, `{"error":{"id":"401","name":"unauthorized","detail":"Unauthorized"}}`)
 			return
 		}
-		switch r.URL.Path {
-		case "/plans":
+		months := map[string]string{"2026-08-01": fixtureAugustTotals, "2026-09-01": fixtureSeptemberTotals}
+		monthCategories := map[string]string{"2026-08-01": fixtureAugustCategories, "2026-09-01": fixtureCurrentCategories(t)}
+		monthPath := regexp.MustCompile(`^/plans/p1/months/(\d{4}-\d{2}-\d{2})(?:/categories/(\w+))?$`)
+		switch match := monthPath.FindStringSubmatch(r.URL.Path); {
+		case r.URL.Path == "/plans":
 			_, _ = io.WriteString(w, fixturePlans)
-		case "/plans/p1/accounts":
+		case r.URL.Path == "/plans/p1/accounts":
 			_, _ = io.WriteString(w, fixtureAccounts)
+		case r.URL.Path == "/plans/p1/categories":
+			_, _ = io.WriteString(w, fixtureCategoryGroups)
+		case r.URL.Path == "/plans/p1/months":
+			_, _ = io.WriteString(w, `{"data":{"months":[{`+fixtureAugustTotals+`},{`+fixtureSeptemberTotals+`}]}}`)
+		case match != nil && match[2] == "" && months[match[1]] != "":
+			_, _ = io.WriteString(w, `{"data":{"month":{`+months[match[1]]+`,"categories":`+monthCategories[match[1]]+`}}}`)
+		case match != nil && match[2] != "" && months[match[1]] != "":
+			category, ok := fixtureCategoryIn(t, monthCategories[match[1]], match[2])
+			if !ok {
+				notFound(w)
+				return
+			}
+			_, _ = io.WriteString(w, `{"data":{"category":`+category+`}}`)
 		default:
-			w.WriteHeader(http.StatusNotFound)
-			_, _ = io.WriteString(w, `{"error":{"id":"404.2","name":"resource_not_found","detail":"Resource not found"}}`)
+			notFound(w)
 		}
 	}))
 	t.Cleanup(server.Close)
@@ -63,6 +170,7 @@ func newHarness(t *testing.T) *harness {
 		baseURL:    server.URL,
 		isTerminal: func(io.Writer) bool { return h.terminal },
 		lookupEnv:  func(name string) string { return h.env[name] },
+		now:        func() time.Time { return fixtureNow },
 	}
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(t.TempDir(), "missing"))
 	t.Setenv("YNAB_TOKEN", "good-token")
@@ -205,7 +313,7 @@ func TestAPIErrorsExitOne(t *testing.T) {
 func TestHelpAndVersionNeedNoTokenOrNetwork(t *testing.T) {
 	h := newHarness(t)
 	t.Setenv("YNAB_TOKEN", "")
-	for _, args := range [][]string{{"--help"}, {"--version"}, {"plans"}, {"accounts"}, {"accounts", "get", "--help"}, {"output-formats"}, {"config", "--help"}} {
+	for _, args := range [][]string{{"--help"}, {"--version"}, {"plans"}, {"accounts"}, {"accounts", "get", "--help"}, {"categories"}, {"category-groups"}, {"months"}, {"output-formats"}, {"config", "--help"}} {
 		out, err := h.execute(t, args...)
 		if err != nil || out == "" {
 			t.Errorf("execute(%v) = %q, %v", args, out, err)

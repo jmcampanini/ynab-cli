@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -42,9 +44,11 @@ func writeJSONL[T any](w io.Writer, records []T) error {
 
 // writeCSV writes a header of the records' JSON field names and one row
 // per record with the same values JSONL would carry: strings unquoted,
-// numbers and booleans as JSON text, and absent values empty.
+// numbers and booleans as JSON text, and absent values empty. A nested
+// object such as a category's target becomes one column per field, named
+// parent_child, all empty when the object is absent.
 func writeCSV[T any](w io.Writer, records []T) error {
-	fields := jsonFields(reflect.TypeFor[T]())
+	fields := jsonFields(reflect.TypeFor[T](), "", nil)
 	header := make([]string, len(fields))
 	for i, field := range fields {
 		header[i] = field.name
@@ -58,7 +62,11 @@ func writeCSV[T any](w io.Writer, records []T) error {
 		value := reflect.ValueOf(record)
 		row := make([]string, len(fields))
 		for i, field := range fields {
-			text, err := csvCell(value.FieldByIndex(field.index).Interface())
+			nested, present := fieldValue(value, field.index)
+			if !present {
+				continue
+			}
+			text, err := csvCell(nested.Interface())
 			if err != nil {
 				return err
 			}
@@ -72,24 +80,62 @@ func writeCSV[T any](w io.Writer, records []T) error {
 	return writer.Error()
 }
 
-// jsonField is one struct field that JSON output carries: its JSON name and
-// its index for reflect.Value.FieldByIndex.
+// jsonField is one column CSV output carries: its header name and the
+// field index path from the record, through nested objects.
 type jsonField struct {
 	name  string
 	index []int
 }
 
-// jsonFields returns the fields of a record type that JSON output carries,
-// in declaration order, so the CSV header and rows use the same columns.
-func jsonFields(recordType reflect.Type) []jsonField {
+// jsonFields returns the columns of a record type in declaration order,
+// so the CSV header and rows use the same columns JSONL carries. Fields
+// that JSON encodes as an object of their own fields are flattened with
+// the prefix "parent_".
+func jsonFields(recordType reflect.Type, prefix string, path []int) []jsonField {
 	var fields []jsonField
 	for _, field := range reflect.VisibleFields(recordType) {
 		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
-		if name != "" && name != "-" {
-			fields = append(fields, jsonField{name: name, index: field.Index})
+		if name == "" || name == "-" {
+			continue
 		}
+		index := append(slices.Clone(path), field.Index...)
+		if nested := objectType(field.Type); nested != nil {
+			fields = append(fields, jsonFields(nested, prefix+name+"_", index)...)
+			continue
+		}
+		fields = append(fields, jsonField{name: prefix + name, index: index})
 	}
 	return fields
+}
+
+var jsonMarshaler = reflect.TypeFor[json.Marshaler]()
+
+// objectType returns the struct type JSON would encode as an object of its
+// fields, behind at most one pointer, or nil for scalars and for types
+// with their own encoding such as time.Time.
+func objectType(fieldType reflect.Type) reflect.Type {
+	if fieldType.Kind() == reflect.Pointer {
+		fieldType = fieldType.Elem()
+	}
+	if fieldType.Kind() != reflect.Struct || fieldType.Implements(jsonMarshaler) || reflect.PointerTo(fieldType).Implements(jsonMarshaler) {
+		return nil
+	}
+	return fieldType
+}
+
+// fieldValue walks an index path, dereferencing pointers, and reports
+// false when a nil pointer makes the value absent.
+func fieldValue(value reflect.Value, index []int) (reflect.Value, bool) {
+	for _, i := range index {
+		if value.Kind() == reflect.Pointer {
+			if value.IsNil() {
+				return reflect.Value{}, false
+			}
+			value = value.Elem()
+		}
+		value = value.Field(i)
+	}
+	return value, true
 }
 
 // csvCell renders one field value as its JSON text, with strings unquoted
@@ -168,7 +214,9 @@ func writeTable(w io.Writer, columns []column, rows [][]cell) error {
 	return err
 }
 
-// writeFields renders one record as aligned "name  value" lines.
+// writeFields renders one record as aligned "name  value" lines. A value
+// spanning several lines, such as a note, continues under the value
+// column.
 func writeFields(w io.Writer, fields [][2]string) error {
 	width := 0
 	for _, field := range fields {
@@ -176,11 +224,25 @@ func writeFields(w io.Writer, fields [][2]string) error {
 	}
 	var out strings.Builder
 	for _, field := range fields {
-		out.WriteString(strings.TrimRight(fmt.Sprintf("%-*s  %s", width, field[0], field[1]), " "))
-		out.WriteByte('\n')
+		for i, line := range strings.Split(field[1], "\n") {
+			name := field[0]
+			if i > 0 {
+				name = ""
+			}
+			out.WriteString(strings.TrimRight(fmt.Sprintf("%-*s  %s", width, name, line), " "))
+			out.WriteByte('\n')
+		}
 	}
 	_, err := io.WriteString(w, out.String())
 	return err
+}
+
+// optionalInt renders a nullable count for human output, blank when nil.
+func optionalInt(value *int) string {
+	if value == nil {
+		return ""
+	}
+	return strconv.Itoa(*value)
 }
 
 // countNoun pluralizes a summary count.
