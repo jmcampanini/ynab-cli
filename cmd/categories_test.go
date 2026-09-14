@@ -161,7 +161,7 @@ target              plan your spending (NEED)
 target amount       $80.00
 target date
 target cadence      monthly
-target day
+target day          last day of the month
 target rollover     set aside the full amount each period
 target created      2025-08
 target progress     100%
@@ -225,12 +225,13 @@ func TestTargetWords(t *testing.T) {
 		target targetRecord
 		want   [2]string
 	}{
-		{"monthly", targetRecord{Cadence: intPtr(1), CadenceFrequency: intPtr(1)}, [2]string{"monthly", ""}},
+		{"monthly", targetRecord{Cadence: intPtr(1), CadenceFrequency: intPtr(1)}, [2]string{"monthly", "last day of the month"}},
 		{"every other month", targetRecord{Cadence: intPtr(1), CadenceFrequency: intPtr(2), Day: intPtr(15)}, [2]string{"every 2 months", "day 15 of the month"}},
 		{"weekly on friday", targetRecord{Cadence: intPtr(2), CadenceFrequency: intPtr(1), Day: intPtr(5)}, [2]string{"weekly", "Friday"}},
-		{"every 3 months by code", targetRecord{Cadence: intPtr(4)}, [2]string{"every 3 months", ""}},
-		{"yearly", targetRecord{Cadence: intPtr(13), CadenceFrequency: intPtr(1)}, [2]string{"yearly", ""}},
-		{"every 2 years", targetRecord{Cadence: intPtr(14)}, [2]string{"every 2 years", ""}},
+		{"weekly without a day", targetRecord{Cadence: intPtr(2)}, [2]string{"weekly", ""}},
+		{"every 3 months by code", targetRecord{Cadence: intPtr(4)}, [2]string{"every 3 months", "last day of the month"}},
+		{"yearly", targetRecord{Cadence: intPtr(13), CadenceFrequency: intPtr(1)}, [2]string{"yearly", "last day of the month"}},
+		{"every 2 years", targetRecord{Cadence: intPtr(14)}, [2]string{"every 2 years", "last day of the month"}},
 		{"none", targetRecord{Cadence: intPtr(0)}, [2]string{"none", ""}},
 		{"absent", targetRecord{}, [2]string{"", ""}},
 	}

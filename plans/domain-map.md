@@ -169,8 +169,12 @@ re-fetch. The API's `server_knowledge` delta cursor is not exposed in this
 pass; `api` returns it raw if needed.
 
 **Rate limit.** 200 requests per hour per token. Most commands make one
-request. Commands that need several resources prefer the one-call full plan
-export. A 429 fails with an error naming the limit.
+request. Commands that need several resources, such as `plans status`, make
+one typed request per resource and state the count in their help. The
+one-call full plan export is preferred only when a command needs the
+transaction history, which none does yet; it carries every transaction the
+plan has ever had, and typed listings keep counts such as `uncategorized`
+server-defined. A 429 fails with an error naming the limit.
 
 **Dates.** ISO `YYYY-MM-DD` for dates, `YYYY-MM` for months, plus `today`,
 `yesterday`, and `current`.

@@ -60,9 +60,10 @@ func newRoot(deps dependencies) *cobra.Command {
 		Long: `ynab reads and writes a YNAB plan from the terminal and emits JSON lines
 and CSV for scripts and agents. Every command is 'ynab <noun> <verb>'; a
 bare noun prints its help. This release reads plans, accounts, categories,
-category groups, and months. Writes are not implemented yet; when they
-arrive they stay disabled until allow_writes is set, and every write will
-accept --dry-run.
+category groups, months, transactions, payees, scheduled transactions,
+and money movements, and summarizes the month with 'plans status'. Writes
+are not implemented yet; when they arrive they stay disabled until
+allow_writes is set, and every write will accept --dry-run.
 
 ynab needs a personal access token from https://app.ynab.com/settings/developer
 and network access to api.ynab.com. It runs no external programs, never
@@ -73,7 +74,9 @@ prompts, and keeps nothing on disk.
   ynab accounts list --plan Household
   ynab accounts list --jsonl | jq .balance
   ynab categories get "Bills: Internet"
-  ynab months get
+  ynab transactions list --since 2026-08-01 --csv > august.csv
+  ynab transactions review
+  ynab plans status
   ynab config --provenance`,
 		SilenceErrors: true, SilenceUsage: true, Version: Version,
 		DisableSuggestions: true,
@@ -87,7 +90,7 @@ prompts, and keeps nothing on disk.
 		// Registration depends only on this package's static configuration type.
 		panic(err)
 	}
-	root.AddCommand(newConfig(), newPlans(a), newAccounts(a), newCategories(a), newCategoryGroups(a), newMonths(a), exitCodesTopic(), outputFormatsTopic())
+	root.AddCommand(newConfig(), newPlans(a), newAccounts(a), newCategories(a), newCategoryGroups(a), newMonths(a), newTransactions(a), newPayees(a), newScheduled(a), newMoneyMovements(a), exitCodesTopic(), outputFormatsTopic())
 	return root
 }
 

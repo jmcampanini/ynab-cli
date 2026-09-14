@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -102,5 +103,66 @@ func TestPlanMissAndAmbiguityListNames(t *testing.T) {
 	}
 	if got := matchPlan("y", twins); len(got) != 1 || got[0].ID != "y" {
 		t.Errorf("matchPlan(y) = %v, want the ID match alone", got)
+	}
+}
+
+func TestPlansStatusSummarizesTheCurrentMonth(t *testing.T) {
+	h := newHarness(t)
+
+	table, err := h.execute(t, "plans", "status")
+	if err != nil {
+		t.Fatal(err)
+	}
+	jsonl, err := h.execute(t, "plans", "status", "--jsonl")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantTable := `month            2026-09
+ready to assign  -$500.00
+age of money
+overspent        1 category, -$25.00: Dining Out -$25.00
+underfunded      none
+unapproved       3 transactions
+uncategorized    2 transactions
+import errors    Visa
+`
+	if table != wantTable {
+		t.Errorf("plans status =\n%s\nwant\n%s", table, wantTable)
+	}
+	wantJSONL := `{"month":"2026-09","ready_to_assign":-500.00,"overspent_count":1,"overspent_total":-25.00,"underfunded_count":0,"underfunded_total":0.00,"unapproved_count":3,"uncategorized_count":2,"import_error_accounts":["Visa"]}` + "\n"
+	if jsonl != wantJSONL {
+		t.Errorf("plans status --jsonl =\n%s\nwant\n%s", jsonl, wantJSONL)
+	}
+	want := []string{
+		"/plans", "/plans/p1/months/2026-09-01", "/plans/p1/categories", "/plans/p1/accounts",
+		"/plans/p1/transactions?type=unapproved", "/plans/p1/transactions?type=uncategorized",
+	}
+	if !reflect.DeepEqual(h.requests[:6], want) {
+		t.Errorf("requests = %v, want %v", h.requests[:6], want)
+	}
+}
+
+func TestPlanStatusUnderfundedAndImportErrorsFromFixtures(t *testing.T) {
+	underfunded := ynab.Amount(100000)
+	targetType := "NEED"
+	groups := []ynab.CategoryGroup{{ID: "g", Name: "Bills", Categories: []ynab.Category{
+		{ID: "c", Name: "Internet", GroupID: "g", Available: 5000, TargetType: &targetType, TargetUnderfunded: &underfunded},
+		{ID: "h", Name: "Hidden", GroupID: "g", Hidden: true, Available: -1000, TargetType: &targetType, TargetUnderfunded: &underfunded},
+	}}}
+	month := ynab.Month{Month: "2026-09-01", Categories: groups[0].Categories}
+	accounts := []ynab.Account{{Name: "Open", DirectImportInError: true}, {Name: "Closed", Closed: true, DirectImportInError: true}}
+
+	status, err := newPlanStatus(month, groups, accounts, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := statusRecord{Month: "2026-09", UnderfundedCount: 1, UnderfundedTotal: 100000, ImportErrorAccounts: []string{"Open"}}
+	if !reflect.DeepEqual(status.record, want) {
+		t.Errorf("status = %+v, want %+v", status.record, want)
+	}
+	if got := status.fields(nil)[4]; got != [2]string{"underfunded", "1 target, 100.00: Internet 100.00"} {
+		t.Errorf("underfunded field = %q", got)
 	}
 }

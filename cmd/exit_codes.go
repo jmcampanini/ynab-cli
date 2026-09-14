@@ -70,8 +70,8 @@ func exitCodesTopic() *cobra.Command {
   0  Success, including an empty list, help, version, completion, and
      'ynab help <unknown>', which prints the root usage.
   1  Command failure: the API returned an error, the token or plan is not
-     configured or not found, an account or category did not match, or
-     the configuration file could not be loaded.
+     configured or not found, an account, category, payee, or transaction
+     did not match, or the configuration file could not be loaded.
   2  Usage: an unknown command, flag, or operand count, an invalid flag
      value such as --color bold, or a month that is not current, YYYY-MM,
      or YYYY-MM-01. Nothing ran and stdout is empty.

@@ -23,9 +23,9 @@ const planHelp = `Plan selection:
   invocations.`
 
 const monthHelp = `Months:
-  MONTH and --month accept current, YYYY-MM, or YYYY-MM-01, and default to
-  current. current is the calendar month in UTC, which is how the API
-  defines the current plan month. Any other form is a usage error.`
+  MONTH and --month accept current, YYYY-MM, or YYYY-MM-01. current is the
+  calendar month in UTC, which is how the API defines the current plan
+  month. Any other form is a usage error.`
 
 const outputHelp = `Output:
   Results go to stdout; diagnostics go to stderr. The default is a human
@@ -36,3 +36,7 @@ const outputHelp = `Output:
   terminal, TERM is dumb, or NO_COLOR is set. Amounts are decimal currency
   units with outflows negative. See 'ynab help output-formats' for every
   record shape and 'ynab help exit-codes' for exit statuses.`
+
+const dateHelp = `Dates:
+  --since and --until accept YYYY-MM-DD, today, or yesterday. today and
+  yesterday follow the local clock. Any other form is a usage error.`
