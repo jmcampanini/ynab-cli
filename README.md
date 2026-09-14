@@ -4,9 +4,10 @@ ynab-cli is a command line for a YNAB plan. It reads accounts, categories,
 months, and transactions, writes transactions and assigned amounts, and emits
 JSON lines and CSV for scripts and agents. Writes are disabled until the
 configuration enables them, and every write has a dry run. This release
-reads plans and accounts; the [milestones](plans/milestones.md) record the
-order the rest lands in, and the [domain map](plans/domain-map.md) records
-the nouns, verbs, and decisions.
+reads plans, accounts, categories, and months; the
+[milestones](plans/milestones.md) record the order the rest lands in, and
+the [domain map](plans/domain-map.md) records the nouns, verbs, and
+decisions.
 
 Command help is the canonical reference: `ynab --help` and each command's
 `--help` describe every user-facing contract, `ynab config --help` describes
@@ -50,6 +51,12 @@ make build
 | `ynab accounts list --jsonl \| jq .balance` | Emit one JSON object per account. |
 | `ynab accounts list --csv > accounts.csv` | Write the same records as CSV. |
 | `ynab accounts get "Chase Checking"` | Show every field of one account by exact name or ID. |
+| `ynab categories list` | List this month's categories by group with assigned, activity, available, and targets. |
+| `ynab categories list --month 2026-08 --jsonl \| jq 'select(.available < 0)'` | Find last month's overspent categories. |
+| `ynab categories get "Bills: Internet"` | Show one category by ID, exact name, or `Group: Name`, with its target decoded. |
+| `ynab category-groups list` | List the category groups with their category counts. |
+| `ynab months list` | List every month's income, assigned, activity, ready to assign, and age of money. |
+| `ynab months get` | Show this month's totals and its category rows. |
 | `ynab config --provenance` | Print the effective configuration with each field's source. |
 
 ## Required external programs
