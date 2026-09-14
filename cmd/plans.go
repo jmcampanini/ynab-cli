@@ -41,13 +41,13 @@ func newPlans(a *app) *cobra.Command {
 	command := &cobra.Command{
 		Use: "plans", Short: "List plans and read the configured plan",
 		Long: `Read the plans the token can access. A bare 'ynab plans' prints this
-help and exits 0. 'plans list' needs only a token; 'plans get' also needs
-the configured plan.
+help and exits 0. 'plans list' needs only a token; 'plans get' and
+'plans status' also need the configured plan.
 
 ` + planHelp,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
-	command.AddCommand(newPlansList(a), newPlansGet(a))
+	command.AddCommand(newPlansList(a), newPlansGet(a), newPlansStatus(a))
 	return command
 }

@@ -12,8 +12,9 @@ values. Keys are lowercase snake_case. Amounts are JSON numbers with two
 decimals written from the API's exact milliunit value ("450.00"); outflows
 are negative. Dates are YYYY-MM-DD, months YYYY-MM, timestamps RFC 3339.
 Absent optional fields are omitted in JSONL and empty in CSV. Enum values
-keep the API's spelling, such as "creditCard". Machine output never
-carries color.
+keep the API's spelling, such as "creditCard". Arrays such as a split's
+subtransactions are omitted from CSV, which flattens them to rows
+instead. Machine output never carries color.
 
 Plan (plans list, plans get):
   id                 string
@@ -92,6 +93,111 @@ Month (months list, months get):
   activity          amount
   ready_to_assign   amount; negative when overassigned
   age_of_money      days; omitted until the plan has one
+
+Transaction (transactions list, transactions get, transactions review):
+  id                          string
+  parent_id                   CSV only: the parent's id on a split line,
+                              empty on a transaction
+  date                        YYYY-MM-DD
+  account                     account name
+  account_id                  string
+  payee                       string; omitted when absent
+  payee_id                    string; omitted when absent
+  category                    category name, "Split" for a split;
+                              omitted when uncategorized
+  category_id                 string; omitted for splits and uncategorized
+  memo                        string; omitted when empty
+  amount                      amount
+  cleared                     uncleared, cleared, or reconciled
+  approved                    boolean
+  flag_color                  red, orange, yellow, green, blue, purple;
+                              omitted when unflagged
+  flag_name                   the flag's custom name; omitted when unset
+  transfer_account            account name; omitted unless a transfer
+  transfer_account_id         string; omitted unless a transfer
+  transfer_transaction_id     the other side; omitted unless a transfer
+  matched_transaction_id      string; omitted unless matched
+  import_id                   string; omitted unless imported
+  import_payee_name           string; omitted unless imported
+  import_payee_name_original  string; omitted unless imported
+  debt_transaction_type       payment, refund, fee, interest, escrow,
+                              balanceAdjustment, credit, charge; omitted
+                              unless on a debt account
+  needs                       transactions review only: approve,
+                              categorize, or both
+  subtransactions             array of lines; omitted unless a split
+    id                          string
+    payee                       string; omitted when the line inherits
+    payee_id                    string; omitted when the line inherits
+    category                    string; omitted when uncategorized
+    category_id                 string; omitted when uncategorized
+    memo                        string; omitted when empty
+    amount                      amount
+    transfer_account            account name; omitted unless a transfer
+    transfer_account_id         string; omitted unless a transfer
+    transfer_transaction_id     string; omitted unless a transfer
+  In CSV each split line becomes its own row after the parent, with the
+  line's id, payee, category, memo, amount, and transfer fields, the
+  parent's id in parent_id, and the parent's date, account, cleared,
+  approved, and flag.
+
+Payee (payees list, payees get):
+  id                    string
+  name                  string
+  transfer_account      account name; omitted unless a transfer payee
+  transfer_account_id   string; omitted unless a transfer payee
+
+Scheduled transaction (scheduled list, scheduled get):
+  id                    string
+  parent_id             CSV only, as for transactions
+  next_date             YYYY-MM-DD
+  first_date            YYYY-MM-DD
+  frequency             never, daily, weekly, everyOtherWeek,
+                        twiceAMonth, every4Weeks, monthly,
+                        everyOtherMonth, every3Months, every4Months,
+                        twiceAYear, yearly, everyOtherYear
+  account               account name
+  account_id            string
+  payee                 string; omitted when absent
+  payee_id              string; omitted when absent
+  category              category name, "Split" for a split; omitted when
+                        uncategorized
+  category_id           string; omitted for splits and uncategorized
+  memo                  string; omitted when empty
+  amount                amount
+  flag_color            as for transactions; omitted when unflagged
+  flag_name             omitted when unset
+  transfer_account      account name; omitted unless a transfer
+  transfer_account_id   string; omitted unless a transfer
+  subtransactions       array of lines with id, payee, payee_id,
+                        category, category_id, memo, amount,
+                        transfer_account, transfer_account_id; omitted
+                        unless a split. CSV flattens as for transactions.
+
+Money movement (money-movements list):
+  id         string
+  month      YYYY-MM; omitted when absent
+  moved_at   timestamp; omitted when absent
+  from       source category name, or "Ready to Assign"
+  from_id    string; omitted for ready to assign
+  to         target category name, or "Ready to Assign"
+  to_id      string; omitted for ready to assign
+  amount     amount
+  note       string; omitted when empty
+  group_id   the movement group; omitted when absent
+
+Status (plans status --jsonl):
+  month                   YYYY-MM, the current month
+  ready_to_assign         amount; negative when overassigned
+  age_of_money            days; omitted until the plan has one
+  overspent_count         categories with available below zero
+  overspent_total         amount, the sum of those available amounts
+  underfunded_count       targets still needing money this month
+  underfunded_total       amount
+  unapproved_count        integer
+  uncategorized_count     integer
+  import_error_accounts   array of open account names in direct import
+                          error; empty when none
 
 Config (config --jsonl):
   allow_writes   boolean

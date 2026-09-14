@@ -4,10 +4,11 @@ ynab-cli is a command line for a YNAB plan. It reads accounts, categories,
 months, and transactions, writes transactions and assigned amounts, and emits
 JSON lines and CSV for scripts and agents. Writes are disabled until the
 configuration enables them, and every write has a dry run. This release
-reads plans, accounts, categories, and months; the
-[milestones](plans/milestones.md) record the order the rest lands in, and
-the [domain map](plans/domain-map.md) records the nouns, verbs, and
-decisions.
+reads plans, accounts, categories, months, transactions, payees, scheduled
+transactions, and money movements, and summarizes the month with
+`ynab plans status`; the [milestones](plans/milestones.md) record the order
+the rest lands in, and the [domain map](plans/domain-map.md) records the
+nouns, verbs, and decisions.
 
 Command help is the canonical reference: `ynab --help` and each command's
 `--help` describe every user-facing contract, `ynab config --help` describes
@@ -57,6 +58,15 @@ make build
 | `ynab category-groups list` | List the category groups with their category counts. |
 | `ynab months list` | List every month's income, assigned, activity, ready to assign, and age of money. |
 | `ynab months get` | Show this month's totals and its category rows. |
+| `ynab transactions list --since 2026-08-01 --until 2026-08-31 --csv > august.csv` | Write a month of the register as CSV, one row per split line. |
+| `ynab transactions list --account Visa --unapproved` | List the imports awaiting approval in one account. |
+| `ynab transactions list --category Groceries --jsonl >> history.jsonl` | Append the transactions touching one category, splits included. |
+| `ynab transactions get ID` | Show every field of one transaction, with its split lines. |
+| `ynab transactions review` | List what needs approval or a category, oldest first, with counts. |
+| `ynab payees list --unused` | List payees no transaction references. |
+| `ynab scheduled list` | List the scheduled transactions with their next dates. |
+| `ynab money-movements list --month current` | List this month's recorded moves between categories. |
+| `ynab plans status` | Show ready to assign, overspent, underfunded, unapproved, uncategorized, and import errors on one screen. |
 | `ynab config --provenance` | Print the effective configuration with each field's source. |
 
 ## Required external programs

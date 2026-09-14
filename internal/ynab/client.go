@@ -37,9 +37,18 @@ type Client struct {
 
 // get performs a GET request and decodes the "data" envelope into out.
 func (c *Client) get(ctx context.Context, path string, out any) error {
+	return c.getQuery(ctx, path, nil, out)
+}
+
+// getQuery performs a GET request with a query string and decodes the
+// "data" envelope into out.
+func (c *Client) getQuery(ctx context.Context, path string, query url.Values, out any) error {
 	base := c.BaseURL
 	if base == "" {
 		base = DefaultBaseURL
+	}
+	if len(query) > 0 {
+		path += "?" + query.Encode()
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, base+path, nil)
 	if err != nil {

@@ -36,3 +36,7 @@ const outputHelp = `Output:
   terminal, TERM is dumb, or NO_COLOR is set. Amounts are decimal currency
   units with outflows negative. See 'ynab help output-formats' for every
   record shape and 'ynab help exit-codes' for exit statuses.`
+
+const dateHelp = `Dates:
+  --since and --until accept YYYY-MM-DD, today, or yesterday. today and
+  yesterday follow the local clock. Any other form is a usage error.`

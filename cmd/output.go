@@ -46,7 +46,8 @@ func writeJSONL[T any](w io.Writer, records []T) error {
 // per record with the same values JSONL would carry: strings unquoted,
 // numbers and booleans as JSON text, and absent values empty. A nested
 // object such as a category's target becomes one column per field, named
-// parent_child, all empty when the object is absent.
+// parent_child, all empty when the object is absent. Array fields are
+// left out; callers flatten them to rows first.
 func writeCSV[T any](w io.Writer, records []T) error {
 	fields := jsonFields(reflect.TypeFor[T](), "", nil)
 	header := make([]string, len(fields))
@@ -90,12 +91,12 @@ type jsonField struct {
 // jsonFields returns the columns of a record type in declaration order,
 // so the CSV header and rows use the same columns JSONL carries. Fields
 // that JSON encodes as an object of their own fields are flattened with
-// the prefix "parent_".
+// the prefix "parent_"; fields that encode as arrays are skipped.
 func jsonFields(recordType reflect.Type, prefix string, path []int) []jsonField {
 	var fields []jsonField
 	for _, field := range reflect.VisibleFields(recordType) {
 		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
-		if name == "" || name == "-" {
+		if name == "" || name == "-" || field.Type.Kind() == reflect.Slice {
 			continue
 		}
 		index := append(slices.Clone(path), field.Index...)

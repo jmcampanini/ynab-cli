@@ -1,6 +1,7 @@
 package ynab
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -93,4 +94,53 @@ func groupThousands(digits, separator string) string {
 		grouped.WriteString(digits[i : i+3])
 	}
 	return grouped.String()
+}
+
+// ParseAmount parses an amount typed in currency units, such as "450",
+// "-97.81", or "+12.5", into milliunits without floating point. It accepts
+// an optional sign, digits, and at most fractionDigits digits after a
+// period, and rejects group separators, currency symbols, and blanks.
+// fractionDigits above 3 is treated as 3, the milliunit precision.
+func ParseAmount(text string, fractionDigits int) (Amount, error) {
+	fractionDigits = max(0, min(fractionDigits, 3))
+	invalid := func() error {
+		return fmt.Errorf("invalid amount %q: use digits with an optional sign and at most %d decimal places, without separators or symbols", text, fractionDigits)
+	}
+
+	rest := text
+	negative := false
+	if strings.HasPrefix(rest, "-") || strings.HasPrefix(rest, "+") {
+		negative = rest[0] == '-'
+		rest = rest[1:]
+	}
+	whole, fraction, _ := strings.Cut(rest, ".")
+	if whole == "" || !allDigits(whole) || strings.Contains(rest, ".") && (fraction == "" || len(fraction) > fractionDigits || !allDigits(fraction)) {
+		return 0, invalid()
+	}
+
+	milliunits, err := strconv.ParseInt(whole, 10, 64)
+	if err != nil {
+		return 0, invalid()
+	}
+	milliunits *= 1000
+	if fraction != "" {
+		fractionValue, err := strconv.ParseInt(fraction+strings.Repeat("0", 3-len(fraction)), 10, 64)
+		if err != nil {
+			return 0, invalid()
+		}
+		milliunits += fractionValue
+	}
+	if negative {
+		milliunits = -milliunits
+	}
+	return Amount(milliunits), nil
+}
+
+func allDigits(text string) bool {
+	for _, r := range text {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }

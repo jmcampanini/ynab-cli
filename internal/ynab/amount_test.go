@@ -48,3 +48,37 @@ func TestAmountFormat(t *testing.T) {
 		}
 	}
 }
+
+func TestParseAmount(t *testing.T) {
+	cases := []struct {
+		text   string
+		digits int
+		want   Amount
+		ok     bool
+	}{
+		{"450", 2, 450000, true},
+		{"-97.81", 2, -97810, true},
+		{"+12.5", 2, 12500, true},
+		{"0.5", 2, 500, true},
+		{"0", 2, 0, true},
+		{"-0.001", 3, -1, true},
+		{"1.234", 2, 0, false},
+		{"1,000", 2, 0, false},
+		{"$5", 2, 0, false},
+		{"", 2, 0, false},
+		{"-", 2, 0, false},
+		{".5", 2, 0, false},
+		{"5.", 2, 0, false},
+		{"1e3", 2, 0, false},
+		{"12.34", 0, 0, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.text, func(t *testing.T) {
+			got, err := ParseAmount(tc.text, tc.digits)
+
+			if (err == nil) != tc.ok || got != tc.want {
+				t.Errorf("ParseAmount(%q, %d) = %d, %v, want %d, ok=%v", tc.text, tc.digits, got, err, tc.want, tc.ok)
+			}
+		})
+	}
+}

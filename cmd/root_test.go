@@ -17,7 +17,8 @@ import (
 )
 
 // fixture is a fake YNAB API with two plans; plan "p1" has three accounts,
-// five category groups, and two months. Plan "p2" exists so a name lookup
+// five category groups, two months, and the register, payees, scheduled
+// transactions, and money movements in register_fixture_test.go. Plan "p2" exists so a name lookup
 // can be exercised against several plans. The clock is fixed in September
 // 2026, so "current" is 2026-09.
 const (
@@ -122,7 +123,7 @@ func fixtureCategoryIn(t *testing.T, categories, id string) (string, bool) {
 }
 
 // harness runs a fresh root against a fake API in an isolated environment
-// and records the API paths each execution requested.
+// and records the API paths, with their queries, each execution requested.
 type harness struct {
 	deps     dependencies
 	requests []string
@@ -134,7 +135,7 @@ func newHarness(t *testing.T) *harness {
 	t.Helper()
 	h := &harness{env: map[string]string{}}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		h.requests = append(h.requests, r.URL.Path)
+		h.requests = append(h.requests, r.URL.RequestURI())
 		if r.Header.Get("Authorization") != "Bearer good-token" {
 			w.WriteHeader(http.StatusUnauthorized)
 			_, _ = io.WriteString(w, `{"error":{"id":"401","name":"unauthorized","detail":"Unauthorized"}}`)
@@ -143,6 +144,9 @@ func newHarness(t *testing.T) *harness {
 		months := map[string]string{"2026-08-01": fixtureAugustTotals, "2026-09-01": fixtureSeptemberTotals}
 		monthCategories := map[string]string{"2026-08-01": fixtureAugustCategories, "2026-09-01": fixtureCurrentCategories(t)}
 		monthPath := regexp.MustCompile(`^/plans/p1/months/(\d{4}-\d{2}-\d{2})(?:/categories/(\w+))?$`)
+		if serveRegister(t, w, r) {
+			return
+		}
 		switch match := monthPath.FindStringSubmatch(r.URL.Path); {
 		case r.URL.Path == "/plans":
 			_, _ = io.WriteString(w, fixturePlans)
@@ -263,7 +267,8 @@ func TestUsageErrorsExitTwoBeforeAnyRequest(t *testing.T) {
 		{"unknown"}, {"plans", "extra"}, {"accounts", "list", "extra"}, {"accounts", "get"},
 		{"accounts", "get", "a", "b"}, {"config", "extra"}, {"exit-codes", "extra"}, {"output-formats", "extra"},
 		{"accounts", "list", "--jsonl", "--csv"}, {"--color", "bold", "plans", "list"}, {"plans", "list", "--nope"},
-		{"config", "--config", ""},
+		{"config", "--config", ""}, {"transactions", "get"}, {"transactions", "review", "extra"}, {"payees", "get", "a", "b"},
+		{"scheduled", "get"}, {"money-movements", "list", "extra"}, {"plans", "status", "--csv"},
 	}
 
 	for _, args := range cases {
@@ -313,7 +318,7 @@ func TestAPIErrorsExitOne(t *testing.T) {
 func TestHelpAndVersionNeedNoTokenOrNetwork(t *testing.T) {
 	h := newHarness(t)
 	t.Setenv("YNAB_TOKEN", "")
-	for _, args := range [][]string{{"--help"}, {"--version"}, {"plans"}, {"accounts"}, {"accounts", "get", "--help"}, {"categories"}, {"category-groups"}, {"months"}, {"output-formats"}, {"config", "--help"}} {
+	for _, args := range [][]string{{"--help"}, {"--version"}, {"plans"}, {"accounts"}, {"accounts", "get", "--help"}, {"categories"}, {"category-groups"}, {"months"}, {"transactions"}, {"payees"}, {"scheduled"}, {"money-movements"}, {"transactions", "list", "--help"}, {"output-formats"}, {"config", "--help"}} {
 		out, err := h.execute(t, args...)
 		if err != nil || out == "" {
 			t.Errorf("execute(%v) = %q, %v", args, out, err)
