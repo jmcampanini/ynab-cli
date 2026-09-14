@@ -151,12 +151,17 @@ func everyWords(unit string, count int) string {
 }
 
 // dayWords decodes the due day: a weekday for weekly targets, otherwise a
-// day of the month. Blank when the API sends null.
+// day of the month. The API sends null for the last day of the month on
+// every other repeating cadence, and for targets that do not repeat.
 func (t *targetRecord) dayWords() string {
+	weekly := t.Cadence != nil && *t.Cadence == 2
 	if t.Day == nil {
-		return ""
+		if t.Cadence == nil || *t.Cadence == 0 || weekly {
+			return ""
+		}
+		return "last day of the month"
 	}
-	if t.Cadence != nil && *t.Cadence == 2 {
+	if weekly {
 		return time.Weekday(*t.Day).String()
 	}
 	return fmt.Sprintf("day %d of the month", *t.Day)

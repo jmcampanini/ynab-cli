@@ -17,13 +17,15 @@ func newCategoriesList(a *app) *cobra.Command {
 plan's order. Each group row carries the subtotals of the categories shown
 beneath it. Columns: assigned, activity, available, the target as its type
 code and amount (see 'ynab categories get --help' for the codes), and the
-amount still needed this month to stay on track. Hidden categories and the
-categories of hidden groups are left out unless --hidden is given, which
-shows them faint with a "(hidden)" suffix. Internal groups, such as Credit
-Card Payments, are shown. Negative available is red when color is on.
-Without --month, two requests: the plans endpoint, then the categories
-endpoint, which carries the current month. With --month, a third request
-fetches that month.
+amount still needed this month to stay on track. For a "plan your
+spending" target in a future month, the API's underfunded amount counts
+funding from earlier periods, which the YNAB app ignores, so the two can
+differ. Hidden categories and the categories of hidden groups are left out
+unless --hidden is given, which shows them faint with a "(hidden)" suffix.
+Internal groups, such as Credit Card Payments, are shown. Negative
+available is red when color is on. Without --month, two requests: the
+plans endpoint, then the categories endpoint, which carries the current
+month. With --month, a third request fetches that month.
 
 ` + planHelp + "\n\n" + monthHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
 		Example: `  ynab categories list
