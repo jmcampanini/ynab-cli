@@ -17,10 +17,11 @@ func TestMoneyMovementsListNamesCategoriesAndReadyToAssign(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wantTable := `MONTH    MOVED AT             FROM             TO           AMOUNT  NOTE
-2026-08  2026-08-01 08:00:00  Ready to Assign  Rent      $1,500.00
-2026-09  2026-09-03 10:00:00  Dining Out       Internet     $25.00  cover dining
-2 money movements
+	wantTable := `MONTH    MOVED AT             FROM             TO                  AMOUNT  NOTE
+                              Rent             Ready to Assign      $5.00
+2026-08  2026-08-01 08:00:00  Ready to Assign  Rent             $1,500.00
+2026-09  2026-09-03 10:00:00  Dining Out       Internet            $25.00  cover dining
+3 money movements
 `
 	if table != wantTable {
 		t.Errorf("money-movements list =\n%s\nwant\n%s", table, wantTable)

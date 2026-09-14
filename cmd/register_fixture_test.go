@@ -10,8 +10,9 @@ import (
 // fixtureTransactions is plan p1's register, oldest first as the API
 // returns it: an August inflow and rent, then September's split at Costco,
 // a transfer pair between Chase Checking and Visa, an unapproved flagged
-// import, a transaction that is both unapproved and uncategorized, and an
-// uncategorized one.
+// import, a transaction that is both unapproved and uncategorized, an
+// uncategorized one, and an unapproved split at Costco whose lines each
+// name another payee.
 const fixtureTransactions = `[
 {"id":"t7","date":"2026-08-01","amount":3000000,"memo":null,"cleared":"reconciled","approved":true,"flag_color":null,"flag_name":null,"account_id":"a1","account_name":"Chase Checking","payee_id":"p6","payee_name":"Employer","category_id":"c7","category_name":"Inflow: Ready to Assign","transfer_account_id":null,"transfer_transaction_id":null,"matched_transaction_id":null,"import_id":null,"import_payee_name":null,"import_payee_name_original":null,"debt_transaction_type":null,"deleted":false,"subtransactions":[]},
 {"id":"t6","date":"2026-08-20","amount":-1500000,"memo":"August rent","cleared":"reconciled","approved":true,"flag_color":null,"flag_name":null,"account_id":"a1","account_name":"Chase Checking","payee_id":"p1","payee_name":"Landlord","category_id":"c2","category_name":"Rent","transfer_account_id":null,"transfer_transaction_id":null,"matched_transaction_id":null,"import_id":null,"import_payee_name":null,"import_payee_name_original":null,"debt_transaction_type":null,"deleted":false,"subtransactions":[]},
@@ -22,7 +23,10 @@ const fixtureTransactions = `[
 {"id":"t2b","date":"2026-09-05","amount":97810,"memo":null,"cleared":"cleared","approved":true,"flag_color":null,"flag_name":null,"account_id":"a2","account_name":"Visa","payee_id":"tp1","payee_name":"Transfer : Chase Checking","category_id":null,"category_name":null,"transfer_account_id":"a1","transfer_transaction_id":"t2","matched_transaction_id":null,"import_id":null,"import_payee_name":null,"import_payee_name_original":null,"debt_transaction_type":null,"deleted":false,"subtransactions":[]},
 {"id":"t3","date":"2026-09-10","amount":-12340,"memo":null,"cleared":"uncleared","approved":false,"flag_color":"red","flag_name":"Reimbursable","account_id":"a2","account_name":"Visa","payee_id":"p3","payee_name":"Amazon","category_id":"c3","category_name":"Dining Out","transfer_account_id":null,"transfer_transaction_id":null,"matched_transaction_id":null,"import_id":"YNAB:-12340:2026-09-10:1","import_payee_name":"AMAZON.COM","import_payee_name_original":"AMAZON.COM*1234","debt_transaction_type":null,"deleted":false,"subtransactions":[]},
 {"id":"t5","date":"2026-09-11","amount":-20000,"memo":"new shop?","cleared":"uncleared","approved":false,"flag_color":null,"flag_name":null,"account_id":"a1","account_name":"Chase Checking","payee_id":"p5","payee_name":"New Shop","category_id":null,"category_name":null,"transfer_account_id":null,"transfer_transaction_id":null,"matched_transaction_id":null,"import_id":"YNAB:-20000:2026-09-11:1","import_payee_name":"NEW SHOP","import_payee_name_original":"NEW SHOP 42","debt_transaction_type":null,"deleted":false,"subtransactions":[]},
-{"id":"t4","date":"2026-09-12","amount":-5000,"memo":null,"cleared":"cleared","approved":true,"flag_color":null,"flag_name":null,"account_id":"a1","account_name":"Chase Checking","payee_id":"p4","payee_name":"Unknown Vendor","category_id":null,"category_name":null,"transfer_account_id":null,"transfer_transaction_id":null,"matched_transaction_id":null,"import_id":null,"import_payee_name":null,"import_payee_name_original":null,"debt_transaction_type":null,"deleted":false,"subtransactions":[]}
+{"id":"t4","date":"2026-09-12","amount":-5000,"memo":null,"cleared":"cleared","approved":true,"flag_color":null,"flag_name":null,"account_id":"a1","account_name":"Chase Checking","payee_id":"p4","payee_name":"Unknown Vendor","category_id":null,"category_name":null,"transfer_account_id":null,"transfer_transaction_id":null,"matched_transaction_id":null,"import_id":null,"import_payee_name":null,"import_payee_name_original":null,"debt_transaction_type":null,"deleted":false,"subtransactions":[]},
+{"id":"t8","date":"2026-09-13","amount":-25000,"memo":null,"cleared":"cleared","approved":false,"flag_color":null,"flag_name":null,"account_id":"a1","account_name":"Chase Checking","payee_id":"p2","payee_name":"Costco","category_id":null,"category_name":"Split","transfer_account_id":null,"transfer_transaction_id":null,"matched_transaction_id":null,"import_id":null,"import_payee_name":null,"import_payee_name_original":null,"debt_transaction_type":null,"deleted":false,"subtransactions":[
+ {"id":"s3","transaction_id":"t8","amount":-10000,"memo":null,"payee_id":"p3","payee_name":"Amazon","category_id":"c3","category_name":"Dining Out","transfer_account_id":null,"transfer_transaction_id":null,"deleted":false},
+ {"id":"s4","transaction_id":"t8","amount":-15000,"memo":"cable","payee_id":"p4","payee_name":"Unknown Vendor","category_id":"c1","category_name":"Internet","transfer_account_id":null,"transfer_transaction_id":null,"deleted":false}]}
 ]`
 
 // fixturePayees includes the two transfer payees, one payee used only by
@@ -49,9 +53,11 @@ const fixtureScheduled = `[
  {"id":"ss2","scheduled_transaction_id":"st2","amount":-500000,"memo":"modem","payee_id":null,"payee_name":null,"category_id":"c1","category_name":"Internet","transfer_account_id":null,"deleted":false}]}
 ]`
 
-// fixtureMoneyMovements has a September move between categories and an
-// August move from ready to assign.
+// fixtureMoneyMovements has a September move between categories, an
+// August move from ready to assign, and a move back to ready to assign
+// the API recorded without a month or time.
 const fixtureMoneyMovements = `[
+{"id":"mm0","month":null,"moved_at":null,"note":null,"money_movement_group_id":null,"performed_by_user_id":null,"from_category_id":"c2","to_category_id":null,"amount":5000},
 {"id":"mm2","month":"2026-08-01","moved_at":"2026-08-01T08:00:00Z","note":null,"money_movement_group_id":null,"performed_by_user_id":"u1","from_category_id":null,"to_category_id":"c2","amount":1500000},
 {"id":"mm1","month":"2026-09-01","moved_at":"2026-09-03T10:00:00Z","note":"cover dining","money_movement_group_id":"mg1","performed_by_user_id":"u1","from_category_id":"c3","to_category_id":"c1","amount":25000}
 ]`

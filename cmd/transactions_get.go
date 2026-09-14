@@ -13,9 +13,10 @@ func newTransactionsGet(a *app) *cobra.Command {
 		Long: `Show one transaction of the configured plan by its ID, with every field
 the API carries and, for a split, its lines in a table beneath. A
 transfer names the linked account and the transaction on its other side.
-Three requests: the plans endpoint, the accounts endpoint (which names
-transfer targets), then the transaction. --jsonl prints one object with
-the lines in a subtransactions array.
+The account, payee, category, and transfer account ids appear only in
+--jsonl, which prints one object with the lines in a subtransactions
+array. Three requests: the plans endpoint, the accounts endpoint (which
+names transfer targets), then the transaction.
 
 ` + planHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
 		Example: `  ynab transactions get 7a3e...

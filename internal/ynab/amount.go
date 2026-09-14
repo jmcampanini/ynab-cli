@@ -2,6 +2,7 @@ package ynab
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -118,18 +119,20 @@ func ParseAmount(text string, fractionDigits int) (Amount, error) {
 		return 0, invalid()
 	}
 
-	milliunits, err := strconv.ParseInt(whole, 10, 64)
+	units, err := strconv.ParseInt(whole, 10, 64)
 	if err != nil {
 		return 0, invalid()
 	}
-	milliunits *= 1000
+	var fractionValue int64
 	if fraction != "" {
-		fractionValue, err := strconv.ParseInt(fraction+strings.Repeat("0", 3-len(fraction)), 10, 64)
-		if err != nil {
+		if fractionValue, err = strconv.ParseInt(fraction+strings.Repeat("0", 3-len(fraction)), 10, 64); err != nil {
 			return 0, invalid()
 		}
-		milliunits += fractionValue
 	}
+	if units > (math.MaxInt64-fractionValue)/1000 {
+		return 0, invalid()
+	}
+	milliunits := units*1000 + fractionValue
 	if negative {
 		milliunits = -milliunits
 	}

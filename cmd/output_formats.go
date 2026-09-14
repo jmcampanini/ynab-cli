@@ -6,15 +6,15 @@ func outputFormatsTopic() *cobra.Command {
 	return &cobra.Command{
 		Use: "output-formats", Short: "Record shapes for --jsonl and --csv", Args: cobra.NoArgs,
 		Long: `--jsonl writes one JSON object per line: one per record for list
-commands, one line for get and config. --csv, on list commands, writes a
-header row of the same field names and one row per record with the same
-values. Keys are lowercase snake_case. Amounts are JSON numbers with two
-decimals written from the API's exact milliunit value ("450.00"); outflows
-are negative. Dates are YYYY-MM-DD, months YYYY-MM, timestamps RFC 3339.
-Absent optional fields are omitted in JSONL and empty in CSV. Enum values
-keep the API's spelling, such as "creditCard". Arrays such as a split's
-subtransactions are omitted from CSV, which flattens them to rows
-instead. Machine output never carries color.
+commands, one line for get, status, and config. --csv, on list commands,
+writes a header row of the same field names and one row per record with
+the same values. Keys are lowercase snake_case. Amounts are JSON numbers
+with two decimals written from the API's exact milliunit value ("450.00");
+outflows are negative. Dates are YYYY-MM-DD, months YYYY-MM, timestamps
+RFC 3339. Absent optional fields are omitted in JSONL and empty in CSV.
+Enum values keep the API's spelling, such as "creditCard". Arrays such as
+a split's subtransactions are omitted from CSV, which flattens them to
+rows instead. Machine output never carries color.
 
 Plan (plans list, plans get):
   id                 string
@@ -123,8 +123,6 @@ Transaction (transactions list, transactions get, transactions review):
   debt_transaction_type       payment, refund, fee, interest, escrow,
                               balanceAdjustment, credit, charge; omitted
                               unless on a debt account
-  needs                       transactions review only: approve,
-                              categorize, or both
   subtransactions             array of lines; omitted unless a split
     id                          string
     payee                       string; omitted when the line inherits
@@ -136,6 +134,8 @@ Transaction (transactions list, transactions get, transactions review):
     transfer_account            account name; omitted unless a transfer
     transfer_account_id         string; omitted unless a transfer
     transfer_transaction_id     string; omitted unless a transfer
+  needs                       transactions review only: approve,
+                              categorize, or both
   In CSV each split line becomes its own row after the parent, with the
   line's id, payee, category, memo, amount, and transfer fields, the
   parent's id in parent_id, and the parent's date, account, cleared,

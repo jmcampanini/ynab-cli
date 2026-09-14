@@ -27,7 +27,10 @@ func TestTransactionsListRendersSplitsAndTransfers(t *testing.T) {
 2026-09-10  Visa            Amazon                     Dining Out                               -$12.34  uncleared   no        red
 2026-09-11  Chase Checking  New Shop                                            new shop?       -$20.00  uncleared   no
 2026-09-12  Chase Checking  Unknown Vendor                                                       -$5.00  cleared     yes
-8 transactions, total $1,362.66
+2026-09-13  Chase Checking  Costco                     Split                                    -$25.00  cleared     no
+                            Amazon                       Dining Out                             -$10.00
+                            Unknown Vendor               Internet               cable           -$15.00
+9 transactions, total $1,337.66
 `
 	if out != want {
 		t.Errorf("transactions list =\n%s\nwant\n%s", out, want)
@@ -54,14 +57,15 @@ func TestTransactionsListMachineFormats(t *testing.T) {
 		`{"id":"t2","date":"2026-09-05","account":"Chase Checking","account_id":"a1","payee":"Transfer : Visa","payee_id":"tp2","amount":-97.81,"cleared":"cleared","approved":true,"transfer_account":"Visa","transfer_account_id":"a2","transfer_transaction_id":"t2b"}`,
 		`{"id":"t3","date":"2026-09-10","account":"Visa","account_id":"a2","payee":"Amazon","payee_id":"p3","category":"Dining Out","category_id":"c3","amount":-12.34,"cleared":"uncleared","approved":false,"flag_color":"red","flag_name":"Reimbursable","import_id":"YNAB:-12340:2026-09-10:1","import_payee_name":"AMAZON.COM","import_payee_name_original":"AMAZON.COM*1234"}`,
 		`{"id":"t4","date":"2026-09-12","account":"Chase Checking","account_id":"a1","payee":"Unknown Vendor","payee_id":"p4","amount":-5.00,"cleared":"cleared","approved":true}`,
+		`{"id":"t8","date":"2026-09-13","account":"Chase Checking","account_id":"a1","payee":"Costco","payee_id":"p2","category":"Split","amount":-25.00,"cleared":"cleared","approved":false,"subtransactions":[{"id":"s3","payee":"Amazon","payee_id":"p3","category":"Dining Out","category_id":"c3","amount":-10.00},{"id":"s4","payee":"Unknown Vendor","payee_id":"p4","category":"Internet","category_id":"c1","memo":"cable","amount":-15.00}]}`,
 	}
 	for _, row := range wantRows {
 		if !strings.Contains(jsonl, row+"\n") {
 			t.Errorf("jsonl lacks row\n%s\nin\n%s", row, jsonl)
 		}
 	}
-	if strings.Count(jsonl, "\n") != 8 || strings.Contains(jsonl, "parent_id") {
-		t.Errorf("jsonl = %d rows, want 8 without parent_id:\n%s", strings.Count(jsonl, "\n"), jsonl)
+	if strings.Count(jsonl, "\n") != 9 || strings.Contains(jsonl, "parent_id") {
+		t.Errorf("jsonl = %d rows, want 9 without parent_id:\n%s", strings.Count(jsonl, "\n"), jsonl)
 	}
 
 	wantCSV := `id,parent_id,date,account,account_id,payee,payee_id,category,category_id,memo,amount,cleared,approved,flag_color,flag_name,transfer_account,transfer_account_id,transfer_transaction_id,matched_transaction_id,import_id,import_payee_name,import_payee_name_original,debt_transaction_type
@@ -75,6 +79,9 @@ t2b,,2026-09-05,Visa,a2,Transfer : Chase Checking,tp1,,,,97.81,cleared,true,,,Ch
 t3,,2026-09-10,Visa,a2,Amazon,p3,Dining Out,c3,,-12.34,uncleared,false,red,Reimbursable,,,,,YNAB:-12340:2026-09-10:1,AMAZON.COM,AMAZON.COM*1234,
 t5,,2026-09-11,Chase Checking,a1,New Shop,p5,,,new shop?,-20.00,uncleared,false,,,,,,,YNAB:-20000:2026-09-11:1,NEW SHOP,NEW SHOP 42,
 t4,,2026-09-12,Chase Checking,a1,Unknown Vendor,p4,,,,-5.00,cleared,true,,,,,,,,,,
+t8,,2026-09-13,Chase Checking,a1,Costco,p2,Split,,,-25.00,cleared,false,,,,,,,,,,
+s3,t8,2026-09-13,Chase Checking,a1,Amazon,p3,Dining Out,c3,,-10.00,cleared,false,,,,,,,,,,
+s4,t8,2026-09-13,Chase Checking,a1,Unknown Vendor,p4,Internet,c1,cable,-15.00,cleared,false,,,,,,,,,,
 `
 	if csv != wantCSV {
 		t.Errorf("csv =\n%s\nwant\n%s", csv, wantCSV)
@@ -116,15 +123,17 @@ func TestTransactionsListFilters(t *testing.T) {
 		wantURI  string
 	}{
 		{[]string{"--account", "visa", "--unapproved"}, "t3", "1 transaction, total -$12.34", "/plans/p1/accounts/a2/transactions?type=unapproved"},
-		{[]string{"--category", "Dining Out"}, "t1 t3", "2 transactions, matching lines total -$72.34", "/plans/p1/transactions"},
-		{[]string{"--payee", "costco", "--month", "2026-09"}, "t1", "1 transaction, matching lines total -$100.00", "/plans/p1/months/2026-09-01/transactions"},
+		{[]string{"--category", "Dining Out"}, "t1 t3 t8", "3 transactions, matching lines total -$82.34", "/plans/p1/transactions"},
+		// t8's lines name other payees, so it is kept through its own payee and counted whole.
+		{[]string{"--payee", "costco", "--month", "2026-09"}, "t1 t8", "2 transactions, matching lines total -$125.00", "/plans/p1/months/2026-09-01/transactions"},
+		{[]string{"--payee", "amazon"}, "t3 t8", "2 transactions, matching lines total -$22.34", "/plans/p1/transactions"},
 		{[]string{"--account", "Chase Checking", "--month", "2026-08", "--since", "2026-08-10"}, "t6", "1 transaction, total -$1,500.00", "/plans/p1/accounts/a1/transactions?since_date=2026-08-10&until_date=2026-08-31"},
 		{[]string{"--unapproved", "--uncategorized"}, "t5", "1 transaction, total -$20.00", "/plans/p1/transactions?type=uncategorized"},
 		{[]string{"--flag", "none", "--cleared", "uncleared"}, "t5", "1 transaction, total -$20.00", "/plans/p1/transactions"},
 		{[]string{"--flag", "red"}, "t3", "1 transaction, total -$12.34", "/plans/p1/transactions"},
 		{[]string{"--memo", "ROUTER", "--min", "-150", "--max", "-50"}, "t1", "1 transaction, total -$100.00", "/plans/p1/transactions"},
 		{[]string{"--min", "0"}, "t7 t2b", "2 transactions, total $3,097.81", "/plans/p1/transactions"},
-		{[]string{"--until", "yesterday", "--since", "2026-09-10"}, "t3 t5 t4", "3 transactions, total -$37.34", "/plans/p1/transactions?since_date=2026-09-10&until_date=2026-09-14"},
+		{[]string{"--until", "yesterday", "--since", "2026-09-10"}, "t3 t5 t4 t8", "4 transactions, total -$62.34", "/plans/p1/transactions?since_date=2026-09-10&until_date=2026-09-14"},
 	}
 	for _, tc := range cases {
 		t.Run(strings.Join(tc.args, " "), func(t *testing.T) {
@@ -161,7 +170,8 @@ func TestTransactionsListRejectsBadFilterValues(t *testing.T) {
 	h := newHarness(t)
 	cases := [][]string{
 		{"--cleared", "pending"}, {"--flag", "pink"}, {"--min", "1,000"}, {"--max", "$5"}, {"--since", "last week"},
-		{"--until", "2026-13-01"}, {"--month", "September"},
+		{"--until", "2026-13-01"}, {"--month", "September"}, {"--since", "2026-09-10", "--until", "2026-09-01"},
+		{"--min", "9223372036854776"},
 	}
 
 	for _, args := range cases {
@@ -204,6 +214,10 @@ func TestTransactionsGetShowsTransferAndLines(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	flagged, err := h.execute(t, "transactions", "get", "t3")
+	if err != nil {
+		t.Fatal(err)
+	}
 	_, missing := h.execute(t, "transactions", "get", "nope")
 
 	wantTransfer := `id                     t2
@@ -238,6 +252,9 @@ PAYEE  CATEGORY    MEMO     AMOUNT
 	if !strings.Contains(imported, `"flag_color":"red","flag_name":"Reimbursable","import_id":"YNAB:-12340:2026-09-10:1"`) {
 		t.Errorf("transactions get t3 --jsonl = %s", imported)
 	}
+	if !strings.Contains(flagged, "flag                   red (Reimbursable)\n") {
+		t.Errorf("transactions get t3 = %s, want the flag color and name", flagged)
+	}
 	if missing == nil || ExitCode(missing) != ExitFailure || !strings.Contains(missing.Error(), "not found") {
 		t.Errorf("transactions get nope = %v (exit %d)", missing, ExitCode(missing))
 	}
@@ -262,11 +279,14 @@ func TestTransactionsReviewMergesTheTwoListings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wantTable := `DATE        ACCOUNT         PAYEE           CATEGORY    MEMO        AMOUNT  NEEDS
-2026-09-10  Visa            Amazon          Dining Out             -$12.34  approve
-2026-09-11  Chase Checking  New Shop                    new shop?  -$20.00  both
-2026-09-12  Chase Checking  Unknown Vendor                          -$5.00  categorize
-3 transactions need attention: 2 to approve, 2 to categorize
+	wantTable := `DATE        ACCOUNT         PAYEE           CATEGORY      MEMO        AMOUNT  NEEDS
+2026-09-10  Visa            Amazon          Dining Out               -$12.34  approve
+2026-09-11  Chase Checking  New Shop                      new shop?  -$20.00  both
+2026-09-12  Chase Checking  Unknown Vendor                            -$5.00  categorize
+2026-09-13  Chase Checking  Costco          Split                    -$25.00  approve
+                            Amazon            Dining Out             -$10.00
+                            Unknown Vendor    Internet    cable      -$15.00
+4 transactions need attention: 3 to approve, 2 to categorize
 `
 	if table != wantTable {
 		t.Errorf("transactions review =\n%s\nwant\n%s", table, wantTable)
@@ -274,12 +294,17 @@ func TestTransactionsReviewMergesTheTwoListings(t *testing.T) {
 	wantJSONL := `{"id":"t3","date":"2026-09-10","account":"Visa","account_id":"a2","payee":"Amazon","payee_id":"p3","category":"Dining Out","category_id":"c3","amount":-12.34,"cleared":"uncleared","approved":false,"flag_color":"red","flag_name":"Reimbursable","import_id":"YNAB:-12340:2026-09-10:1","import_payee_name":"AMAZON.COM","import_payee_name_original":"AMAZON.COM*1234","needs":"approve"}
 {"id":"t5","date":"2026-09-11","account":"Chase Checking","account_id":"a1","payee":"New Shop","payee_id":"p5","memo":"new shop?","amount":-20.00,"cleared":"uncleared","approved":false,"import_id":"YNAB:-20000:2026-09-11:1","import_payee_name":"NEW SHOP","import_payee_name_original":"NEW SHOP 42","needs":"both"}
 {"id":"t4","date":"2026-09-12","account":"Chase Checking","account_id":"a1","payee":"Unknown Vendor","payee_id":"p4","amount":-5.00,"cleared":"cleared","approved":true,"needs":"categorize"}
+{"id":"t8","date":"2026-09-13","account":"Chase Checking","account_id":"a1","payee":"Costco","payee_id":"p2","category":"Split","amount":-25.00,"cleared":"cleared","approved":false,"subtransactions":[{"id":"s3","payee":"Amazon","payee_id":"p3","category":"Dining Out","category_id":"c3","amount":-10.00},{"id":"s4","payee":"Unknown Vendor","payee_id":"p4","category":"Internet","category_id":"c1","memo":"cable","amount":-15.00}],"needs":"approve"}
 `
 	if jsonl != wantJSONL {
 		t.Errorf("review jsonl =\n%s\nwant\n%s", jsonl, wantJSONL)
 	}
-	if !strings.HasPrefix(csv, "id,parent_id,date,") || !strings.HasSuffix(csv, ",needs\nt3,,") && !strings.Contains(csv, ",approve\n") {
-		t.Errorf("review csv = %s", csv)
+	wantCSVTail := `t8,,2026-09-13,Chase Checking,a1,Costco,p2,Split,,,-25.00,cleared,false,,,,,,,,,,,approve
+s3,t8,2026-09-13,Chase Checking,a1,Amazon,p3,Dining Out,c3,,-10.00,cleared,false,,,,,,,,,,,approve
+s4,t8,2026-09-13,Chase Checking,a1,Unknown Vendor,p4,Internet,c1,cable,-15.00,cleared,false,,,,,,,,,,,approve
+`
+	if !strings.Contains(csv, ",debt_transaction_type,needs\nt3,,") || !strings.HasSuffix(csv, wantCSVTail) {
+		t.Errorf("review csv = %s\nwant header ending in needs and split lines repeating it:\n%s", csv, wantCSVTail)
 	}
 	want := []string{"/plans", "/plans/p1/accounts", "/plans/p1/transactions?type=unapproved", "/plans/p1/transactions?type=uncategorized"}
 	if !reflect.DeepEqual(h.requests[:4], want) {
@@ -287,8 +312,12 @@ func TestTransactionsReviewMergesTheTwoListings(t *testing.T) {
 	}
 }
 
-func TestReviewSummaryWithNothingToDo(t *testing.T) {
+func TestReviewSummaryCounts(t *testing.T) {
 	if got := reviewSummary(nil); got != "nothing needs attention" {
 		t.Errorf("reviewSummary(nil) = %q", got)
+	}
+	one := []reviewRecord{{Needs: needsBoth}}
+	if got := reviewSummary(one); got != "1 transaction needs attention: 1 to approve, 1 to categorize" {
+		t.Errorf("reviewSummary(one) = %q", got)
 	}
 }

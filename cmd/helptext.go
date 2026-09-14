@@ -23,9 +23,9 @@ const planHelp = `Plan selection:
   invocations.`
 
 const monthHelp = `Months:
-  MONTH and --month accept current, YYYY-MM, or YYYY-MM-01, and default to
-  current. current is the calendar month in UTC, which is how the API
-  defines the current plan month. Any other form is a usage error.`
+  MONTH and --month accept current, YYYY-MM, or YYYY-MM-01. current is the
+  calendar month in UTC, which is how the API defines the current plan
+  month. Any other form is a usage error.`
 
 const outputHelp = `Output:
   Results go to stdout; diagnostics go to stderr. The default is a human

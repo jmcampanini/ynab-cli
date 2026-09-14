@@ -98,7 +98,8 @@ func (f transactionFilters) byName() bool {
 // matching applies the client-side filters and returns the amount the
 // summary counts: the transaction's amount, or under a category or payee
 // filter the total of the lines that match. A line without a payee
-// inherits the parent's.
+// inherits the parent's. A split whose own payee matches while every line
+// names another payee is kept with its whole amount.
 func (f transactionFilters) matching(tx ynab.Transaction) (ynab.Amount, bool) {
 	if f.unapproved && tx.Approved ||
 		f.cleared != "" && tx.Cleared != f.cleared ||
@@ -128,6 +129,9 @@ func (f transactionFilters) matching(tx ynab.Transaction) (ynab.Amount, bool) {
 			total += line.Amount
 			matched = true
 		}
+	}
+	if !matched && f.nameMatches(tx.CategoryID, tx.PayeeID) {
+		return tx.Amount, true
 	}
 	return total, matched
 }
@@ -217,6 +221,9 @@ row per line with the parent's id in parent_id.
 			}
 			if filters.until, err = optionalDate(a, until); err != nil {
 				return err
+			}
+			if filters.since != "" && filters.until != "" && filters.since > filters.until {
+				return usageError(fmt.Sprintf("--since %s is after --until %s", filters.since, filters.until))
 			}
 			if cmd.Flags().Changed("month") {
 				if filters.month, err = a.month(month); err != nil {
@@ -311,8 +318,8 @@ row per line with the parent's id in parent_id.
 	command.Flags().StringVar(&month, "month", "", "Month: current, YYYY-MM, YYYY-MM-01")
 	command.Flags().BoolVar(&unapproved, "unapproved", false, "Only transactions awaiting approval")
 	command.Flags().BoolVar(&uncategorized, "uncategorized", false, "Only transactions without a category")
-	bindEnumFlag(command, &cleared, "cleared", "Cleared state: uncleared, cleared, reconciled", clearedStates...)
-	bindEnumFlag(command, &flag, "flag", "Flag color, or none for unflagged", flagColors...)
+	bindEnumFlag(command, &cleared, "cleared", "state", "Cleared state: uncleared, cleared, reconciled", clearedStates...)
+	bindEnumFlag(command, &flag, "flag", "color", "Flag color, or none for unflagged", flagColors...)
 	command.Flags().StringVar(&memo, "memo", "", "Memo contains this text, ignoring case")
 	command.Flags().StringVar(&minText, "min", "", "Smallest signed amount, such as -100 or 0")
 	command.Flags().StringVar(&maxText, "max", "", "Largest signed amount, such as -50")

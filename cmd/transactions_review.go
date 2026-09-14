@@ -56,7 +56,11 @@ func reviewSummary(records []reviewRecord) string {
 			categorize++
 		}
 	}
-	return fmt.Sprintf("%s need attention: %d to approve, %d to categorize", transactionCount(len(records)), approve, categorize)
+	verb := "need"
+	if len(records) == 1 {
+		verb = "needs"
+	}
+	return fmt.Sprintf("%s %s attention: %d to approve, %d to categorize", transactionCount(len(records)), verb, approve, categorize)
 }
 
 // reviewCSVLines flattens splits as csvLines does, repeating needs on

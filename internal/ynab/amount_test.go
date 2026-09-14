@@ -71,6 +71,10 @@ func TestParseAmount(t *testing.T) {
 		{"5.", 2, 0, false},
 		{"1e3", 2, 0, false},
 		{"12.34", 0, 0, false},
+		{"9223372036854775.807", 3, 9223372036854775807, true},
+		{"9223372036854775.808", 3, 0, false},
+		{"9223372036854776", 2, 0, false},
+		{"99999999999999999999", 2, 0, false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.text, func(t *testing.T) {

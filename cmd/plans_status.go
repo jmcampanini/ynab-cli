@@ -119,9 +119,10 @@ accounts whose direct import is in error. Overspent and underfunded are
 taken over the categories 'categories list' shows, so hidden categories
 are left out; Credit Card Payments categories count. Six requests: the
 plans endpoint, the current month, the categories endpoint, the accounts
-endpoint, then the unapproved and uncategorized listings. --jsonl prints
-one object with the counts and totals and the import-error account
-names. Exit 0 whether or not anything needs attention.
+endpoint, then the unapproved and uncategorized listings, to which the
+API's one-year default window applies. --jsonl prints one object with
+the counts and totals and the import-error account names. Exit 0 whether
+or not anything needs attention.
 
 ` + planHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
 		Example: `  ynab plans status
