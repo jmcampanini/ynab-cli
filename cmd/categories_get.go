@@ -119,13 +119,6 @@ func optionalAmount(amount *ynab.Amount, currency *ynab.CurrencyFormat) string {
 	return amount.Format(currency)
 }
 
-func optionalInt(value *int) string {
-	if value == nil {
-		return ""
-	}
-	return strconv.Itoa(*value)
-}
-
 func optionalPercent(value *int) string {
 	if value == nil {
 		return ""

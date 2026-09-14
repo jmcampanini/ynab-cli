@@ -92,26 +92,26 @@ func (l categoryListing) rows(currency *ynab.CurrencyFormat, colors palette) [][
 				hasTarget = true
 			}
 		}
-		groupRow := []cell{
+		groupUnderfunded := plain("")
+		if hasTarget {
+			groupUnderfunded = plainAmount(underfunded, currency)
+		}
+		rows = append(rows, paintRow([]cell{
 			plain(hiddenSuffix(group.name, group.hidden)),
 			plainAmount(assigned, currency), plainAmount(activity, currency), availableCell(available, currency, colors),
-			plain(""), plain(""),
-		}
-		if hasTarget {
-			groupRow[5] = plainAmount(underfunded, currency)
-		}
-		rows = append(rows, paintRow(groupRow, group.hidden, colors))
+			plain(""), groupUnderfunded,
+		}, group.hidden, colors))
 
 		for _, record := range group.records {
-			row := []cell{
+			recordUnderfunded := plain("")
+			if record.Target != nil && record.Target.Underfunded != nil {
+				recordUnderfunded = plainAmount(*record.Target.Underfunded, currency)
+			}
+			rows = append(rows, paintRow([]cell{
 				plain("  " + hiddenSuffix(record.Name, record.Hidden)),
 				plainAmount(record.Assigned, currency), plainAmount(record.Activity, currency), availableCell(record.Available, currency, colors),
-				plain(record.Target.summary(currency)), plain(""),
-			}
-			if record.Target != nil && record.Target.Underfunded != nil {
-				row[5] = plainAmount(*record.Target.Underfunded, currency)
-			}
-			rows = append(rows, paintRow(row, record.Hidden, colors))
+				plain(record.Target.summary(currency)), recordUnderfunded,
+			}, record.Hidden, colors))
 		}
 	}
 	return rows

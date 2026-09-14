@@ -7,6 +7,7 @@ import (
 	"io"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -221,17 +222,27 @@ func writeFields(w io.Writer, fields [][2]string) error {
 	for _, field := range fields {
 		width = max(width, utf8.RuneCountInString(field[0]))
 	}
-	continuation := "\n" + strings.Repeat(" ", width+2)
 	var out strings.Builder
 	for _, field := range fields {
-		line := fmt.Sprintf("%-*s  %s", width, field[0], strings.ReplaceAll(field[1], "\n", continuation))
-		for _, part := range strings.Split(line, "\n") {
-			out.WriteString(strings.TrimRight(part, " "))
+		for i, line := range strings.Split(field[1], "\n") {
+			name := field[0]
+			if i > 0 {
+				name = ""
+			}
+			out.WriteString(strings.TrimRight(fmt.Sprintf("%-*s  %s", width, name, line), " "))
 			out.WriteByte('\n')
 		}
 	}
 	_, err := io.WriteString(w, out.String())
 	return err
+}
+
+// optionalInt renders a nullable count for human output, blank when nil.
+func optionalInt(value *int) string {
+	if value == nil {
+		return ""
+	}
+	return strconv.Itoa(*value)
 }
 
 // countNoun pluralizes a summary count.
