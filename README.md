@@ -3,10 +3,57 @@
 ynab-cli is a command line for a YNAB plan. It reads accounts, categories,
 months, and transactions, writes transactions and assigned amounts, and emits
 JSON lines and CSV for scripts and agents. Writes are disabled until the
-configuration enables them, and every write has a dry run.
+configuration enables them, and every write has a dry run. This release
+reads plans and accounts; the [milestones](plans/milestones.md) record the
+order the rest lands in, and the [domain map](plans/domain-map.md) records
+the nouns, verbs, and decisions.
 
-Nothing is built yet. The [domain map](plans/domain-map.md) records the
-nouns, verbs, and decisions, and the [milestones](plans/milestones.md) record
-the order of delivery. Once the first milestone lands, command help becomes
-the canonical reference: `ynab --help`, `ynab config --help`,
-`ynab help exit-codes`, and `ynab help output-formats`.
+Command help is the canonical reference: `ynab --help` and each command's
+`--help` describe every user-facing contract, `ynab config --help` describes
+the configuration file, discovery, and precedence, `ynab help exit-codes`
+describes exit statuses, and `ynab help output-formats` describes every
+`--jsonl` and `--csv` record.
+
+## Install
+
+ynab-cli distributes from source only; the repository is private and there
+is no Homebrew tap or release channel yet.
+
+```sh
+make build
+# then copy ./build/ynab to a directory on your PATH
+```
+
+## Representative commands
+
+| Command | Result |
+|---|---|
+| `ynab plans list` | List every plan the token can read, marking the configured one. |
+| `ynab plans get` | Show the configured plan's months, currency, and date format. |
+| `ynab accounts list` | List the plan's open accounts with balances as a table. |
+| `ynab accounts list --closed` | Include closed accounts. |
+| `ynab accounts list --jsonl \| jq .balance` | Emit one JSON object per account. |
+| `ynab accounts list --csv > accounts.csv` | Write the same records as CSV. |
+| `ynab accounts get "Chase Checking"` | Show every field of one account by exact name or ID. |
+| `ynab config --provenance` | Print the effective configuration with each field's source. |
+
+## Required external programs
+
+None. ynab-cli needs network access to api.ynab.com and never prompts.
+
+## Configuration
+
+ynab-cli reads `$XDG_CONFIG_HOME/ynab/ynab.toml`, or `~/.config/ynab/ynab.toml`
+when `XDG_CONFIG_HOME` is empty; a missing file is fine. `--config PATH`
+replaces discovery, and the file must exist. `YNAB_PLAN`, `YNAB_TOKEN`, and
+`YNAB_ALLOW_WRITES` override the file; `--plan` and `--allow-writes` override
+the environment. There is no `--token` flag. A minimal file:
+
+```toml
+plan = "Household"
+token = "your-personal-access-token"
+```
+
+Create a token at https://app.ynab.com/settings/developer. `ynab config --help`
+documents the format and precedence, and `ynab config` prints the values in
+effect with the token redacted.
