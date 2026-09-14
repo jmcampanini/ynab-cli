@@ -99,16 +99,6 @@ func scheduledCSVLines(records []scheduledRecord) []scheduledRecord {
 	return rows
 }
 
-// scheduledLines adapts a scheduled split's lines to the shared line
-// table.
-func scheduledLines(lines []scheduledSubtransactionRecord) []subtransactionRecord {
-	adapted := make([]subtransactionRecord, len(lines))
-	for i, line := range lines {
-		adapted[i] = subtransactionRecord{Amount: line.Amount, Category: line.Category, Memo: line.Memo, Payee: line.Payee}
-	}
-	return adapted
-}
-
 func newScheduled(a *app) *cobra.Command {
 	command := &cobra.Command{
 		Use: "scheduled", Short: "List and read the plan's scheduled transactions",

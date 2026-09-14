@@ -71,7 +71,11 @@ names transfer targets), then the transaction.
 			if _, err := fmt.Fprintln(out); err != nil {
 				return err
 			}
-			return writeTable(out, lineColumns, lineRows(record.Subtransactions, currency))
+			rows := make([][]cell, len(record.Subtransactions))
+			for i, line := range record.Subtransactions {
+				rows[i] = lineRow(line.Payee, line.Category, line.Memo, line.Amount, currency)
+			}
+			return writeTable(out, lineColumns, rows)
 		}),
 	}
 	output.bind(command, false)

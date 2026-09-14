@@ -114,8 +114,11 @@ func ParseAmount(text string, fractionDigits int) (Amount, error) {
 		negative = rest[0] == '-'
 		rest = rest[1:]
 	}
-	whole, fraction, _ := strings.Cut(rest, ".")
-	if whole == "" || !allDigits(whole) || strings.Contains(rest, ".") && (fraction == "" || len(fraction) > fractionDigits || !allDigits(fraction)) {
+	whole, fraction, hasPeriod := strings.Cut(rest, ".")
+	if whole == "" || !allDigits(whole) {
+		return 0, invalid()
+	}
+	if hasPeriod && (fraction == "" || len(fraction) > fractionDigits || !allDigits(fraction)) {
 		return 0, invalid()
 	}
 

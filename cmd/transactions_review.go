@@ -63,6 +63,30 @@ func reviewSummary(records []reviewRecord) string {
 	return fmt.Sprintf("%s %s attention: %d to approve, %d to categorize", transactionCount(len(records)), verb, approve, categorize)
 }
 
+var reviewColumns = []column{
+	{name: "DATE"}, {name: "ACCOUNT"}, {name: "PAYEE"}, {name: "CATEGORY"}, {name: "MEMO"},
+	{name: "AMOUNT", right: true}, {name: "NEEDS"},
+}
+
+// reviewRows renders each record as transactionRows does, without the
+// cleared, approved, and flag columns and with needs on the parent row.
+func reviewRows(records []reviewRecord, currency *ynab.CurrencyFormat) [][]cell {
+	var rows [][]cell
+	for _, record := range records {
+		rows = append(rows, []cell{
+			plain(record.Date), plain(record.Account), plain(record.Payee), plain(record.Category), plain(record.Memo),
+			plainAmount(record.Amount, currency), plain(record.Needs),
+		})
+		for _, line := range record.Subtransactions {
+			rows = append(rows, []cell{
+				plain(""), plain(""), plain(line.Payee), plain("  " + line.Category), plain(line.Memo),
+				plainAmount(line.Amount, currency), plain(""),
+			})
+		}
+	}
+	return rows
+}
+
 // reviewCSVLines flattens splits as csvLines does, repeating needs on
 // each line.
 func reviewCSVLines(records []reviewRecord) []reviewRecord {
@@ -122,18 +146,7 @@ endpoint, then the unapproved and uncategorized listings. --jsonl and
 			case output.csv:
 				return writeCSV(out, reviewCSVLines(records))
 			}
-			columns := append(append([]column{}, transactionColumns[:6]...), column{name: "NEEDS"})
-			var rows [][]cell
-			for _, record := range records {
-				for i, row := range transactionRows([]transactionRecord{record.transactionRecord}, plan.CurrencyFormat) {
-					needs := plain("")
-					if i == 0 {
-						needs = plain(record.Needs)
-					}
-					rows = append(rows, append(row[:6], needs))
-				}
-			}
-			if err := writeTable(out, columns, rows); err != nil {
+			if err := writeTable(out, reviewColumns, reviewRows(records, plan.CurrencyFormat)); err != nil {
 				return err
 			}
 			_, err = fmt.Fprintln(out, reviewSummary(records))

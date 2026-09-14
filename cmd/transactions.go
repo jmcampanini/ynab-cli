@@ -195,15 +195,12 @@ func flagWords(color, name string) string {
 	return color + " (" + name + ")"
 }
 
-// lineColumns and lineRows render a split's lines under a single record.
+// lineColumns and lineRow render a split's lines, of a transaction or a
+// scheduled transaction, in a table under a single record.
 var lineColumns = []column{{name: "PAYEE"}, {name: "CATEGORY"}, {name: "MEMO"}, {name: "AMOUNT", right: true}}
 
-func lineRows(lines []subtransactionRecord, currency *ynab.CurrencyFormat) [][]cell {
-	rows := make([][]cell, len(lines))
-	for i, line := range lines {
-		rows[i] = []cell{plain(line.Payee), plain(line.Category), plain(line.Memo), plainAmount(line.Amount, currency)}
-	}
-	return rows
+func lineRow(payee, category, memo string, amount ynab.Amount, currency *ynab.CurrencyFormat) []cell {
+	return []cell{plain(payee), plain(category), plain(memo), plainAmount(amount, currency)}
 }
 
 // findPayee resolves query against payee IDs, then names ignoring case.
