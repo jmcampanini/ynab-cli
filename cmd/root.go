@@ -4,6 +4,7 @@ package cmd
 import (
 	"io"
 	"os"
+	"time"
 
 	"github.com/jmcampanini/go-config-loader/pflagloader"
 	"github.com/jmcampanini/ynab-cli/internal/config"
@@ -24,6 +25,8 @@ type dependencies struct {
 	isTerminal func(io.Writer) bool
 	// lookupEnv reads one environment variable, empty when unset.
 	lookupEnv func(string) string
+	// now is the clock that resolves "current", "today", and "yesterday".
+	now func() time.Time
 }
 
 func defaultDependencies() dependencies {
@@ -34,6 +37,7 @@ func defaultDependencies() dependencies {
 			return ok && term.IsTerminal(int(file.Fd()))
 		},
 		lookupEnv: os.Getenv,
+		now:       time.Now,
 	}
 }
 
@@ -55,9 +59,10 @@ func newRoot(deps dependencies) *cobra.Command {
 		Use: "ynab", Short: "Read and write a YNAB plan from the terminal",
 		Long: `ynab reads and writes a YNAB plan from the terminal and emits JSON lines
 and CSV for scripts and agents. Every command is 'ynab <noun> <verb>'; a
-bare noun prints its help. This release reads plans and accounts. Writes
-are not implemented yet; when they arrive they stay disabled until
-allow_writes is set, and every write will accept --dry-run.
+bare noun prints its help. This release reads plans, accounts, categories,
+category groups, and months. Writes are not implemented yet; when they
+arrive they stay disabled until allow_writes is set, and every write will
+accept --dry-run.
 
 ynab needs a personal access token from https://app.ynab.com/settings/developer
 and network access to api.ynab.com. It runs no external programs, never
@@ -67,7 +72,8 @@ prompts, and keeps nothing on disk.
 		Example: `  ynab plans list
   ynab accounts list --plan Household
   ynab accounts list --jsonl | jq .balance
-  ynab accounts get "Chase Checking"
+  ynab categories get "Bills: Internet"
+  ynab months get
   ynab config --provenance`,
 		SilenceErrors: true, SilenceUsage: true, Version: Version,
 		DisableSuggestions: true,
@@ -81,7 +87,7 @@ prompts, and keeps nothing on disk.
 		// Registration depends only on this package's static configuration type.
 		panic(err)
 	}
-	root.AddCommand(newConfig(), newPlans(a), newAccounts(a), exitCodesTopic(), outputFormatsTopic())
+	root.AddCommand(newConfig(), newPlans(a), newAccounts(a), newCategories(a), newCategoryGroups(a), newMonths(a), exitCodesTopic(), outputFormatsTopic())
 	return root
 }
 
