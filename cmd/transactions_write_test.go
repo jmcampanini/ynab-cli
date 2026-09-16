@@ -246,7 +246,7 @@ func TestAllUncategorizedSkipsTransfersBetweenPlanAccounts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if stderr != "skipped 2 transactions: transfers between plan accounts carry no category\n" {
+	if stderr != "skipped 2 transactions: these transactions do not need a category\n" {
 		t.Errorf("stderr = %q", stderr)
 	}
 	if strings.Contains(out, "Transfer") || !strings.HasSuffix(out, "would categorize 2 transactions\n") {
@@ -483,7 +483,7 @@ func TestAllSelectionsListSinceThePlansFirstMonth(t *testing.T) {
 func TestSplitParentKeepsDateAmountAndCategory(t *testing.T) {
 	h := newHarness(t)
 
-	preview, err := h.execute(t, "transactions", "update", "t1", "--amount", "-999", "--category", "Rent", "--date", "2026-01-01", "--memo", "changed", "--dry-run", "--jsonl")
+	preview, err := h.execute(t, "transactions", "update", "t1", "--amount", "-100", "--category", "Rent", "--date", "2026-09-02", "--memo", "changed", "--dry-run", "--jsonl")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -498,11 +498,31 @@ func TestSplitParentKeepsDateAmountAndCategory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stderr != "transaction t1 is a split; the API ignored its date, amount, or category change\n" {
+	if stderr != "transaction t1 is a split; the API ignored its category change\n" {
 		t.Errorf("stderr = %q, want the split warning for t1 only", stderr)
 	}
 	if !strings.Contains(out, "Split") || !strings.HasSuffix(out, "categorized 2 transactions\n") {
 		t.Errorf("categorize with a split =\n%s", out)
+	}
+}
+
+func TestSplitDateAndAmountChangesFailInDryAndRealRuns(t *testing.T) {
+	for _, mode := range []string{"--dry-run", "--allow-writes"} {
+		for _, change := range [][]string{{"--amount", "-999"}, {"--date", "2026-01-01"}} {
+			t.Run(mode+" "+change[0], func(t *testing.T) {
+				h := newHarness(t)
+				args := append([]string{"transactions", "update", "t1", mode}, change...)
+
+				out, err := h.execute(t, args...)
+
+				if out != "" || err == nil || ExitCode(err) != ExitFailure || !strings.Contains(err.Error(), "split") {
+					t.Errorf("split update = %q, %v; want no records and a split failure", out, err)
+				}
+				if mode == "--dry-run" && len(h.writes) != 0 {
+					t.Errorf("dry run wrote: %v", h.writes)
+				}
+			})
+		}
 	}
 }
 

@@ -11,8 +11,8 @@ import (
 // Transaction is one register entry as the transaction endpoints return
 // it: the API's transaction detail with the account, payee, and category
 // names filled in. A split carries its lines in Subtransactions and has a
-// nil CategoryID with CategoryName "Split". Pointer fields are nil when the
-// API sends null. FlagColor may also be the empty string for no flag.
+// CategoryName "Split". Pointer fields are nil when the API sends null.
+// FlagColor may also be the empty string for no flag.
 type Transaction struct {
 	AccountID               string           `json:"account_id"`
 	AccountName             string           `json:"account_name"`

@@ -115,9 +115,9 @@ approve, categorize, clear, unclear, flag):
   account_id                  string
   payee                       string; omitted when absent
   payee_id                    string; omitted when absent
-  category                    category name, "Split" for a split;
-                              omitted when uncategorized
-  category_id                 string; omitted for splits and uncategorized
+  category                    API category name, including "Split" or
+                              "Uncategorized"; omitted when absent
+  category_id                 API category ID; omitted when absent
   memo                        string; omitted when empty
   amount                      amount
   cleared                     uncleared, cleared, or reconciled

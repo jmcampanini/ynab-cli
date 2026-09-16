@@ -79,6 +79,28 @@ func (n accountNames) name(id *string) string {
 	return *id
 }
 
+// transactionsNeedingCategory removes accounts and transfers that do not
+// use categories from the API's uncategorized listing. The plan side of a
+// transfer to a tracking account still needs a category.
+func transactionsNeedingCategory(transactions []ynab.Transaction, accounts []ynab.Account) []ynab.Transaction {
+	onPlan := make(map[string]bool, len(accounts))
+	for _, account := range accounts {
+		onPlan[account.ID] = account.OnPlan
+	}
+
+	var needed []ynab.Transaction
+	for _, tx := range transactions {
+		if included, known := onPlan[tx.AccountID]; known && !included {
+			continue
+		}
+		if tx.TransferAccountID != nil && onPlan[tx.AccountID] && onPlan[*tx.TransferAccountID] {
+			continue
+		}
+		needed = append(needed, tx)
+	}
+	return needed
+}
+
 // text dereferences an optional API string, blank when null.
 func text(value *string) string {
 	if value == nil {
@@ -244,8 +266,9 @@ list with its filters, one transaction by ID, the review of what needs
 approval or a category, and the writes that carry the monthly work:
 create, update, delete, approve, categorize, clear, unclear, flag, and
 import. A bare 'ynab transactions' prints this help and exits 0. The API
-cannot edit the lines of an existing split, split an existing
-transaction, reconcile an account, or read pending bank transactions.
+cannot edit the lines of an existing split, reconcile an account, or
+read pending bank transactions. Converting an existing transaction to a
+split is available through 'api put', but not 'transactions update'.
 
 ` + writeHelp + "\n\n" + planHelp + "\n\n" + dateHelp,
 		Args: cobra.NoArgs,

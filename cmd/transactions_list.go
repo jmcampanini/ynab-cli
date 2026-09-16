@@ -52,8 +52,8 @@ type listing struct {
 }
 
 // listing picks the endpoint and the API-side query. The API accepts one
-// type; uncategorized goes to the API because its rule about transfers is
-// the server's, and unapproved stays client-side when both are set.
+// type; uncategorized narrows the candidate rows at the API, and
+// unapproved stays client-side when both are set.
 func (f transactionFilters) listing() listing {
 	query := ynab.TransactionFilter{SinceDate: f.since, UntilDate: f.until}
 	switch {
@@ -191,6 +191,8 @@ transaction is shown and the summary totals only the matching lines.
 --since and --until bound the date range; --month is that month's range.
 Without --since or --month the API returns one year back. --unapproved
 and --uncategorized keep transactions awaiting approval or a category.
+--uncategorized excludes tracking-account transactions and transfers
+between plan accounts, since those do not need categories.
 --cleared takes uncleared, cleared, or reconciled. --flag takes a color or
 none for unflagged. --memo keeps memos containing the text, ignoring
 case, on the transaction or any line. --min and --max bound the signed
@@ -202,8 +204,9 @@ and plan listings, with --since, --until, and one of --unapproved or
 --uncategorized applied by the API and the rest applied here. Three
 requests: the plans endpoint, the accounts endpoint (which names transfer
 targets and resolves --account), then the listing. --category and --payee
-each add one request to resolve the name. --csv flattens a split to one
-row per line with the parent's id in parent_id.
+each add one request to resolve the name. --csv prints the parent row
+followed by one row per split line with the parent's id in parent_id.
+To total whole transactions, include only rows with an empty parent_id.
 
 ` + planHelp + "\n\n" + dateHelp + "\n\n" + monthHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
 		Example: `  ynab transactions list --since 2026-08-01 --until 2026-08-31 --csv
@@ -283,6 +286,9 @@ row per line with the parent's id in parent_id.
 				return err
 			}
 
+			if filters.uncategorized {
+				transactions = transactionsNeedingCategory(transactions, accounts)
+			}
 			names := newAccountNames(accounts)
 			var records []transactionRecord
 			var total ynab.Amount

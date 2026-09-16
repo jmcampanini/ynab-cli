@@ -45,7 +45,7 @@ Ranked by how much they matter to the monthly workflow. R = read, W = write.
 | plan | The container. | R only | `GET /plans/{id}` returns the whole plan in one call. Settings hold date and currency format. No create, rename, or delete. |
 | account | Checking, savings, cash, credit cards, tracking accounts. | R, create | `on_budget`, `closed`, three balances, `last_reconciled_at`, direct import status. No rename, close, delete, or reconcile. |
 | transaction | The unit of work. | Full CRUD, bulk create and update | Date, amount, payee, category, memo, cleared (`uncleared`, `cleared`, `reconciled`), approved, flag, import id, transfer link, subtransactions. Filters: `since_date`, `until_date`, `type=uncategorized|unapproved`, by account, category, payee, or month. Default window is one year back. |
-| subtransaction | A line of a split transaction. | Create with the parent only | Cannot edit the lines of an existing split, or change the parent's date, amount, or category. |
+| subtransaction | A line of a split transaction. | Create with the parent, or convert an unsplit transaction through `api put` | Cannot edit the lines of an existing split, or change the parent's date, amount, or category. |
 | transfer | A transaction whose payee is another account. | Through transaction | Set `payee_id` to the target account's `transfer_payee_id`. The API creates the pair. |
 | category | A plan line. | R, create, update (name, note, group, target) | Per month: assigned, activity, available. `hidden`, `internal`. No delete, hide, or reorder. |
 | category group | A grouping of categories. | R, create, rename | Internal groups: the master group (Ready to Assign, Uncategorized) and Credit Card Payments. |
@@ -178,8 +178,9 @@ request. Commands that need several resources, such as `plans status`, make
 one typed request per resource and state the count in their help. The
 one-call full plan export is preferred only when a command needs the
 transaction history, which none does yet; it carries every transaction the
-plan has ever had, and typed listings keep counts such as `uncategorized`
-server-defined. A 429 fails with an error naming the limit.
+plan has ever had. Uncategorized listings exclude tracking-account entries
+and transfers between plan accounts, matching the web app's category-needed
+workflow. A 429 fails with an error naming the limit.
 
 **Dates.** ISO `YYYY-MM-DD` for dates, `YYYY-MM` for months, plus `today`,
 `yesterday`, and `current`.
@@ -199,7 +200,7 @@ Do not promise these. State them in the owning command's help.
 - Record a money movement as its own entity; set month notes.
 - Delete or merge payees; manage rename rules.
 - Account-level reconcile. Only per-transaction `cleared: reconciled`.
-- Edit the lines of an existing split, or split an existing transaction.
+- Edit the lines of an existing split.
 - Create split scheduled transactions.
 - Read pending bank transactions.
 - Bulk approve in one request; it is a bulk `PATCH`, which is fine.

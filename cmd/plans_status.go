@@ -32,9 +32,9 @@ type planStatus struct {
 
 // newPlanStatus derives the summary. Overspent is available below zero
 // and underfunded is a target still needing money this month, both over
-// the categories 'categories list' shows, which leaves out hidden ones
-// and the internal inflow category. Closed accounts in import error are
-// left out.
+// the categories 'categories list' shows, including Uncategorized but
+// leaving out hidden ones and the internal inflow row. Closed accounts
+// in import error are left out.
 func newPlanStatus(month ynab.Month, groups []ynab.CategoryGroup, accounts []ynab.Account, unapproved, uncategorized []ynab.Transaction) (planStatus, error) {
 	listing, err := listCategories(groups, categoriesByID(month.Categories), month.Month, false)
 	if err != nil {
@@ -46,10 +46,10 @@ func newPlanStatus(month ynab.Month, groups []ynab.CategoryGroup, accounts []yna
 		Month:               shortMonth(month.Month),
 		ReadyToAssign:       month.ReadyToAssign,
 		UnapprovedCount:     len(unapproved),
-		UncategorizedCount:  len(uncategorized),
+		UncategorizedCount:  len(transactionsNeedingCategory(uncategorized, accounts)),
 	}}
 	for _, record := range listing.records() {
-		if record.Internal {
+		if record.Internal && record.Name != "Uncategorized" {
 			continue
 		}
 		if record.Available < 0 {
@@ -115,11 +115,13 @@ func newPlansStatus(a *app) *cobra.Command {
 assign, age of money, the overspent categories with their count and
 total, the targets still needing money with their count and total, the
 counts of unapproved and uncategorized transactions, and the open
-accounts whose direct import is in error. Overspent and underfunded are
-taken over the categories 'categories list' shows, so hidden categories
-are left out; Credit Card Payments categories count. Six requests: the
-plans endpoint, the current month, the categories endpoint, the accounts
-endpoint, then the unapproved and uncategorized listings, to which the
+accounts whose direct import is in error. Uncategorized excludes
+tracking-account transactions and transfers between plan accounts.
+Overspent and underfunded omit hidden categories and the internal inflow
+row. Uncategorized and Credit Card Payments categories count.
+Six requests: the plans endpoint, the current
+month, the categories endpoint, the accounts endpoint, then the
+unapproved and uncategorized listings, to which the
 API's one-year default window applies. --jsonl prints one object with
 the counts and totals and the import-error account names. Exit 0 whether
 or not anything needs attention.

@@ -94,8 +94,8 @@ func decodeRow(t *testing.T, raw string) map[string]any {
 
 // fixtureStoredCategory merges a category save into a row and applies
 // the API's goal rules: null removes the target, an amount alone makes a
-// NEED target (MF on the credit card payment category), a date makes it
-// TBD, and a frequency makes a repeating NEED target.
+// NEED target (MF on the credit card payment category), a date preserves
+// its type, and a frequency makes a repeating NEED target.
 func fixtureStoredCategory(row, save map[string]any) map[string]any {
 	for key, value := range save {
 		switch key {
@@ -120,7 +120,7 @@ func fixtureStoredCategory(row, save map[string]any) map[string]any {
 		}
 	}
 	if date, ok := save["goal_target_date"]; ok {
-		row["goal_type"], row["goal_target_date"] = "TB", date
+		row["goal_target_date"] = date
 	}
 	if frequency, ok := save["goal_frequency"].(string); ok {
 		row["goal_type"], row["goal_cadence"], row["goal_cadence_frequency"], row["goal_target_date"] = "NEED", map[string]int{"monthly": 1, "weekly": 2, "yearly": 13}[frequency], 1, nil
