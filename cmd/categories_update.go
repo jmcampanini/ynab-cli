@@ -21,8 +21,8 @@ categories match too, internal ones are refused. At least one field flag
 is required; fields not named keep their values. --name renames; a name
 another category of the group already has, ignoring case, is refused.
 --note sets the note and an empty value clears it. --group moves the
-category to another group by ID or exact name; an internal group is
-refused. --no-target removes the target and excludes the other target
+category to another group by ID or exact name; the groups the API owns
+are refused. --no-target removes the target and excludes the other target
 flags. Three requests: the plans endpoint, the categories endpoint, then
 the update. The API cannot delete or hide a category.
 

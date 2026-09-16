@@ -98,10 +98,10 @@ func TestCategoryWritesRefuseWhatTheSpecForbids(t *testing.T) {
 		{[]string{"update", "Credit Card Payments: Visa", "--target", "100", "--target-frequency", "monthly"}, "--target-frequency is not supported on a credit card payment category", ExitFailure, false},
 		{[]string{"update", "Credit Card Payments: Visa", "--needs-whole-amount"}, "--needs-whole-amount is not supported on a credit card payment category", ExitFailure, false},
 		{[]string{"update", "Inflow: Ready to Assign", "--name", "Income"}, "is internal", ExitFailure, false},
-		{[]string{"update", "Rent", "--group", "Internal Master Category"}, `group "Internal Master Category" is internal`, ExitFailure, false},
+		{[]string{"update", "Rent", "--group", "Internal Master Category"}, `group "Internal Master Category" belongs to the API`, ExitFailure, false},
 		{[]string{"update", "Rent", "--name", "internet"}, `group "Bills" already has a category named "Internet"`, ExitFailure, false},
 		{[]string{"update", "Rent", "--group", "Wishes", "--name", "Internet"}, `group "Wishes" already has a category named "Internet"`, ExitFailure, false},
-		{[]string{"create", "Water", "--group", "Credit Card Payments"}, `group "Credit Card Payments" is internal`, ExitFailure, false},
+		{[]string{"create", "Water", "--group", "Credit Card Payments"}, `group "Credit Card Payments" belongs to the API`, ExitFailure, false},
 		{[]string{"create", "rent", "--group", "Bills"}, `group "Bills" already has a category named "Rent"`, ExitFailure, false},
 		{[]string{"create", "Water", "--group", "Utilities"}, `category group "Utilities" not found`, ExitFailure, false},
 	}
@@ -142,7 +142,7 @@ note
 assigned            $1,500.00
 activity            -$1,500.00
 available           $0.00
-target              target balance by date (TBD)
+target              target balance (TB)
 target amount       $1,600.00
 target date         2027-06-01
 target cadence      monthly
@@ -254,7 +254,8 @@ renamed category group "Bills" to "Monthly Bills"
 		wantExit int
 	}{
 		{[]string{"create", "bills"}, `a category group named "Bills" already exists (g1)`, ExitFailure},
-		{[]string{"rename", "Credit Card Payments", "Cards"}, "is internal", ExitFailure},
+		{[]string{"rename", "Credit Card Payments", "Cards"}, "belongs to the API", ExitFailure},
+		{[]string{"rename", "Internal Master Category", "Master"}, "belongs to the API", ExitFailure},
 		{[]string{"rename", "Fun", "Bills"}, `already exists (g1)`, ExitFailure},
 		{[]string{"rename", "Chores", "Fun"}, `category group "Chores" not found`, ExitFailure},
 		{[]string{"create", ""}, "NAME must not be empty", ExitUsage},

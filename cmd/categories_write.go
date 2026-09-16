@@ -124,12 +124,12 @@ func targetDate(text string) (string, error) {
 	return "", usageError(fmt.Sprintf("invalid --target-date %q: use YYYY-MM-DD or YYYY-MM", text))
 }
 
-// previewCategory applies a save to a category as the API's rules state,
-// for a dry run: an amount on a category without a target makes a
-// monthly funding target, "plan your spending" by default and "monthly
-// funding" on a credit card payment category; a date makes it by-date;
-// a frequency makes it repeat; null removes it. Computed fields such as
-// the underfunded amount are left as they were.
+// previewCategory applies a save to a category as the API does, for a
+// dry run: an amount on a category without a target makes a "plan your
+// spending" target, or a "monthly funding" one on a credit card payment
+// category; a date makes a target balance with a date; a frequency
+// makes it repeat; null removes it. Computed fields such as the
+// underfunded amount are left as they were.
 func previewCategory(category ynab.Category, save ynab.SaveCategory, group ynab.CategoryGroup, creditCard bool) ynab.Category {
 	if save.Name != "" {
 		category.Name = save.Name
@@ -155,7 +155,9 @@ func previewCategory(category ynab.Category, save ynab.SaveCategory, group ynab.
 		}
 	}
 	if save.TargetDate != nil {
-		targetType := "TBD"
+		// The API answers a dated target as TB with a date; TBD is the
+		// code older targets carry.
+		targetType := "TB"
 		category.TargetType, category.TargetDate = &targetType, save.TargetDate
 	}
 	if save.TargetFrequency != "" {
@@ -188,17 +190,33 @@ func (s *writeSession) printCategory(cmd *cobra.Command, output outputFlags, cat
 	return err
 }
 
-// writableGroup resolves a --group operand and refuses an internal
-// group, which the API does not place categories in.
+// writableGroup resolves a --group operand and refuses a group the API
+// owns, which it does not place categories in.
 func (s *writeSession) writableGroup(query string) (ynab.CategoryGroup, error) {
 	group, err := findCategoryGroup(query, s.categories)
 	if err != nil {
 		return ynab.CategoryGroup{}, err
 	}
-	if group.Internal {
-		return ynab.CategoryGroup{}, fmt.Errorf("group %q is internal; the API does not place categories in it", group.Name)
+	if apiOwnedGroup(group) {
+		return ynab.CategoryGroup{}, fmt.Errorf("group %q belongs to the API; it does not place categories there", group.Name)
 	}
 	return group, nil
+}
+
+// apiOwnedGroup reports whether the API owns the group: the master
+// group, whose categories are internal, and Credit Card Payments. The
+// API also marks every group it created from its plan template as
+// internal, such as Bills, so the flag alone does not settle it.
+func apiOwnedGroup(group ynab.CategoryGroup) bool {
+	if group.Internal && group.Name == creditCardPaymentsGroup {
+		return true
+	}
+	for _, category := range group.Categories {
+		if category.Internal {
+			return true
+		}
+	}
+	return false
 }
 
 // checkCategoryName refuses a name another category of the group already
@@ -233,7 +251,8 @@ const targetHelp = `Targets:
   --target AMOUNT sets the target amount. Alone on a category without a
   target it makes a monthly "plan your spending" target, or a "monthly
   funding" target on a credit card payment category. With --target-date
-  it makes a target balance by date; the date is YYYY-MM-DD or YYYY-MM.
+  it makes a target balance (TB) with that date; the date is YYYY-MM-DD
+  or YYYY-MM.
   With --target-frequency monthly, weekly, or yearly it makes a repeating
   "plan your spending" target, replacing any existing one; the frequency
   requires --target and excludes --target-date. --needs-whole-amount

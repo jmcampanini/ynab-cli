@@ -13,7 +13,8 @@ func newCategoryGroupsRename(a *app) *cobra.Command {
 		Use: "rename GROUP NAME", Short: "Rename a category group",
 		Long: `Rename one category group and print it as stored, in the shape of
 'category-groups list'. GROUP is a group ID or its exact name, matched
-case-insensitively; hidden groups match too, internal ones are refused.
+case-insensitively; hidden groups match too, and the groups the API
+owns, Credit Card Payments and the master group, are refused.
 NAME is at most 50 characters, and a name another group already has,
 ignoring case, is refused. Three requests: the plans endpoint, the
 categories endpoint, then the update.
@@ -39,8 +40,8 @@ categories endpoint, then the update.
 			if err != nil {
 				return err
 			}
-			if group.Internal {
-				return fmt.Errorf("group %q is internal; the API does not rename it", group.Name)
+			if apiOwnedGroup(group) {
+				return fmt.Errorf("group %q belongs to the API; it is not renamed", group.Name)
 			}
 			if err := checkGroupName(args[1], groups, group.ID); err != nil {
 				return err

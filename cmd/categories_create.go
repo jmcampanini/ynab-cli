@@ -16,9 +16,9 @@ func newCategoriesCreate(a *app) *cobra.Command {
 		Use: "create NAME --group GROUP [--note TEXT] [target flags]", Short: "Create a category in a group",
 		Long: `Create a category named NAME in GROUP and print it as stored, in the
 shape of 'categories get', with the current month's amounts. GROUP is a
-category group ID or its exact name, matched case-insensitively; an
-internal group, such as Credit Card Payments, is refused, as the API
-states. A name another category of the group already has, ignoring
+category group ID or its exact name, matched case-insensitively; the
+groups the API owns, Credit Card Payments and the master group, are
+refused. A name another category of the group already has, ignoring
 case, is refused, since the CLI could not then tell them apart. --note
 sets the note. The target flags need --target. Three requests: the
 plans endpoint, the categories endpoint, then the create. The API cannot
