@@ -53,6 +53,7 @@ listing with --all-unapproved, then one bulk update per 100 transactions.
 	command.Flags().BoolVar(&allUnapproved, "all-unapproved", false, "Approve every transaction awaiting approval")
 	command.Flags().StringVar(&account, "account", "", "With --all-unapproved, only this account's transactions")
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print what would be approved without approving")
+	completeFlags(command, a.completeAccounts(), "account")
 	return command
 }
 

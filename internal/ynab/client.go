@@ -51,45 +51,20 @@ func (c *Client) getQuery(ctx context.Context, path string, query url.Values, ou
 // non-nil body is sent as JSON. Any 2xx status is a success; the API
 // answers some creates with 200 and others with 201.
 func (c *Client) do(ctx context.Context, method, path string, query url.Values, body, out any) error {
-	base := c.BaseURL
-	if base == "" {
-		base = DefaultBaseURL
-	}
 	if len(query) > 0 {
 		path += "?" + query.Encode()
 	}
-	var payload io.Reader
+	var payload []byte
 	if body != nil {
 		encoded, err := json.Marshal(body)
 		if err != nil {
 			return fmt.Errorf("encode request %s: %w", path, err)
 		}
-		payload = bytes.NewReader(encoded)
+		payload = encoded
 	}
-	request, err := http.NewRequestWithContext(ctx, method, base+path, payload)
+	response, err := c.send(ctx, method, path, payload)
 	if err != nil {
-		return fmt.Errorf("build request %s: %w", path, err)
-	}
-	request.Header.Set("Authorization", "Bearer "+c.Token)
-	request.Header.Set("Accept", "application/json")
-	if body != nil {
-		request.Header.Set("Content-Type", "application/json")
-	}
-	if c.UserAgent != "" {
-		request.Header.Set("User-Agent", c.UserAgent)
-	}
-
-	httpClient := c.HTTPClient
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 30 * time.Second}
-	}
-	response, err := httpClient.Do(request)
-	if err != nil {
-		var urlErr *url.Error
-		if errors.As(err, &urlErr) && urlErr.Timeout() {
-			return fmt.Errorf("request %s timed out after 30s", path)
-		}
-		return fmt.Errorf("request %s: %w", path, err)
+		return err
 	}
 	defer func() { _ = response.Body.Close() }()
 
@@ -106,6 +81,74 @@ func (c *Client) do(ctx context.Context, method, path string, query url.Values, 
 		return fmt.Errorf("decode response from %s: %w", path, err)
 	}
 	return nil
+}
+
+// RawResponse is the status and body of a request made with Raw, exactly
+// as the API returned them.
+type RawResponse struct {
+	Body   []byte
+	Status int
+}
+
+// Raw performs one request with the path and JSON body as given and
+// returns the status and body without decoding them, so a non-2xx status
+// is a response, not an error. A nil body sends no body.
+func (c *Client) Raw(ctx context.Context, method, path string, body []byte) (RawResponse, error) {
+	response, err := c.send(ctx, method, path, body)
+	if err != nil {
+		return RawResponse{}, err
+	}
+	defer func() { _ = response.Body.Close() }()
+
+	read, err := io.ReadAll(response.Body)
+	if err != nil {
+		return RawResponse{}, fmt.Errorf("read response from %s: %w", path, err)
+	}
+	return RawResponse{Body: read, Status: response.StatusCode}, nil
+}
+
+// URL returns the absolute URL a path relative to the API root resolves to.
+func (c *Client) URL(path string) string {
+	base := c.BaseURL
+	if base == "" {
+		base = DefaultBaseURL
+	}
+	return base + path
+}
+
+// send performs one request with the token and the CLI's headers. A
+// non-nil payload is sent as JSON.
+func (c *Client) send(ctx context.Context, method, path string, payload []byte) (*http.Response, error) {
+	var reader io.Reader
+	if payload != nil {
+		reader = bytes.NewReader(payload)
+	}
+	request, err := http.NewRequestWithContext(ctx, method, c.URL(path), reader)
+	if err != nil {
+		return nil, fmt.Errorf("build request %s: %w", path, err)
+	}
+	request.Header.Set("Authorization", "Bearer "+c.Token)
+	request.Header.Set("Accept", "application/json")
+	if payload != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+	if c.UserAgent != "" {
+		request.Header.Set("User-Agent", c.UserAgent)
+	}
+
+	httpClient := c.HTTPClient
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 30 * time.Second}
+	}
+	response, err := httpClient.Do(request)
+	if err != nil {
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) && urlErr.Timeout() {
+			return nil, fmt.Errorf("request %s timed out after 30s", path)
+		}
+		return nil, fmt.Errorf("request %s: %w", path, err)
+	}
+	return response, nil
 }
 
 // decodeError maps a non-2xx response to *Error. A body that is not the

@@ -59,18 +59,23 @@ func newRoot(deps dependencies) *cobra.Command {
 		Use: "ynab", Short: "Read and write a YNAB plan from the terminal",
 		Long: `ynab reads and writes a YNAB plan from the terminal and emits JSON lines
 and CSV for scripts and agents. Every command is 'ynab <noun> <verb>'; a
-bare noun prints its help. This release reads plans, accounts, categories,
+bare noun prints its help. ynab reads plans, accounts, categories,
 category groups, months, transactions, payees, scheduled transactions,
 and money movements, summarizes the month with 'plans status', writes
 transactions (create, update, delete, approve, categorize, clear,
 unclear, flag, import), moves money between categories ('months assign',
-'move', 'cover', 'fund'), and creates or updates categories, category
-groups, payees, and accounts. Writes stay disabled until allow_writes is
-set, and every write accepts --dry-run; see 'ynab transactions --help'.
+'move', 'cover', 'fund'), creates or updates categories, category
+groups, payees, and accounts, and derives the 'reports funding' and
+'reports spending' reports. Anything the API offers beyond that goes
+through 'ynab api', which sends a raw request and prints the raw
+response. Writes stay disabled until allow_writes is set, and every
+write accepts --dry-run; see 'ynab transactions --help'.
 
 ynab needs a personal access token from https://app.ynab.com/settings/developer
 and network access to api.ynab.com. It runs no external programs, never
-prompts, and keeps nothing on disk.
+prompts, and keeps nothing on disk. 'ynab completion bash|zsh|fish|powershell'
+prints a completion script that also completes account, category, and
+payee names from the plan.
 
 ` + configHelp + "\n\n" + planHelp + "\n\n" + outputHelp,
 		Example: `  ynab plans list
@@ -86,6 +91,9 @@ prompts, and keeps nothing on disk.
   ynab months fund --all-underfunded --allow-writes
   ynab categories update Groceries --target 600 --allow-writes
   ynab plans status
+  ynab reports funding --underfunded
+  ynab reports spending --by payee --since 2026-01-01 --csv
+  ynab api get /user
   ynab config --provenance`,
 		SilenceErrors: true, SilenceUsage: true, Version: Version,
 		DisableSuggestions: true,
@@ -99,7 +107,7 @@ prompts, and keeps nothing on disk.
 		// Registration depends only on this package's static configuration type.
 		panic(err)
 	}
-	root.AddCommand(newConfig(), newPlans(a), newAccounts(a), newCategories(a), newCategoryGroups(a), newMonths(a), newTransactions(a), newPayees(a), newScheduled(a), newMoneyMovements(a), exitCodesTopic(), outputFormatsTopic())
+	root.AddCommand(newConfig(), newPlans(a), newAccounts(a), newCategories(a), newCategoryGroups(a), newMonths(a), newTransactions(a), newPayees(a), newScheduled(a), newMoneyMovements(a), newReports(a), newAPI(a), exitCodesTopic(), outputFormatsTopic())
 	return root
 }
 

@@ -62,5 +62,6 @@ endpoint, the month, then the write.
 	command.Flags().BoolVar(&subtract, "subtract", false, "Subtract AMOUNT from the assigned amount")
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print the row as it would be without writing")
 	command.MarkFlagsMutuallyExclusive("add", "subtract")
+	command.ValidArgsFunction = firstOperand(a.completeCategories())
 	return command
 }

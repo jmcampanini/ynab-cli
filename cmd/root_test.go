@@ -131,6 +131,8 @@ type harness struct {
 	requests []string
 	terminal bool
 	env      map[string]string
+	// stdin is the input a command reads, empty when unset.
+	stdin io.Reader
 	// writes records every non-GET request as "METHOD path body".
 	writes []string
 	// failWrite, when set, makes every non-GET request whose path contains
@@ -224,6 +226,9 @@ func (h *harness) executeStreams(t *testing.T, args ...string) (string, string, 
 	root.SetOut(&stdout)
 	root.SetErr(&stderr)
 	root.SetArgs(args)
+	if h.stdin != nil {
+		root.SetIn(h.stdin)
+	}
 	err := root.ExecuteContext(t.Context())
 	return stdout.String(), stderr.String(), err
 }
@@ -300,6 +305,8 @@ func TestUsageErrorsExitTwoBeforeAnyRequest(t *testing.T) {
 		{"accounts", "list", "--jsonl", "--csv"}, {"--color", "bold", "plans", "list"}, {"plans", "list", "--nope"},
 		{"config", "--config", ""}, {"transactions", "get"}, {"transactions", "review", "extra"}, {"payees", "get", "a", "b"},
 		{"scheduled", "get"}, {"money-movements", "list", "extra"}, {"plans", "status", "--csv"},
+		{"reports", "extra"}, {"reports", "spending", "--by", "nope"}, {"reports", "spending", "--month", "2026-08", "--since", "2026-08-01"},
+		{"api", "extra"}, {"api", "get"}, {"api", "get", "/user", "--body", "{}"}, {"api", "post", "/user", "--body", "{}", "--body-file", "x"},
 	}
 
 	for _, args := range cases {
@@ -349,7 +356,7 @@ func TestAPIErrorsExitOne(t *testing.T) {
 func TestHelpAndVersionNeedNoTokenOrNetwork(t *testing.T) {
 	h := newHarness(t)
 	t.Setenv("YNAB_TOKEN", "")
-	for _, args := range [][]string{{"--help"}, {"--version"}, {"plans"}, {"accounts"}, {"accounts", "get", "--help"}, {"categories"}, {"category-groups"}, {"months"}, {"transactions"}, {"payees"}, {"scheduled"}, {"money-movements"}, {"transactions", "list", "--help"}, {"output-formats"}, {"config", "--help"}} {
+	for _, args := range [][]string{{"--help"}, {"--version"}, {"plans"}, {"accounts"}, {"accounts", "get", "--help"}, {"categories"}, {"category-groups"}, {"months"}, {"transactions"}, {"payees"}, {"scheduled"}, {"money-movements"}, {"transactions", "list", "--help"}, {"output-formats"}, {"config", "--help"}, {"reports"}, {"api"}, {"api", "get", "--help"}, {"completion", "zsh"}} {
 		out, err := h.execute(t, args...)
 		if err != nil || out == "" {
 			t.Errorf("execute(%v) = %q, %v", args, out, err)

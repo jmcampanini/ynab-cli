@@ -101,5 +101,7 @@ the update. The API cannot delete or hide a category.
 	command.Flags().StringVar(&groupText, "group", "", "Move to this category group, by ID or exact name")
 	target.bind(command, true)
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print the category as it would be without changing it")
+	command.ValidArgsFunction = a.completeCategories()
+	completeFlags(command, a.completeCategoryGroups(), "group")
 	return command
 }

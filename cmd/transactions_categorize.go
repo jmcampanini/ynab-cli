@@ -60,6 +60,7 @@ bulk update per 100 transactions.
 	command.Flags().BoolVar(&allUncategorized, "all-uncategorized", false, "Categorize every transaction without a category")
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print what would be categorized without changing it")
 	_ = command.MarkFlagRequired("category")
+	completeFlags(command, a.completeCategories(), "category")
 	return command
 }
 

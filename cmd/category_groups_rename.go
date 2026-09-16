@@ -64,5 +64,6 @@ categories endpoint, then the update.
 	}
 	output.bind(command, false)
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print the group as it would be without renaming it")
+	command.ValidArgsFunction = firstOperand(a.completeCategoryGroups())
 	return command
 }

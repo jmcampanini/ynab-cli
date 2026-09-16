@@ -60,5 +60,6 @@ cannot merge them.
 	}
 	output.bind(command, false)
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print the payee as it would be without renaming it")
+	command.ValidArgsFunction = firstOperand(a.completePayees())
 	return command
 }

@@ -76,6 +76,7 @@ periods, which the YNAB app ignores, so the two can differ.
 	}
 	output.bind(command, false)
 	bindMonthFlag(command, &monthText)
+	command.ValidArgsFunction = a.completeCategories()
 	return command
 }
 

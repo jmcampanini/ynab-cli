@@ -73,5 +73,6 @@ each transaction's account.
 	output.bind(command, true)
 	fields.bind(command)
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Preview the records without changing them")
+	completeTransactionFields(command, a)
 	return command
 }
