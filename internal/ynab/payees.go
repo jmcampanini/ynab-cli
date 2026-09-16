@@ -58,11 +58,10 @@ func (c *Client) UpdatePayee(ctx context.Context, planID, payeeID, name string) 
 }
 
 func payeeBody(name string) any {
-	return struct {
-		Payee struct {
-			Name string `json:"name"`
-		} `json:"payee"`
-	}{Payee: struct {
+	type payee struct {
 		Name string `json:"name"`
-	}{Name: name}}
+	}
+	return struct {
+		Payee payee `json:"payee"`
+	}{Payee: payee{Name: name}}
 }

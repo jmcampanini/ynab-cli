@@ -42,14 +42,13 @@ payee afterwards.
 			}
 
 			rest := fmt.Sprintf(" payee %q", args[0])
-			if s.dryRun {
-				return s.printPayee(cmd, output, ynab.Payee{Name: args[0]}, s.line("created", "create", rest))
+			payee := ynab.Payee{Name: args[0]}
+			if !s.dryRun {
+				if payee, err = s.client.CreatePayee(cmd.Context(), s.plan.ID, args[0]); err != nil {
+					return err
+				}
 			}
-			stored, err := s.client.CreatePayee(cmd.Context(), s.plan.ID, args[0])
-			if err != nil {
-				return err
-			}
-			return s.printPayee(cmd, output, stored, s.line("created", "create", rest))
+			return s.printPayee(cmd, output, payee, s.line("created", "create", rest))
 		}),
 	}
 	output.bind(command, false)

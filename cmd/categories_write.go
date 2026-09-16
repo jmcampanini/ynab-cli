@@ -26,9 +26,9 @@ type targetFlags struct {
 	needsWholeAmount, noTarget bool
 }
 
-// targetFlagNames are the flag names targetFlags binds on update; create
-// binds all but no-target.
-var targetFlagNames = []string{"target", "target-date", "target-frequency", "needs-whole-amount", "no-target"}
+// targetFieldFlags are the target flags that set a field. create binds
+// these; update binds --no-target alongside them.
+var targetFieldFlags = []string{"target", "target-date", "target-frequency", "needs-whole-amount"}
 
 func (f *targetFlags) bind(cmd *cobra.Command, update bool) {
 	cmd.Flags().StringVar(&f.amount, "target", "", "Target amount in currency units")
@@ -38,7 +38,7 @@ func (f *targetFlags) bind(cmd *cobra.Command, update bool) {
 	cmd.MarkFlagsMutuallyExclusive("target-frequency", "target-date")
 	if update {
 		cmd.Flags().BoolVar(&f.noTarget, "no-target", false, "Remove the target")
-		for _, name := range targetFlagNames[:4] {
+		for _, name := range targetFieldFlags {
 			cmd.MarkFlagsMutuallyExclusive("no-target", name)
 		}
 	}

@@ -52,12 +52,12 @@ func (c *Client) UpdateMonthCategory(ctx context.Context, planID, month, categor
 	var data struct {
 		Category *Category `json:"category"`
 	}
+	type assignedAmount struct {
+		Milliunits int64 `json:"budgeted"`
+	}
 	body := struct {
-		Category struct {
-			Milliunits int64 `json:"budgeted"`
-		} `json:"category"`
-	}{}
-	body.Category.Milliunits = int64(assigned)
+		Category assignedAmount `json:"category"`
+	}{Category: assignedAmount{Milliunits: int64(assigned)}}
 	if err := c.do(ctx, http.MethodPatch, "/plans/"+planID+"/months/"+month+"/categories/"+categoryID, nil, body, &data); err != nil {
 		return Category{}, err
 	}

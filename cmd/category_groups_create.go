@@ -41,14 +41,13 @@ delete or hide a group afterwards.
 			}
 
 			rest := fmt.Sprintf(" category group %q", args[0])
-			if s.dryRun {
-				return s.printCategoryGroup(cmd, output, ynab.CategoryGroup{Name: args[0]}, s.line("created", "create", rest))
+			group := ynab.CategoryGroup{Name: args[0]}
+			if !s.dryRun {
+				if group, err = s.client.CreateCategoryGroup(cmd.Context(), s.plan.ID, args[0]); err != nil {
+					return err
+				}
 			}
-			stored, err := s.client.CreateCategoryGroup(cmd.Context(), s.plan.ID, args[0])
-			if err != nil {
-				return err
-			}
-			return s.printCategoryGroup(cmd, output, stored, s.line("created", "create", rest))
+			return s.printCategoryGroup(cmd, output, group, s.line("created", "create", rest))
 		}),
 	}
 	output.bind(command, false)

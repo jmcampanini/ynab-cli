@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
@@ -34,11 +35,8 @@ the update. The API cannot delete or hide a category.
 		Args: cobra.ExactArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
 			flags := cmd.Flags()
-			given := flags.Changed("name") || flags.Changed("note") || flags.Changed("group")
-			for _, flag := range targetFlagNames {
-				given = given || flags.Changed(flag)
-			}
-			if !given {
+			fields := append([]string{"name", "note", "group", "no-target"}, targetFieldFlags...)
+			if !slices.ContainsFunc(fields, flags.Changed) {
 				return usageError("give at least one field flag to change")
 			}
 			if flags.Changed("name") && name == "" {
@@ -88,14 +86,13 @@ the update. The API cannot delete or hide a category.
 			}
 
 			rest := fmt.Sprintf(" category %q", group.Name+": "+category.Name)
-			if s.dryRun {
-				return s.printCategory(cmd, output, previewCategory(category, save, group, creditCard), group, s.line("updated", "update", rest))
+			after := previewCategory(category, save, group, creditCard)
+			if !s.dryRun {
+				if after, err = s.client.UpdateCategory(cmd.Context(), s.plan.ID, category.ID, save); err != nil {
+					return err
+				}
 			}
-			stored, err := s.client.UpdateCategory(cmd.Context(), s.plan.ID, category.ID, save)
-			if err != nil {
-				return err
-			}
-			return s.printCategory(cmd, output, stored, group, s.line("updated", "update", rest))
+			return s.printCategory(cmd, output, after, group, s.line("updated", "update", rest))
 		}),
 	}
 	output.bind(command, false)

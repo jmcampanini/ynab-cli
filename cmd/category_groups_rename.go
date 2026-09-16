@@ -48,19 +48,18 @@ categories endpoint, then the update.
 			}
 
 			rest := fmt.Sprintf(" category group %q to %q", group.Name, args[1])
-			if s.dryRun {
-				group.Name = args[1]
-				return s.printCategoryGroup(cmd, output, group, s.line("renamed", "rename", rest))
+			renamed := group
+			renamed.Name = args[1]
+			if !s.dryRun {
+				if renamed, err = s.client.UpdateCategoryGroup(cmd.Context(), s.plan.ID, group.ID, args[1]); err != nil {
+					return err
+				}
+				if renamed.Categories == nil {
+					// The update answer omits the categories; the count comes from the listing.
+					renamed.Categories = group.Categories
+				}
 			}
-			stored, err := s.client.UpdateCategoryGroup(cmd.Context(), s.plan.ID, group.ID, args[1])
-			if err != nil {
-				return err
-			}
-			if stored.Categories == nil {
-				// The update answer omits the categories; the count comes from the listing.
-				stored.Categories = group.Categories
-			}
-			return s.printCategoryGroup(cmd, output, stored, s.line("renamed", "rename", rest))
+			return s.printCategoryGroup(cmd, output, renamed, s.line("renamed", "rename", rest))
 		}),
 	}
 	output.bind(command, false)

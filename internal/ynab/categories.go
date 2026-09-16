@@ -165,11 +165,10 @@ func (c *Client) UpdateCategoryGroup(ctx context.Context, planID, groupID, name 
 }
 
 func categoryGroupBody(name string) any {
-	return struct {
-		Group struct {
-			Name string `json:"name"`
-		} `json:"category_group"`
-	}{Group: struct {
+	type group struct {
 		Name string `json:"name"`
-	}{Name: name}}
+	}
+	return struct {
+		Group group `json:"category_group"`
+	}{Group: group{Name: name}}
 }

@@ -48,15 +48,14 @@ cannot merge them.
 			}
 
 			rest := fmt.Sprintf(" payee %q to %q", payee.Name, args[1])
-			if s.dryRun {
-				payee.Name = args[1]
-				return s.printPayee(cmd, output, payee, s.line("renamed", "rename", rest))
+			renamed := payee
+			renamed.Name = args[1]
+			if !s.dryRun {
+				if renamed, err = s.client.UpdatePayee(cmd.Context(), s.plan.ID, payee.ID, args[1]); err != nil {
+					return err
+				}
 			}
-			stored, err := s.client.UpdatePayee(cmd.Context(), s.plan.ID, payee.ID, args[1])
-			if err != nil {
-				return err
-			}
-			return s.printPayee(cmd, output, stored, s.line("renamed", "rename", rest))
+			return s.printPayee(cmd, output, renamed, s.line("renamed", "rename", rest))
 		}),
 	}
 	output.bind(command, false)

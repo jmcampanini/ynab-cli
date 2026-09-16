@@ -62,14 +62,13 @@ delete a category afterwards; it can hide one only in the app.
 			}
 
 			rest := fmt.Sprintf(" category %q", group.Name+": "+args[0])
-			if s.dryRun {
-				return s.printCategory(cmd, output, previewCategory(ynab.Category{}, save, group, false), group, s.line("created", "create", rest))
+			category := previewCategory(ynab.Category{}, save, group, false)
+			if !s.dryRun {
+				if category, err = s.client.CreateCategory(cmd.Context(), s.plan.ID, save); err != nil {
+					return err
+				}
 			}
-			stored, err := s.client.CreateCategory(cmd.Context(), s.plan.ID, save)
-			if err != nil {
-				return err
-			}
-			return s.printCategory(cmd, output, stored, group, s.line("created", "create", rest))
+			return s.printCategory(cmd, output, category, group, s.line("created", "create", rest))
 		}),
 	}
 	output.bind(command, false)
