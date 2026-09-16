@@ -45,14 +45,19 @@ type spendingLine struct {
 	payee      string
 }
 
-// spendingLines breaks a transaction into the amounts the report totals,
-// leaving out transfers between two on-plan accounts, whole or as a
-// split line, since those move money without spending it. A split's
-// lines carry their own category and payee, inheriting the parent's
-// payee when they name none.
+// spendingLines breaks a transaction into the amounts the report totals.
+// Transactions in tracking accounts are left out, since they carry no
+// category and the plan side of a transfer to one already counts, and so
+// are transfers to another on-plan account, whole or as a split line,
+// since those move money without spending it. A split's lines carry
+// their own category and payee, inheriting the parent's payee when they
+// name none.
 func spendingLines(tx ynab.Transaction, onPlan map[string]bool) []spendingLine {
+	if !onPlan[tx.AccountID] {
+		return nil
+	}
 	transfer := func(target *string) bool {
-		return target != nil && onPlan[tx.AccountID] && onPlan[*target]
+		return target != nil && onPlan[*target]
 	}
 	if len(tx.Subtransactions) == 0 {
 		if transfer(tx.TransferAccountID) {
@@ -200,7 +205,8 @@ carries the counts and totals of the whole range. A split's lines count
 toward their own categories and payees, a line without a payee taking
 the parent's. Transfers between two on-plan accounts are left out, as
 whole transactions or as split lines, since they move money without
-spending it; transfers to tracking accounts count under their category.
+spending it. Transactions in tracking accounts are left out too, so a
+transfer to one counts once, under its category on the plan side.
 Amounts without a category or payee gather on an "Uncategorized" or "No
 payee" row.
 

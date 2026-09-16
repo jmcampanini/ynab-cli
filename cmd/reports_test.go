@@ -178,7 +178,7 @@ c7,Inflow: Ready to Assign,Internal Master Category,0.00,3000.00,3000.00,1
 
 func TestSpendingLinesExcludeOnPlanTransfers(t *testing.T) {
 	onPlan := map[string]bool{"checking": true, "visa": true, "brokerage": false}
-	visa, brokerage, groceries := "visa", "brokerage", "groceries"
+	checking, visa, brokerage, groceries := "checking", "visa", "brokerage", "groceries"
 	cases := []struct {
 		name string
 		tx   ynab.Transaction
@@ -186,6 +186,8 @@ func TestSpendingLinesExcludeOnPlanTransfers(t *testing.T) {
 	}{
 		{"transfer between on-plan accounts", ynab.Transaction{AccountID: "checking", Amount: -50000, TransferAccountID: &visa}, nil},
 		{"transfer to a tracking account", ynab.Transaction{AccountID: "checking", Amount: -50000, TransferAccountID: &brokerage}, []ynab.Amount{-50000}},
+		{"the tracking side of that transfer", ynab.Transaction{AccountID: "brokerage", Amount: 50000, TransferAccountID: &checking}, nil},
+		{"a tracking account's own transaction", ynab.Transaction{AccountID: "brokerage", Amount: -1000}, nil},
 		{"split with a transfer line", ynab.Transaction{AccountID: "checking", Amount: -80000, Subtransactions: []ynab.Subtransaction{
 			{Amount: -30000, CategoryID: &groceries}, {Amount: -50000, TransferAccountID: &visa},
 		}}, []ynab.Amount{-30000}},

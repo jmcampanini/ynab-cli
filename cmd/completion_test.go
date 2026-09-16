@@ -31,11 +31,13 @@ func TestCompletionOffersNamesFromThePlan(t *testing.T) {
 	}{
 		{[]string{"accounts", "get", ""}, []string{"Chase Checking", "Visa"}},
 		{[]string{"categories", "get", "r"}, []string{"Rent"}},
+		// Internet also exists hidden in Wishes, so the bare name is ambiguous.
+		{[]string{"categories", "get", "bills"}, []string{"Bills: Internet"}},
 		{[]string{"categories", "update", "--group", ""}, []string{"Bills", "Fun", "Credit Card Payments", "Internal Master Category"}},
 		{[]string{"payees", "get", "co"}, []string{"Costco"}},
 		{[]string{"payees", "rename", "Costco", ""}, nil},
 		{[]string{"months", "move", "--from", "R"}, []string{"Rent", "ready-to-assign"}},
-		{[]string{"months", "fund", "Rent", "i"}, []string{"Internet"}},
+		{[]string{"months", "fund", "Rent", "b"}, []string{"Bills: Internet"}},
 		{[]string{"transactions", "list", "--payee", "a"}, []string{"Amazon"}},
 		{[]string{"transactions", "create", "--transfer-to", "v"}, []string{"Visa"}},
 	}

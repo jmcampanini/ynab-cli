@@ -66,16 +66,16 @@ func (a *app) completeAccounts() completer {
 }
 
 // completeCategories offers the categories 'categories list' shows,
-// minus the API's own, which no operand accepts. A name shared across
-// groups is offered as "Group: Name", since the bare name would fail to
-// resolve.
+// minus the API's own, which no operand accepts. A name shared with any
+// other category, hidden ones included, is offered as "Group: Name",
+// since the bare name would fail to resolve.
 func (a *app) completeCategories() completer {
 	return a.complete(func(ctx context.Context, client *ynab.Client, planID string) ([]string, error) {
 		groups, err := client.Categories(ctx, planID)
 		if err != nil {
 			return nil, err
 		}
-		listing, err := listCategories(groups, nil, "", false)
+		listing, err := listCategories(groups, nil, "", true)
 		if err != nil {
 			return nil, err
 		}
@@ -96,8 +96,8 @@ func (a *app) completeSources() completer {
 	}
 }
 
-// completionNames returns each record's name, qualified by its group when
-// another record shares the name.
+// completionNames returns the name of each shown record, qualified by its
+// group when any record, hidden ones included, shares the name.
 func completionNames(records []categoryRecord) []string {
 	shared := map[string]int{}
 	for _, record := range records {
@@ -106,7 +106,7 @@ func completionNames(records []categoryRecord) []string {
 	var names []string
 	for _, record := range records {
 		switch {
-		case record.Internal:
+		case record.Internal || record.Hidden:
 			continue
 		case shared[strings.ToLower(record.Name)] > 1:
 			names = append(names, record.Group+": "+record.Name)
