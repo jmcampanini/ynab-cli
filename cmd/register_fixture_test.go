@@ -254,6 +254,15 @@ func serveRegisterWrites(t *testing.T, w http.ResponseWriter, r *http.Request) {
 				}
 				base["id"] = id
 			}
+			if lines, _ := base["subtransactions"].([]any); len(lines) > 0 {
+				for _, field := range []string{"date", "amount"} {
+					if value, changed := entry[field]; changed && value != base[field] {
+						w.WriteHeader(http.StatusBadRequest)
+						_, _ = io.WriteString(w, `{"error":{"id":"400","name":"bad_request","detail":"the amount or date of an existing split transaction cannot be changed"}}`)
+						return
+					}
+				}
+			}
 			stored = append(stored, fixtureStored(base, entry))
 		}
 		reply(http.StatusOK, map[string]any{"transaction_ids": []string{}, "transactions": stored, "duplicate_import_ids": []string{}})
@@ -272,7 +281,8 @@ func serveRegisterWrites(t *testing.T, w http.ResponseWriter, r *http.Request) {
 }
 
 // fixtureStored merges a request entry into a row as the API does: on an
-// existing split the date, amount, and category are ignored. It fills in
+// existing split the category is ignored. The handler rejects changes
+// to its date or amount before this merge. It fills in
 // the names the API derives: the account, category, and payee names, the
 // transfer account behind a transfer payee, a new payee's id, and split
 // line ids.

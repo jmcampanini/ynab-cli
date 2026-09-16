@@ -124,13 +124,13 @@ age of money
 overspent        1 category, -$25.00: Dining Out -$25.00
 underfunded      none
 unapproved       3 transactions
-uncategorized    4 transactions
+uncategorized    2 transactions
 import errors    Visa
 `
 	if table != wantTable {
 		t.Errorf("plans status =\n%s\nwant\n%s", table, wantTable)
 	}
-	wantJSONL := `{"month":"2026-09","ready_to_assign":-500.00,"overspent_count":1,"overspent_total":-25.00,"underfunded_count":0,"underfunded_total":0.00,"unapproved_count":3,"uncategorized_count":4,"import_error_accounts":["Visa"]}` + "\n"
+	wantJSONL := `{"month":"2026-09","ready_to_assign":-500.00,"overspent_count":1,"overspent_total":-25.00,"underfunded_count":0,"underfunded_total":0.00,"unapproved_count":3,"uncategorized_count":2,"import_error_accounts":["Visa"]}` + "\n"
 	if jsonl != wantJSONL {
 		t.Errorf("plans status --jsonl =\n%s\nwant\n%s", jsonl, wantJSONL)
 	}
@@ -164,5 +164,22 @@ func TestPlanStatusUnderfundedAndImportErrorsFromFixtures(t *testing.T) {
 	}
 	if got := status.fields(nil)[4]; got != [2]string{"underfunded", "1 target, 100.00: Internet 100.00"} {
 		t.Errorf("underfunded field = %q", got)
+	}
+}
+
+func TestPlanStatusCountsUncategorizedButNotInflowOverspending(t *testing.T) {
+	groups := []ynab.CategoryGroup{{ID: "internal", Internal: true, Categories: []ynab.Category{
+		{ID: "uncategorized", Name: "Uncategorized", Internal: true, Available: -20000},
+		{ID: "inflow", Name: "Inflow: Ready to Assign", Internal: true, Available: -10000},
+	}}}
+	month := ynab.Month{Month: "2026-09-01", Categories: groups[0].Categories}
+
+	status, err := newPlanStatus(month, groups, nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if status.record.OverspentCount != 1 || status.record.OverspentTotal != -20000 {
+		t.Errorf("newPlanStatus() = %+v, want one overspent category totaling -20.00", status.record)
 	}
 }

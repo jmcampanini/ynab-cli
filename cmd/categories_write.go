@@ -127,7 +127,7 @@ func targetDate(text string) (string, error) {
 // previewCategory applies a save to a category as the API does, for a
 // dry run: an amount on a category without a target makes a "plan your
 // spending" target, or a "monthly funding" one on a credit card payment
-// category; a date makes a target balance with a date; a frequency
+// category; a date changes the due date without changing the type; a frequency
 // makes it repeat; null removes it. Computed fields such as the
 // underfunded amount are left as they were.
 func previewCategory(category ynab.Category, save ynab.SaveCategory, group ynab.CategoryGroup, creditCard bool) ynab.Category {
@@ -155,10 +155,7 @@ func previewCategory(category ynab.Category, save ynab.SaveCategory, group ynab.
 		}
 	}
 	if save.TargetDate != nil {
-		// The API answers a dated target as TB with a date; TBD is the
-		// code older targets carry.
-		targetType := "TB"
-		category.TargetType, category.TargetDate = &targetType, save.TargetDate
+		category.TargetDate = save.TargetDate
 	}
 	if save.TargetFrequency != "" {
 		targetType, cadence, every := "NEED", targetCadences[save.TargetFrequency], 1
@@ -250,9 +247,9 @@ func findCategoryGroup(query string, groups []ynab.CategoryGroup) (ynab.Category
 const targetHelp = `Targets:
   --target AMOUNT sets the target amount. Alone on a category without a
   target it makes a monthly "plan your spending" target, or a "monthly
-  funding" target on a credit card payment category. With --target-date
-  it makes a target balance (TB) with that date; the date is YYYY-MM-DD
-  or YYYY-MM.
+  funding" target on a credit card payment category. --target-date sets
+  the due date without changing the target's type or frequency; the date
+  is YYYY-MM-DD or YYYY-MM.
   With --target-frequency monthly, weekly, or yearly it makes a repeating
   "plan your spending" target, replacing any existing one; the frequency
   requires --target and excludes --target-date. --needs-whole-amount

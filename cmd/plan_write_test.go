@@ -142,7 +142,7 @@ note
 assigned            $1,500.00
 activity            -$1,500.00
 available           $0.00
-target              target balance (TB)
+target              monthly funding (MF)
 target amount       $1,600.00
 target date         2027-06-01
 target cadence      monthly
@@ -162,11 +162,11 @@ dry run, nothing changed: would update category "Bills: Rent"
 		t.Errorf("update --dry-run =\n%s\nwant\n%s", out, want)
 	}
 
-	created, err := h.execute(t, "categories", "create", "Water", "--group", "Bills", "--target", "40", "--dry-run", "--jsonl")
+	created, err := h.execute(t, "categories", "create", "Water", "--group", "Bills", "--target", "40", "--target-date", "2027-06", "--dry-run", "--jsonl")
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantCreated := `{"id":"","name":"Water","group":"Bills","group_id":"g1","month":"2026-09","hidden":false,"internal":false,"assigned":0.00,"activity":0.00,"available":0.00,"target":{"type":"NEED","amount":40.00},"dry_run":true}` + "\n"
+	wantCreated := `{"id":"","name":"Water","group":"Bills","group_id":"g1","month":"2026-09","hidden":false,"internal":false,"assigned":0.00,"activity":0.00,"available":0.00,"target":{"type":"NEED","amount":40.00,"date":"2027-06-01"},"dry_run":true}` + "\n"
 	if created != wantCreated {
 		t.Errorf("create --dry-run --jsonl =\n%s\nwant\n%s", created, wantCreated)
 	}

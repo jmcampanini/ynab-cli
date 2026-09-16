@@ -107,7 +107,9 @@ func newTransactionsReview(a *app) *cobra.Command {
 one table, oldest first, with a needs column saying approve, categorize,
 or both, and a summary line with the counts. The API's one-year default
 window applies. Exit 0 whether or not anything needs attention; the
-counts are the payload. Four requests: the plans endpoint, the accounts
+counts are the payload. Tracking-account transactions and transfers
+between plan accounts do not need categories; unapproved ones still
+appear for approval. Four requests: the plans endpoint, the accounts
 endpoint, then the unapproved and uncategorized listings. --jsonl and
 --csv carry the transaction record plus needs; --csv flattens splits as
 'transactions list --csv' does.
@@ -138,7 +140,7 @@ endpoint, then the unapproved and uncategorized listings. --jsonl and
 				return err
 			}
 
-			records := reviewList(unapproved, uncategorized, newAccountNames(accounts))
+			records := reviewList(unapproved, transactionsNeedingCategory(uncategorized, accounts), newAccountNames(accounts))
 			out := cmd.OutOrStdout()
 			switch {
 			case output.jsonl:

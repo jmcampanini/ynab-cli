@@ -263,8 +263,9 @@ func (s *writeSession) transactionsByID(ctx context.Context, ids []string) ([]yn
 // preview applies a change to a transaction as the API would, so a dry
 // run prints what the real run would. An empty transaction previews a
 // create, with the API's defaults for what the change leaves unset. On
-// an existing split the API ignores the date, amount, and category, and
-// a transfer between plan accounts carries no category.
+// an existing split the category is ignored; bulk validates date and
+// amount changes before previewing. A transfer between plan accounts
+// carries no category.
 func (s *writeSession) preview(tx ynab.Transaction, change ynab.SaveTransaction) ynab.Transaction {
 	if tx.Cleared == "" {
 		tx.Cleared = "uncleared"
@@ -478,6 +479,11 @@ func (s *writeSession) bulk(cmd *cobra.Command, output outputFlags, write bulkWr
 	if s.dryRun {
 		previews := make([]ynab.Transaction, len(current))
 		for i, tx := range current {
+			dateChanged := write.change.Date != "" && write.change.Date != tx.Date
+			amountChanged := write.change.Milliunits != nil && ynab.Amount(*write.change.Milliunits) != tx.Amount
+			if len(tx.Subtransactions) > 0 && (dateChanged || amountChanged) {
+				return fmt.Errorf("transaction %s is a split; its date and amount cannot be changed", tx.ID)
+			}
 			previews[i] = s.preview(tx, write.change)
 		}
 		return s.printTransactions(out, output, previews, write.summary(s, len(previews)))
@@ -536,15 +542,15 @@ func missingRecords(batch []string, stored []ynab.Transaction) error {
 }
 
 // warnIgnoredSplitFields says on stderr which stored records are splits
-// whose date, amount, or category the API ignored, since a real run
+// whose category change the API ignored, since a real run
 // cannot know a transaction is a split before the update answers.
 func warnIgnoredSplitFields(cmd *cobra.Command, change ynab.SaveTransaction, stored []ynab.Transaction) {
-	if change.Date == "" && change.Milliunits == nil && change.CategoryID == nil {
+	if change.CategoryID == nil {
 		return
 	}
 	for _, tx := range stored {
 		if len(tx.Subtransactions) > 0 {
-			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "transaction %s is a split; the API ignored its date, amount, or category change\n", tx.ID)
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "transaction %s is a split; the API ignored its category change\n", tx.ID)
 		}
 	}
 }

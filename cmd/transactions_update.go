@@ -21,11 +21,12 @@ values. The flags are those of 'transactions create': --account, --date,
 clears it), --cleared, --approved (or --approved=false), and --flag (none
 removes the flag).
 
-There is no --split, because the API cannot change the lines of an
-existing split or turn a transaction into one, and no --import-id,
-because the API treats it as a way to name a transaction rather than a
-field to set. On a split, the API ignores --date, --amount, and
---category. --transfer-to with --category is refused when the transaction
+There is no --split; use 'api put' to convert an existing transaction to
+a split. The API cannot change the lines once it is a split. There is
+no --import-id, because the API treats it as a way to name a transaction
+rather than a field to set. Bulk updates reject changes to a split's date
+or amount; --category is ignored. Dry runs reject those date and amount
+changes too. --transfer-to with --category is refused when the transaction
 and the target are both plan accounts.
 
 Requests: the plans endpoint, the accounts endpoint, the payees endpoint

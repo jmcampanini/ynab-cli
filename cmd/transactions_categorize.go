@@ -16,9 +16,9 @@ func newTransactionsCategorize(a *app) *cobra.Command {
 		Long: `Set one category on transactions through one bulk update and print the
 stored records in the shape of 'transactions list'. Name them by ID, or
 pass --all-uncategorized to categorize every transaction without a
-category since the plan's first month. The API lists transfers between
-plan accounts as uncategorized although they carry no category, so
-those are skipped and their count goes to stderr. --category takes an
+category since the plan's first month. Tracking-account transactions
+and transfers between plan accounts are skipped because they do not
+need categories; their count goes to stderr. --category takes an
 ID, an exact name, or "Group: Name"; a Credit Card Payments category is
 refused, since the API ignores it. The API also ignores a category on a
 split; a real run says so on stderr.
@@ -50,7 +50,7 @@ bulk update per 100 transactions.
 				if err != nil {
 					return err
 				}
-				write.current = s.withoutPlanTransfers(cmd, transactions)
+				write.current = s.transactionsToCategorize(cmd, transactions)
 			}
 			return s.bulk(cmd, output, write)
 		}),
@@ -64,21 +64,17 @@ bulk update per 100 transactions.
 	return command
 }
 
-// withoutPlanTransfers drops transfers between two plan accounts, which
-// the API lists as uncategorized but gives no category, and reports the
-// count on stderr. The result is never nil.
-func (s *writeSession) withoutPlanTransfers(cmd *cobra.Command, transactions []ynab.Transaction) []ynab.Transaction {
-	kept := []ynab.Transaction{}
-	skipped := 0
-	for _, tx := range transactions {
-		if tx.TransferAccountID != nil && s.accountByID(tx.AccountID).OnPlan && s.accountByID(*tx.TransferAccountID).OnPlan {
-			skipped++
-			continue
-		}
-		kept = append(kept, tx)
-	}
+// transactionsToCategorize reports candidates that do not need categories.
+// The result is never nil, so an empty selection does not trigger a bulk
+// write's lookup by ID.
+func (s *writeSession) transactionsToCategorize(cmd *cobra.Command, transactions []ynab.Transaction) []ynab.Transaction {
+	kept := transactionsNeedingCategory(transactions, s.accounts)
+	skipped := len(transactions) - len(kept)
 	if skipped > 0 {
-		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "skipped %s: transfers between plan accounts carry no category\n", transactionCount(skipped))
+		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "skipped %s: these transactions do not need a category\n", transactionCount(skipped))
+	}
+	if kept == nil {
+		return []ynab.Transaction{}
 	}
 	return kept
 }

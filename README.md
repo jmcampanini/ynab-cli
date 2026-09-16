@@ -70,7 +70,7 @@ make build
 | `ynab category-groups create Savings --allow-writes` | Create an empty category group. |
 | `ynab payees rename "AMZN Mktp" Amazon --allow-writes` | Rename a payee. |
 | `ynab accounts create "Emergency Fund" --type savings --balance 0 --allow-writes` | Create an account; the API cannot undo it. |
-| `ynab transactions list --since 2026-08-01 --until 2026-08-31 --csv > august.csv` | Write a month of the register as CSV, one row per split line. |
+| `ynab transactions list --since 2026-08-01 --until 2026-08-31 --csv > august.csv` | Write a month of the register as CSV, with split lines after their parent row. |
 | `ynab transactions list --account Visa --unapproved` | List the imports awaiting approval in one account. |
 | `ynab transactions list --category Groceries --jsonl >> history.jsonl` | Append the transactions touching one category, splits included. |
 | `ynab transactions get ID` | Show every field of one transaction, with its split lines. |
