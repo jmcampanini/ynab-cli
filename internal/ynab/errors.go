@@ -31,7 +31,7 @@ func (e *Error) Error() string {
 	case http.StatusNotFound:
 		return "not found: " + detail
 	case http.StatusConflict:
-		return "conflict: " + detail + "; the resource changed since it was read"
+		return "conflict: " + detail
 	case http.StatusTooManyRequests:
 		return "rate limited: the API allows 200 requests per hour per token; wait before retrying"
 	case http.StatusServiceUnavailable:

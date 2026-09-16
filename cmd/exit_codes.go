@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -30,6 +31,12 @@ func (e *exitError) Unwrap() error { return e.err }
 // mistake, such as an empty --config value.
 func usageError(message string) error {
 	return &exitError{code: ExitUsage, err: errors.New(message)}
+}
+
+// writesDisabled is the failure of a mutating command run without
+// allow_writes, which exits ExitWritesDisabled before any request.
+func writesDisabled(configPath string) error {
+	return &exitError{code: ExitWritesDisabled, err: fmt.Errorf("writes are disabled: set allow_writes = true in %s or YNAB_ALLOW_WRITES=true, or pass --allow-writes; --dry-run previews without writing", configPath)}
 }
 
 // ExitCode maps an error returned by the root command to a process exit
@@ -71,12 +78,18 @@ func exitCodesTopic() *cobra.Command {
      'ynab help <unknown>', which prints the root usage.
   1  Command failure: the API returned an error, the token or plan is not
      configured or not found, an account, category, payee, or transaction
-     did not match, or the configuration file could not be loaded.
+     did not match, a later batch of a bulk update failed, a cleared
+     state change needed --force, or the configuration file could not be
+     loaded.
   2  Usage: an unknown command, flag, or operand count, an invalid flag
-     value such as --color bold, or a month that is not current, YYYY-MM,
-     or YYYY-MM-01. Nothing ran and stdout is empty.
-  3  Writes disabled: reserved for mutating commands run without
-     allow_writes. No command in this release exits 3.
+     value such as --color bold, a month that is not current, YYYY-MM, or
+     YYYY-MM-01, an amount with separators or too many decimals, or
+     conflicting write flags such as --split with --category. Nothing ran
+     and stdout is empty.
+  3  Writes disabled: a mutating command ran without allow_writes in the
+     configuration, YNAB_ALLOW_WRITES, or --allow-writes, and without
+     --dry-run. The configuration was loaded, no request was made, and
+     stdout is empty.
 
 Errors are written to stderr as 'ynab: <message>'. Machine output that was
 already written stays on stdout when a later failure changes the status.`,

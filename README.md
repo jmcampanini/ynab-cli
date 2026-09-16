@@ -5,10 +5,12 @@ months, and transactions, writes transactions and assigned amounts, and emits
 JSON lines and CSV for scripts and agents. Writes are disabled until the
 configuration enables them, and every write has a dry run. This release
 reads plans, accounts, categories, months, transactions, payees, scheduled
-transactions, and money movements, and summarizes the month with
-`ynab plans status`; the [milestones](plans/milestones.md) record the order
-the rest lands in, and the [domain map](plans/domain-map.md) records the
-nouns, verbs, and decisions.
+transactions, and money movements, summarizes the month with
+`ynab plans status`, and writes transactions: create, update, delete,
+approve, categorize, clear, unclear, flag, and import; the
+[milestones](plans/milestones.md) record the order the rest lands in, and
+the [domain map](plans/domain-map.md) records the nouns, verbs, and
+decisions.
 
 Command help is the canonical reference: `ynab --help` and each command's
 `--help` describe every user-facing contract, `ynab config --help` describes
@@ -63,6 +65,10 @@ make build
 | `ynab transactions list --category Groceries --jsonl >> history.jsonl` | Append the transactions touching one category, splits included. |
 | `ynab transactions get ID` | Show every field of one transaction, with its split lines. |
 | `ynab transactions review` | List what needs approval or a category, oldest first, with counts. |
+| `ynab transactions approve --all-unapproved --dry-run` | Show what approving every pending import would do, changing nothing. |
+| `ynab transactions create --account Checking --date today --amount -12.50 --payee "Corner Store" --category Groceries --allow-writes` | Record a transaction; a new payee name creates the payee. |
+| `ynab transactions categorize --category Groceries ID... --allow-writes` | Set a category on transactions by ID, 100 per request. |
+| `ynab transactions delete ID --allow-writes --jsonl >> deleted.jsonl` | Delete a transaction and keep the record it printed. |
 | `ynab payees list --unused` | List payees no transaction references. |
 | `ynab scheduled list` | List the scheduled transactions with their next dates. |
 | `ynab money-movements list --month current` | List this month's recorded moves between categories. |

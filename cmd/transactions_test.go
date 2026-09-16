@@ -279,19 +279,25 @@ func TestTransactionsReviewMergesTheTwoListings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wantTable := `DATE        ACCOUNT         PAYEE           CATEGORY      MEMO        AMOUNT  NEEDS
-2026-09-10  Visa            Amazon          Dining Out               -$12.34  approve
-2026-09-11  Chase Checking  New Shop                      new shop?  -$20.00  both
-2026-09-12  Chase Checking  Unknown Vendor                            -$5.00  categorize
-2026-09-13  Chase Checking  Costco          Split                    -$25.00  approve
-                            Amazon            Dining Out             -$10.00
-                            Unknown Vendor    Internet    cable      -$15.00
-4 transactions need attention: 3 to approve, 2 to categorize
+	// The API lists transfers between plan accounts as uncategorized, so
+	// the fake does too and review carries them.
+	wantTable := `DATE        ACCOUNT         PAYEE                      CATEGORY      MEMO        AMOUNT  NEEDS
+2026-09-05  Chase Checking  Transfer : Visa                                     -$97.81  categorize
+2026-09-05  Visa            Transfer : Chase Checking                            $97.81  categorize
+2026-09-10  Visa            Amazon                     Dining Out               -$12.34  approve
+2026-09-11  Chase Checking  New Shop                                 new shop?  -$20.00  both
+2026-09-12  Chase Checking  Unknown Vendor                                       -$5.00  categorize
+2026-09-13  Chase Checking  Costco                     Split                    -$25.00  approve
+                            Amazon                       Dining Out             -$10.00
+                            Unknown Vendor               Internet    cable      -$15.00
+6 transactions need attention: 3 to approve, 4 to categorize
 `
 	if table != wantTable {
 		t.Errorf("transactions review =\n%s\nwant\n%s", table, wantTable)
 	}
-	wantJSONL := `{"id":"t3","date":"2026-09-10","account":"Visa","account_id":"a2","payee":"Amazon","payee_id":"p3","category":"Dining Out","category_id":"c3","amount":-12.34,"cleared":"uncleared","approved":false,"flag_color":"red","flag_name":"Reimbursable","import_id":"YNAB:-12340:2026-09-10:1","import_payee_name":"AMAZON.COM","import_payee_name_original":"AMAZON.COM*1234","needs":"approve"}
+	wantJSONL := `{"id":"t2","date":"2026-09-05","account":"Chase Checking","account_id":"a1","payee":"Transfer : Visa","payee_id":"tp2","amount":-97.81,"cleared":"cleared","approved":true,"transfer_account":"Visa","transfer_account_id":"a2","transfer_transaction_id":"t2b","needs":"categorize"}
+{"id":"t2b","date":"2026-09-05","account":"Visa","account_id":"a2","payee":"Transfer : Chase Checking","payee_id":"tp1","amount":97.81,"cleared":"cleared","approved":true,"transfer_account":"Chase Checking","transfer_account_id":"a1","transfer_transaction_id":"t2","needs":"categorize"}
+{"id":"t3","date":"2026-09-10","account":"Visa","account_id":"a2","payee":"Amazon","payee_id":"p3","category":"Dining Out","category_id":"c3","amount":-12.34,"cleared":"uncleared","approved":false,"flag_color":"red","flag_name":"Reimbursable","import_id":"YNAB:-12340:2026-09-10:1","import_payee_name":"AMAZON.COM","import_payee_name_original":"AMAZON.COM*1234","needs":"approve"}
 {"id":"t5","date":"2026-09-11","account":"Chase Checking","account_id":"a1","payee":"New Shop","payee_id":"p5","memo":"new shop?","amount":-20.00,"cleared":"uncleared","approved":false,"import_id":"YNAB:-20000:2026-09-11:1","import_payee_name":"NEW SHOP","import_payee_name_original":"NEW SHOP 42","needs":"both"}
 {"id":"t4","date":"2026-09-12","account":"Chase Checking","account_id":"a1","payee":"Unknown Vendor","payee_id":"p4","amount":-5.00,"cleared":"cleared","approved":true,"needs":"categorize"}
 {"id":"t8","date":"2026-09-13","account":"Chase Checking","account_id":"a1","payee":"Costco","payee_id":"p2","category":"Split","amount":-25.00,"cleared":"cleared","approved":false,"subtransactions":[{"id":"s3","payee":"Amazon","payee_id":"p3","category":"Dining Out","category_id":"c3","amount":-10.00},{"id":"s4","payee":"Unknown Vendor","payee_id":"p4","category":"Internet","category_id":"c1","memo":"cable","amount":-15.00}],"needs":"approve"}
@@ -303,7 +309,7 @@ func TestTransactionsReviewMergesTheTwoListings(t *testing.T) {
 s3,t8,2026-09-13,Chase Checking,a1,Amazon,p3,Dining Out,c3,,-10.00,cleared,false,,,,,,,,,,,approve
 s4,t8,2026-09-13,Chase Checking,a1,Unknown Vendor,p4,Internet,c1,cable,-15.00,cleared,false,,,,,,,,,,,approve
 `
-	if !strings.Contains(csv, ",debt_transaction_type,needs\nt3,,") || !strings.HasSuffix(csv, wantCSVTail) {
+	if !strings.Contains(csv, ",debt_transaction_type,needs\nt2,,") || !strings.HasSuffix(csv, wantCSVTail) {
 		t.Errorf("review csv = %s\nwant header ending in needs and split lines repeating it:\n%s", csv, wantCSVTail)
 	}
 	want := []string{"/plans", "/plans/p1/accounts", "/plans/p1/transactions?type=unapproved", "/plans/p1/transactions?type=uncategorized"}

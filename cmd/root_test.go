@@ -129,6 +129,8 @@ type harness struct {
 	requests []string
 	terminal bool
 	env      map[string]string
+	// writes records every non-GET request as "METHOD path body".
+	writes []string
 }
 
 func newHarness(t *testing.T) *harness {
@@ -136,6 +138,11 @@ func newHarness(t *testing.T) *harness {
 	h := &harness{env: map[string]string{}}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.requests = append(h.requests, r.URL.RequestURI())
+		if r.Method != http.MethodGet {
+			body, _ := io.ReadAll(r.Body)
+			h.writes = append(h.writes, r.Method+" "+r.URL.RequestURI()+" "+string(body))
+			r.Body = io.NopCloser(bytes.NewReader(body))
+		}
 		if r.Header.Get("Authorization") != "Bearer good-token" {
 			w.WriteHeader(http.StatusUnauthorized)
 			_, _ = io.WriteString(w, `{"error":{"id":"401","name":"unauthorized","detail":"Unauthorized"}}`)
@@ -144,6 +151,10 @@ func newHarness(t *testing.T) *harness {
 		months := map[string]string{"2026-08-01": fixtureAugustTotals, "2026-09-01": fixtureSeptemberTotals}
 		monthCategories := map[string]string{"2026-08-01": fixtureAugustCategories, "2026-09-01": fixtureCurrentCategories(t)}
 		monthPath := regexp.MustCompile(`^/plans/p1/months/(\d{4}-\d{2}-\d{2})(?:/categories/(\w+))?$`)
+		if r.Method != http.MethodGet {
+			serveRegisterWrites(t, w, r)
+			return
+		}
 		if serveRegister(t, w, r) {
 			return
 		}
@@ -188,13 +199,20 @@ func newHarness(t *testing.T) *harness {
 
 func (h *harness) execute(t *testing.T, args ...string) (string, error) {
 	t.Helper()
+	stdout, _, err := h.executeStreams(t, args...)
+	return stdout, err
+}
+
+// executeStreams runs the command and returns stdout and stderr.
+func (h *harness) executeStreams(t *testing.T, args ...string) (string, string, error) {
+	t.Helper()
 	root := newRoot(h.deps)
 	var stdout, stderr bytes.Buffer
 	root.SetOut(&stdout)
 	root.SetErr(&stderr)
 	root.SetArgs(args)
 	err := root.ExecuteContext(t.Context())
-	return stdout.String(), err
+	return stdout.String(), stderr.String(), err
 }
 
 func TestEveryApplicationCommandDeclaresArgsAndGroupsAreRunnable(t *testing.T) {

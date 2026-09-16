@@ -4,6 +4,7 @@
 package ynab
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -37,12 +38,19 @@ type Client struct {
 
 // get performs a GET request and decodes the "data" envelope into out.
 func (c *Client) get(ctx context.Context, path string, out any) error {
-	return c.getQuery(ctx, path, nil, out)
+	return c.do(ctx, http.MethodGet, path, nil, nil, out)
 }
 
 // getQuery performs a GET request with a query string and decodes the
 // "data" envelope into out.
 func (c *Client) getQuery(ctx context.Context, path string, query url.Values, out any) error {
+	return c.do(ctx, http.MethodGet, path, query, nil, out)
+}
+
+// do performs one request and decodes the "data" envelope into out. A
+// non-nil body is sent as JSON. Any 2xx status is a success; the API
+// answers some creates with 200 and others with 201.
+func (c *Client) do(ctx context.Context, method, path string, query url.Values, body, out any) error {
 	base := c.BaseURL
 	if base == "" {
 		base = DefaultBaseURL
@@ -50,12 +58,23 @@ func (c *Client) getQuery(ctx context.Context, path string, query url.Values, ou
 	if len(query) > 0 {
 		path += "?" + query.Encode()
 	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, base+path, nil)
+	var payload io.Reader
+	if body != nil {
+		encoded, err := json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("encode request %s: %w", path, err)
+		}
+		payload = bytes.NewReader(encoded)
+	}
+	request, err := http.NewRequestWithContext(ctx, method, base+path, payload)
 	if err != nil {
 		return fmt.Errorf("build request %s: %w", path, err)
 	}
 	request.Header.Set("Authorization", "Bearer "+c.Token)
 	request.Header.Set("Accept", "application/json")
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
 	if c.UserAgent != "" {
 		request.Header.Set("User-Agent", c.UserAgent)
 	}

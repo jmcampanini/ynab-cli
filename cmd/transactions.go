@@ -238,18 +238,20 @@ func transactionCount(count int) string {
 
 func newTransactions(a *app) *cobra.Command {
 	command := &cobra.Command{
-		Use: "transactions", Short: "List, read, and review the plan's transactions",
-		Long: `Read the register of the configured plan: the transaction list with its
-filters, one transaction by ID, and the review of what needs approval or
-a category. A bare 'ynab transactions' prints this help and exits 0.
-Writes arrive in a later release; the API cannot edit the lines of an
-existing split or read pending bank transactions.
+		Use: "transactions", Short: "Read, review, and write the plan's transactions",
+		Long: `Read and write the register of the configured plan: the transaction
+list with its filters, one transaction by ID, the review of what needs
+approval or a category, and the writes that carry the monthly work:
+create, update, delete, approve, categorize, clear, unclear, flag, and
+import. A bare 'ynab transactions' prints this help and exits 0. The API
+cannot edit the lines of an existing split, split an existing
+transaction, reconcile an account, or read pending bank transactions.
 
-` + planHelp + "\n\n" + dateHelp,
+` + writeHelp + "\n\n" + planHelp + "\n\n" + dateHelp,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
-	command.AddCommand(newTransactionsList(a), newTransactionsGet(a), newTransactionsReview(a))
+	command.AddCommand(newTransactionsList(a), newTransactionsGet(a), newTransactionsReview(a), newTransactionsCreate(a), newTransactionsUpdate(a), newTransactionsDelete(a), newTransactionsApprove(a), newTransactionsCategorize(a), newTransactionsClear(a), newTransactionsUnclear(a), newTransactionsFlag(a), newTransactionsImport(a))
 	return command
 }
 

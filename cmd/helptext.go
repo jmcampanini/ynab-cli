@@ -40,3 +40,27 @@ const outputHelp = `Output:
 const dateHelp = `Dates:
   --since and --until accept YYYY-MM-DD, today, or yesterday. today and
   yesterday follow the local clock. Any other form is a usage error.`
+
+const dateFlagHelp = `Dates:
+  --date accepts YYYY-MM-DD, today, or yesterday. today and yesterday
+  follow the local clock. Any other form is a usage error.`
+
+const writeHelp = `Writes:
+  Mutating commands stay disabled until allow_writes is true in the config
+  file or YNAB_ALLOW_WRITES, or --allow-writes is passed; otherwise they
+  exit 3 after loading the configuration and before any request. --dry-run
+  resolves names and validates input with real reads, builds the request,
+  and prints the records the real run would print without sending it;
+  --jsonl marks each such record dry_run: true and human output ends with
+  "dry run, nothing changed". --dry-run wins over --allow-writes. Every
+  mutating command prints the resulting records on stdout in the shapes
+  of the read commands, so a caller can save them. There is no undo.`
+
+const bulkHelp = `Bulk updates:
+  IDs are sent in one bulk update per 100 transactions, a limit this CLI
+  chooses; past one batch, progress goes to stderr. If a later batch
+  fails, the records already applied are printed before the error with
+  the IDs not changed, and the exit status is 1. A dry run, or a check
+  that needs the current records, reads them with one plan listing
+  request plus one request per ID older than the API's one-year default
+  window; a dry run prints them with the change applied.`

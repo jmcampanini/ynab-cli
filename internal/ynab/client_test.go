@@ -2,6 +2,7 @@ package ynab
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -89,5 +90,77 @@ func TestMalformedSuccessBodyFails(t *testing.T) {
 	var apiErr *Error
 	if err == nil || errors.As(err, &apiErr) {
 		t.Errorf("err = %v, want a decode error that is not an API error", err)
+	}
+}
+
+func TestWriteRequestsSendMethodBodyAndHeaders(t *testing.T) {
+	var seen http.Request
+	var body string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seen = *r
+		raw, _ := io.ReadAll(r.Body)
+		body = string(raw)
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"data":{"transaction_ids":["n1"],"transaction":{"id":"n1","date":"2026-09-15","amount":-1000,"cleared":"uncleared","approved":false,"account_id":"a1","account_name":"Checking","subtransactions":[]},"transactions":[{"id":"n1"}],"duplicate_import_ids":[]}}`))
+	}))
+	t.Cleanup(server.Close)
+	client := &Client{BaseURL: server.URL, Token: "secret"}
+
+	var save SaveTransaction
+	save.SetAmount(-1000)
+	save.AccountID, save.Date = "a1", "2026-09-15"
+	save.FlagColor = NullValue[string]()
+	created, err := client.CreateTransaction(t.Context(), "p1", save)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if created.ID != "n1" || created.AccountName != "Checking" || created.Amount != -1000 {
+		t.Errorf("CreateTransaction() = %+v, want the returned record", created)
+	}
+	if seen.Method != http.MethodPost || seen.URL.Path != "/plans/p1/transactions" || seen.Header.Get("Content-Type") != "application/json" {
+		t.Errorf("request = %s %s %v, want a JSON POST", seen.Method, seen.URL.Path, seen.Header)
+	}
+	if want := `{"transaction":{"account_id":"a1","date":"2026-09-15","flag_color":null,"amount":-1000}}`; body != want {
+		t.Errorf("body = %s, want %s", body, want)
+	}
+
+	changes := []SaveTransaction{{ID: "t1", Approved: boolPtr(true)}, {ID: "t2", FlagColor: SomeValue("red")}}
+	if _, err := client.UpdateTransactions(t.Context(), "p1", changes); err != nil {
+		t.Fatal(err)
+	}
+	if want := `{"transactions":[{"approved":true,"id":"t1"},{"flag_color":"red","id":"t2"}]}`; seen.Method != http.MethodPatch || body != want {
+		t.Errorf("update = %s %s, want PATCH %s", seen.Method, body, want)
+	}
+
+	if _, err := client.DeleteTransaction(t.Context(), "p1", "t1"); err != nil {
+		t.Fatal(err)
+	}
+	if seen.Method != http.MethodDelete || seen.URL.Path != "/plans/p1/transactions/t1" || body != "" {
+		t.Errorf("delete = %s %s %q, want DELETE of the transaction with no body", seen.Method, seen.URL.Path, body)
+	}
+
+	ids, err := client.ImportTransactions(t.Context(), "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seen.Method != http.MethodPost || seen.URL.Path != "/plans/p1/transactions/import" || len(ids) != 1 {
+		t.Errorf("import = %s %s %v, want a POST returning one id", seen.Method, seen.URL.Path, ids)
+	}
+}
+
+func boolPtr(value bool) *bool { return &value }
+
+func TestWriteAnswersWithoutTheRecordFail(t *testing.T) {
+	client := serve(t, http.StatusOK, `{"data":{}}`, nil)
+
+	if _, err := client.DeleteTransaction(t.Context(), "p1", "t1"); err == nil || !strings.Contains(err.Error(), "returned no record") {
+		t.Errorf("DeleteTransaction() without a record = %v", err)
+	}
+	if _, err := client.ImportTransactions(t.Context(), "p1"); err == nil || !strings.Contains(err.Error(), "transaction_ids") {
+		t.Errorf("ImportTransactions() without ids = %v", err)
+	}
+	if _, err := client.CreateTransaction(t.Context(), "p1", SaveTransaction{}); err == nil || !strings.Contains(err.Error(), "returned no record") {
+		t.Errorf("CreateTransaction() without a record = %v", err)
 	}
 }
