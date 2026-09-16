@@ -53,7 +53,7 @@ Ranked by how much they matter to the monthly workflow. R = read, W = write.
 | month | The plan month: income, assigned, activity, ready to assign, age of money, per-category rows. | R, plus one write | `PATCH months/{m}/categories/{c}` sets assigned. Month is `current` or `YYYY-MM-01`. |
 | money movement | A recorded category-to-category move. | R only | Cannot be posted. A move is two assigned-amount writes. |
 | payee | Who was paid. | R, create, rename | No delete or merge. Payee locations are mobile-only and out of scope. |
-| scheduled transaction | A recurring or future transaction. | CRUD, no splits | Frequency enum. Date must be in the future. |
+| scheduled transaction | A recurring or future transaction. | R only | The API offers create, update, and delete, without splits; the CLI does not maintain scheduled transactions (see Dismissed). |
 | user | The token owner. | R (id only) | Useful for a connectivity check. |
 
 
@@ -111,7 +111,7 @@ ynab months assign|move|cover|fund
 ynab transactions list|get|create|update|delete
 ynab transactions approve|categorize|clear|unclear|flag|import|review
 ynab payees list|get|create|rename
-ynab scheduled list|get|create|update|delete
+ynab scheduled list|get
 ynab money-movements list
 ynab reports funding|spending
 ynab api get|post|patch|put|delete PATH
@@ -215,3 +215,8 @@ Considered and left out, with the reason:
   platform dependency for a single-user tool.
 - Payee-to-category rules, outlier reports, household-specific views: budget
   opinions that compose on top of the CLI.
+- Scheduled transaction writes (`scheduled create|update|delete`), dropped on
+  2026-09-15: the owner reads scheduled transactions and lets the
+  transactions they enter be imported, and does not maintain them from the
+  terminal. The API's update is a PUT that requires a date, so an update
+  would have to choose one, a decision not worth making for an unused verb.

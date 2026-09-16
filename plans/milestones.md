@@ -72,13 +72,14 @@ transaction appears in YNAB; `ynab transactions delete ID` prints it back.
 
 ## 5. Move money and maintain the plan ([#5](https://github.com/jmcampanini/ynab-cli/issues/5))
 
-The month writes and the remaining create and update verbs.
+The month writes and the remaining create and update verbs. Scheduled
+transaction writes are left out: the CLI reads scheduled transactions
+and lets imports land, and does not maintain them.
 
 Delivers: `months assign`, `months move`, `months cover`, `months fund`,
 `categories create`, `categories update` (name, note, group, target),
 `category-groups create`, `category-groups rename`, `payees create`,
-`payees rename`, `accounts create`, `scheduled create`, `scheduled update`,
-`scheduled delete`.
+`payees rename`, `accounts create`.
 
 Test by hand: `ynab months move 50 --from "Dining Out" --to Groceries
 --dry-run`, then for real, and the YNAB app shows both categories changed.

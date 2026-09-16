@@ -25,15 +25,15 @@ func newPayeeRecord(payee ynab.Payee, accounts accountNames) payeeRecord {
 
 func newPayees(a *app) *cobra.Command {
 	command := &cobra.Command{
-		Use: "payees", Short: "List and read the plan's payees",
-		Long: `Read the payees of the configured plan. A bare 'ynab payees' prints this
-help and exits 0. Writes arrive in a later release; the API cannot delete
-or merge payees, and payee locations are out of scope.
+		Use: "payees", Short: "Read, create, and rename the plan's payees",
+		Long: `Read the payees of the configured plan, create one, or rename one. A
+bare 'ynab payees' prints this help and exits 0. The API cannot delete or
+merge payees, and payee locations are out of scope.
 
-` + planHelp,
+` + writeHelp + "\n\n" + planHelp,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
-	command.AddCommand(newPayeesList(a), newPayeesGet(a))
+	command.AddCommand(newPayeesList(a), newPayeesGet(a), newPayeesCreate(a), newPayeesRename(a))
 	return command
 }

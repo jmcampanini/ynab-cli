@@ -57,16 +57,20 @@ func bindMonthFlag(cmd *cobra.Command, text *string) {
 
 func newMonths(a *app) *cobra.Command {
 	command := &cobra.Command{
-		Use: "months", Short: "List and read the plan's months",
+		Use:   "months",
+		Short: "Read the plan's months and move its money",
 		Long: `Read the months of the configured plan: income, assigned, activity, ready
 to assign, and age of money, plus each category's row for one month. A
-bare 'ynab months' prints this help and exits 0. Money moves arrive in a
-later release; the API cannot set month notes.
+bare 'ynab months' prints this help and exits 0. The writes set assigned
+amounts: 'assign' sets one category, 'move' shifts money between two or
+from ready to assign, 'cover' clears an overspent category's shortfall,
+and 'fund' assigns what targets still need. The API cannot set month
+notes or record a money movement; a move is two assigned-amount writes.
 
-` + planHelp + "\n\n" + monthHelp,
+` + writeHelp + "\n\n" + planHelp + "\n\n" + monthHelp,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
-	command.AddCommand(newMonthsList(a), newMonthsGet(a))
+	command.AddCommand(newMonthsList(a), newMonthsGet(a), newMonthsAssign(a), newMonthsMove(a), newMonthsCover(a), newMonthsFund(a))
 	return command
 }

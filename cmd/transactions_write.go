@@ -25,8 +25,8 @@ const bulkBatch = 100
 const creditCardPaymentsGroup = "Credit Card Payments"
 
 // writeSession is what every mutating command has in hand once the gate
-// has passed: the client, the plan, and its accounts, plus the categories
-// and payees once a lookup has loaded them.
+// has passed: the client and the plan, plus the accounts, categories, and
+// payees once a command has loaded them.
 type writeSession struct {
 	accounts   []ynab.Account
 	app        *app
@@ -38,8 +38,8 @@ type writeSession struct {
 }
 
 // openWrite loads the configuration, applies the write gate, and reads
-// the plan and its accounts. Without --dry-run and without allow_writes
-// it fails with exit status 3 before any request.
+// the plan. Without --dry-run and without allow_writes it fails with
+// exit status 3 before any request.
 func (a *app) openWrite(cmd *cobra.Command, dryRun bool) (*writeSession, error) {
 	loaded, client, err := a.connect(cmd)
 	if err != nil {
@@ -49,26 +49,39 @@ func (a *app) openWrite(cmd *cobra.Command, dryRun bool) (*writeSession, error) 
 		return nil, writesDisabled(loaded.Path)
 	}
 
-	ctx := cmd.Context()
-	plan, err := selectedPlan(ctx, client, loaded.Config)
+	plan, err := selectedPlan(cmd.Context(), client, loaded.Config)
 	if err != nil {
 		return nil, err
 	}
-	accounts, err := client.Accounts(ctx, plan.ID)
+	return &writeSession{app: a, client: client, dryRun: dryRun, plan: plan}, nil
+}
+
+// openTransactionWrite is openWrite followed by the accounts read every
+// transaction write needs to name accounts and transfer targets.
+func (a *app) openTransactionWrite(cmd *cobra.Command, dryRun bool) (*writeSession, error) {
+	s, err := a.openWrite(cmd, dryRun)
 	if err != nil {
 		return nil, err
 	}
-	return &writeSession{accounts: accounts, app: a, client: client, dryRun: dryRun, plan: plan}, nil
+	if s.accounts, err = s.client.Accounts(cmd.Context(), s.plan.ID); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+// decimalDigits is the plan's currency precision, two when the plan has
+// no currency format.
+func (s *writeSession) decimalDigits() int {
+	if s.plan.CurrencyFormat != nil {
+		return s.plan.CurrencyFormat.DecimalDigits
+	}
+	return 2
 }
 
 // amount parses an amount typed in currency units at the plan's decimal
 // precision. A bad value is a usage error.
 func (s *writeSession) amount(text string) (ynab.Amount, error) {
-	digits := 2
-	if s.plan.CurrencyFormat != nil {
-		digits = s.plan.CurrencyFormat.DecimalDigits
-	}
-	amount, err := ynab.ParseAmount(text, digits)
+	amount, err := ynab.ParseAmount(text, s.decimalDigits())
 	if err != nil {
 		return 0, usageError(err.Error())
 	}
@@ -363,6 +376,16 @@ func (s *writeSession) summary(past, base string, count int) string {
 		return "dry run, nothing changed: " + what
 	}
 	return what
+}
+
+// line is the closing line of a write that is not counted in
+// transactions: past and base are the verb's forms, such as "moved" and
+// "move", and rest completes the sentence.
+func (s *writeSession) line(past, base, rest string) string {
+	if s.dryRun {
+		return "dry run, nothing changed: would " + base + rest
+	}
+	return past + rest
 }
 
 // printTransactions writes the records in the chosen format; human output

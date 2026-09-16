@@ -2,6 +2,8 @@ package ynab
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"time"
 )
 
@@ -33,4 +35,31 @@ func (c *Client) Accounts(ctx context.Context, planID string) ([]Account, error)
 		return nil, err
 	}
 	return data.Accounts, nil
+}
+
+// SaveAccount is the body of an account create. Milliunits carries the
+// opening balance as the API's integer. Type is one of the six the API
+// creates: checking, savings, cash, creditCard, otherAsset, otherLiability.
+type SaveAccount struct {
+	Milliunits int64  `json:"balance"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+}
+
+// CreateAccount creates an account and returns it as stored. The API
+// cannot rename, close, or delete it afterwards.
+func (c *Client) CreateAccount(ctx context.Context, planID string, account SaveAccount) (Account, error) {
+	var data struct {
+		Account *Account `json:"account"`
+	}
+	body := struct {
+		Account SaveAccount `json:"account"`
+	}{Account: account}
+	if err := c.do(ctx, http.MethodPost, "/plans/"+planID+"/accounts", nil, body, &data); err != nil {
+		return Account{}, err
+	}
+	if data.Account == nil {
+		return Account{}, errors.New("the API created the account but returned no record")
+	}
+	return *data.Account, nil
 }

@@ -46,28 +46,33 @@ one object.
 			if output.jsonl {
 				return writeJSONL(out, []accountRecord{record})
 			}
-			lastReconciled := ""
-			if record.LastReconciledAt != nil {
-				lastReconciled = record.LastReconciledAt.UTC().Format(time.DateTime)
-			}
-			return writeFields(out, [][2]string{
-				{"id", record.ID},
-				{"name", record.Name},
-				{"type", record.Type},
-				{"kind", record.kind()},
-				{"closed", strconv.FormatBool(record.Closed)},
-				{"note", record.Note},
-				{"balance", record.Balance.Format(plan.CurrencyFormat)},
-				{"cleared", record.ClearedBalance.Format(plan.CurrencyFormat)},
-				{"uncleared", record.UnclearedBalance.Format(plan.CurrencyFormat)},
-				{"transfer payee id", record.TransferPayeeID},
-				{"direct import", record.directImport()},
-				{"last reconciled", lastReconciled},
-			})
+			return writeFields(out, accountFields(record, plan.CurrencyFormat))
 		}),
 	}
 	output.bind(command, false)
 	return command
+}
+
+// accountFields lists the record for human output.
+func accountFields(record accountRecord, currency *ynab.CurrencyFormat) [][2]string {
+	lastReconciled := ""
+	if record.LastReconciledAt != nil {
+		lastReconciled = record.LastReconciledAt.UTC().Format(time.DateTime)
+	}
+	return [][2]string{
+		{"id", record.ID},
+		{"name", record.Name},
+		{"type", record.Type},
+		{"kind", record.kind()},
+		{"closed", strconv.FormatBool(record.Closed)},
+		{"note", record.Note},
+		{"balance", record.Balance.Format(currency)},
+		{"cleared", record.ClearedBalance.Format(currency)},
+		{"uncleared", record.UnclearedBalance.Format(currency)},
+		{"transfer payee id", record.TransferPayeeID},
+		{"direct import", record.directImport()},
+		{"last reconciled", lastReconciled},
+	}
 }
 
 // findAccount resolves query against account IDs, then names ignoring

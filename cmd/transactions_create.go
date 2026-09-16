@@ -86,7 +86,7 @@ the create. A dry run makes every read and skips the create.
 				}
 			}
 
-			s, err := a.openWrite(cmd, dryRun)
+			s, err := a.openTransactionWrite(cmd, dryRun)
 			if err != nil {
 				return err
 			}

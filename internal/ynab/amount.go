@@ -17,6 +17,13 @@ func (a Amount) String() string {
 	return a.decimal(2, ".", "")
 }
 
+// Decimal renders the amount as a plain decimal with fractionDigits
+// fractional digits and no separators or symbol, the form ParseAmount
+// accepts back at that precision.
+func (a Amount) Decimal(fractionDigits int) string {
+	return a.decimal(fractionDigits, ".", "")
+}
+
 // MarshalJSON writes the amount as a JSON number with two fractional digits.
 func (a Amount) MarshalJSON() ([]byte, error) {
 	return []byte(a.String()), nil

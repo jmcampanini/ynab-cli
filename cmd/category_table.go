@@ -103,18 +103,24 @@ func (l categoryListing) rows(currency *ynab.CurrencyFormat, colors palette) [][
 		}, group.hidden, colors))
 
 		for _, record := range group.records {
-			recordUnderfunded := plain("")
-			if record.Target != nil && record.Target.Underfunded != nil {
-				recordUnderfunded = plainAmount(*record.Target.Underfunded, currency)
-			}
-			rows = append(rows, paintRow([]cell{
-				plain("  " + hiddenSuffix(record.Name, record.Hidden)),
-				plainAmount(record.Assigned, currency), plainAmount(record.Activity, currency), availableCell(record.Available, currency, colors),
-				plain(record.Target.summary(currency)), recordUnderfunded,
-			}, record.Hidden, colors))
+			rows = append(rows, categoryRow(record, "  ", currency, colors))
 		}
 	}
 	return rows
+}
+
+// categoryRow renders one category in the categoryColumns, its name
+// prefixed by indent.
+func categoryRow(record categoryRecord, indent string, currency *ynab.CurrencyFormat, colors palette) []cell {
+	underfunded := plain("")
+	if record.Target != nil && record.Target.Underfunded != nil {
+		underfunded = plainAmount(*record.Target.Underfunded, currency)
+	}
+	return paintRow([]cell{
+		plain(indent + hiddenSuffix(record.Name, record.Hidden)),
+		plainAmount(record.Assigned, currency), plainAmount(record.Activity, currency), availableCell(record.Available, currency, colors),
+		plain(record.Target.summary(currency)), underfunded,
+	}, record.Hidden, colors)
 }
 
 func hiddenSuffix(name string, hidden bool) string {

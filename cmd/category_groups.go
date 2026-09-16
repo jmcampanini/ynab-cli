@@ -29,15 +29,15 @@ func newCategoryGroupRecord(group ynab.CategoryGroup, includeHidden bool) catego
 
 func newCategoryGroups(a *app) *cobra.Command {
 	command := &cobra.Command{
-		Use: "category-groups", Short: "List the plan's category groups",
-		Long: `Read the category groups of the configured plan. A bare
-'ynab category-groups' prints this help and exits 0. Writes arrive in a
-later release; the API cannot delete, hide, or reorder groups.
+		Use: "category-groups", Short: "List, create, and rename the plan's category groups",
+		Long: `Read the category groups of the configured plan, create one, or rename
+one. A bare 'ynab category-groups' prints this help and exits 0. The API
+cannot delete, hide, or reorder groups.
 
-` + planHelp,
+` + writeHelp + "\n\n" + planHelp,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
-	command.AddCommand(newCategoryGroupsList(a))
+	command.AddCommand(newCategoryGroupsList(a), newCategoryGroupsCreate(a), newCategoryGroupsRename(a))
 	return command
 }

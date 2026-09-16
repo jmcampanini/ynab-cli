@@ -74,8 +74,8 @@ func newMoneyMovements(a *app) *cobra.Command {
 		Long: `Read the money movements of the configured plan: each recorded move of
 assigned money between two categories, or between a category and ready
 to assign. A bare 'ynab money-movements' prints this help and exits 0.
-The API records movements but cannot create them; a move is two assigned
-amount writes, which arrive in a later release.
+The API records movements but cannot create them; 'ynab months move'
+makes a move as two assigned-amount writes, which the API may record.
 
 ` + planHelp + "\n\n" + monthHelp,
 		Args: cobra.NoArgs,

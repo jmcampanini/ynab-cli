@@ -36,12 +36,14 @@ const (
 	// fixtureCategoryGroups carries September's amounts: Dining Out is
 	// overspent, Old Hobby is hidden, Wishes is a hidden group whose
 	// Internet shares its name with Bills' Internet, and the two internal
-	// groups hold a credit card payment and the inflow category.
+	// groups hold a credit card payment and the inflow category. Fun is
+	// flagged internal without being either, as the API flags the groups
+	// of its plan template.
 	fixtureCategoryGroups = `{"data":{"category_groups":[
 {"id":"g1","name":"Bills","hidden":false,"internal":false,"deleted":false,"categories":[
  {"id":"c1","category_group_id":"g1","category_group_name":"Bills","name":"Internet","hidden":false,"internal":false,"note":"Fiber","budgeted":80000,"activity":-79990,"balance":10,"goal_type":"NEED","goal_needs_whole_amount":true,"goal_day":null,"goal_cadence":1,"goal_cadence_frequency":1,"goal_creation_month":"2025-08-01","goal_target":80000,"goal_target_date":null,"goal_percentage_complete":100,"goal_months_to_budget":1,"goal_under_funded":0,"goal_overall_funded":80000,"goal_overall_left":0,"goal_snoozed_at":null,"deleted":false},
  {"id":"c2","category_group_id":"g1","category_group_name":"Bills","name":"Rent","hidden":false,"internal":false,"note":null,"budgeted":1500000,"activity":-1500000,"balance":0,"goal_type":"MF","goal_needs_whole_amount":null,"goal_day":null,"goal_cadence":1,"goal_cadence_frequency":1,"goal_creation_month":"2024-01-01","goal_target":1500000,"goal_target_date":null,"goal_percentage_complete":100,"goal_months_to_budget":1,"goal_under_funded":0,"goal_overall_funded":1500000,"goal_overall_left":0,"goal_snoozed_at":null,"deleted":false}]},
-{"id":"g2","name":"Fun","hidden":false,"internal":false,"deleted":false,"categories":[
+{"id":"g2","name":"Fun","hidden":false,"internal":true,"deleted":false,"categories":[
  {"id":"c3","category_group_id":"g2","category_group_name":"Fun","name":"Dining Out","hidden":false,"internal":false,"note":null,"budgeted":200000,"activity":-225000,"balance":-25000,"goal_type":null,"goal_needs_whole_amount":null,"goal_day":null,"goal_cadence":null,"goal_cadence_frequency":null,"goal_creation_month":null,"goal_target":0,"goal_target_date":null,"goal_percentage_complete":null,"goal_months_to_budget":null,"goal_under_funded":null,"goal_overall_funded":null,"goal_overall_left":null,"goal_snoozed_at":null,"deleted":false},
  {"id":"c4","category_group_id":"g2","category_group_name":"Fun","name":"Old Hobby","hidden":true,"internal":false,"note":null,"budgeted":0,"activity":0,"balance":5000,"goal_type":null,"goal_needs_whole_amount":null,"goal_day":null,"goal_cadence":null,"goal_cadence_frequency":null,"goal_creation_month":null,"goal_target":0,"goal_target_date":null,"goal_percentage_complete":null,"goal_months_to_budget":null,"goal_under_funded":null,"goal_overall_funded":null,"goal_overall_left":null,"goal_snoozed_at":null,"deleted":false}]},
 {"id":"g3","name":"Wishes","hidden":true,"internal":false,"deleted":false,"categories":[
@@ -131,6 +133,9 @@ type harness struct {
 	env      map[string]string
 	// writes records every non-GET request as "METHOD path body".
 	writes []string
+	// failWrite, when set, makes every non-GET request whose path contains
+	// it answer 500, so a test can pick which write of a sequence fails.
+	failWrite string
 }
 
 func newHarness(t *testing.T) *harness {
@@ -152,6 +157,14 @@ func newHarness(t *testing.T) *harness {
 		monthCategories := map[string]string{"2026-08-01": fixtureAugustCategories, "2026-09-01": fixtureCurrentCategories(t)}
 		monthPath := regexp.MustCompile(`^/plans/p1/months/(\d{4}-\d{2}-\d{2})(?:/categories/(\w+))?$`)
 		if r.Method != http.MethodGet {
+			if h.failWrite != "" && strings.Contains(r.URL.Path, h.failWrite) {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = io.WriteString(w, `{"error":{"id":"500","name":"internal_server_error","detail":"boom"}}`)
+				return
+			}
+			if servePlanWrites(t, w, r, monthCategories) {
+				return
+			}
 			serveRegisterWrites(t, w, r)
 			return
 		}

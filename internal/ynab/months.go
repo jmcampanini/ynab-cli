@@ -1,6 +1,10 @@
 package ynab
 
-import "context"
+import (
+	"context"
+	"errors"
+	"net/http"
+)
 
 // Month is one plan month's totals. Categories is filled only by Month,
 // with each category's amounts for that month. AgeOfMoney is nil when the
@@ -39,4 +43,26 @@ func (c *Client) Month(ctx context.Context, planID, month string) (Month, error)
 		return Month{}, err
 	}
 	return data.Month, nil
+}
+
+// UpdateMonthCategory sets a category's assigned amount for one month,
+// the only month field the API writes, and returns the category with
+// that month's amounts. month must be the API's YYYY-MM-01 form.
+func (c *Client) UpdateMonthCategory(ctx context.Context, planID, month, categoryID string, assigned Amount) (Category, error) {
+	var data struct {
+		Category *Category `json:"category"`
+	}
+	type assignedAmount struct {
+		Milliunits int64 `json:"budgeted"`
+	}
+	body := struct {
+		Category assignedAmount `json:"category"`
+	}{Category: assignedAmount{Milliunits: int64(assigned)}}
+	if err := c.do(ctx, http.MethodPatch, "/plans/"+planID+"/months/"+month+"/categories/"+categoryID, nil, body, &data); err != nil {
+		return Category{}, err
+	}
+	if data.Category == nil {
+		return Category{}, errors.New("the API updated the category but returned no record")
+	}
+	return *data.Category, nil
 }
