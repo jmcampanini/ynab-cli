@@ -52,5 +52,6 @@ payees endpoint. --jsonl prints one object.
 		}),
 	}
 	output.bind(command, false)
+	command.ValidArgsFunction = a.completePayees()
 	return command
 }

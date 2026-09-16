@@ -3,16 +3,17 @@
 ynab-cli is a command line for a YNAB plan. It reads accounts, categories,
 months, and transactions, writes transactions and assigned amounts, and emits
 JSON lines and CSV for scripts and agents. Writes are disabled until the
-configuration enables them, and every write has a dry run. This release
-reads plans, accounts, categories, months, transactions, payees, scheduled
-transactions, and money movements, summarizes the month with
-`ynab plans status`, writes transactions (create, update, delete, approve,
-categorize, clear, unclear, flag, import), moves money between categories
-(`months assign`, `move`, `cover`, `fund`), and creates or updates
-categories, category groups, payees, and accounts; the
-[milestones](plans/milestones.md) record the order the rest lands in, and
-the [domain map](plans/domain-map.md) records the nouns, verbs, and
-decisions.
+configuration enables them, and every write has a dry run. It reads plans,
+accounts, categories, months, transactions, payees, scheduled transactions,
+and money movements, summarizes the month with `ynab plans status`, writes
+transactions (create, update, delete, approve, categorize, clear, unclear,
+flag, import), moves money between categories (`months assign`, `move`,
+`cover`, `fund`), creates or updates categories, category groups, payees,
+and accounts, derives the `reports funding` and `reports spending` reports,
+and passes anything else through `ynab api` as a raw request. Shell
+completion for bash, zsh, fish, and powershell completes names from the plan. The
+[domain map](plans/domain-map.md) records the nouns, verbs, and decisions,
+and the [milestones](plans/milestones.md) record the order they landed in.
 
 Command help is the canonical reference: `ynab --help` and each command's
 `--help` describe every user-facing contract, `ynab config --help` describes
@@ -82,6 +83,11 @@ make build
 | `ynab scheduled list` | List the scheduled transactions with their next dates. |
 | `ynab money-movements list --month current` | List this month's recorded moves between categories. |
 | `ynab plans status` | Show ready to assign, overspent, underfunded, unapproved, uncategorized, and import errors on one screen. |
+| `ynab reports funding --underfunded` | List the targets still needing money this month with what they need. |
+| `ynab reports spending --by payee --since 2026-01-01 --csv` | Total outflows and inflows per payee since a date, ready for a spreadsheet. |
+| `ynab api get /user` | Print the raw API response, milliunits and all. |
+| `ynab api patch "/plans/{plan}/months/current/categories/ID" --body '{"category":{"budgeted":1000}}' --dry-run` | Show the raw request a passthrough write would send. |
+| `ynab completion zsh > "${fpath[1]}/_ynab"` | Install shell completion; `ynab completion --help` covers bash, fish, and powershell. |
 | `ynab config --provenance` | Print the effective configuration with each field's source. |
 
 ## Required external programs

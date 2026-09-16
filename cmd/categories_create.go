@@ -77,5 +77,6 @@ delete a category afterwards; it can hide one only in the app.
 	target.bind(command, false)
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print what would be created without creating it")
 	_ = command.MarkFlagRequired("group")
+	completeFlags(command, a.completeCategoryGroups(), "group")
 	return command
 }

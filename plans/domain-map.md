@@ -115,6 +115,7 @@ ynab scheduled list|get
 ynab money-movements list
 ynab reports funding|spending
 ynab api get|post|patch|put|delete PATH
+ynab completion bash|zsh|fish|powershell
 ynab help exit-codes
 ynab help output-formats
 ```
@@ -122,6 +123,10 @@ ynab help output-formats
 `api` is the escape hatch. It passes a raw request through and prints the raw
 response, milliunits included. Anything odd goes there instead of growing a
 one-off command.
+
+`completion` is Cobra's. Operands and flags that take an account, category,
+category group, or payee name complete from the plan with one listing
+request, and offer nothing when the request fails.
 
 
 ## Decisions

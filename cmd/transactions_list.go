@@ -323,6 +323,9 @@ row per line with the parent's id in parent_id.
 	command.Flags().StringVar(&memo, "memo", "", "Memo contains this text, ignoring case")
 	command.Flags().StringVar(&minText, "min", "", "Smallest signed amount, such as -100 or 0")
 	command.Flags().StringVar(&maxText, "max", "", "Largest signed amount, such as -50")
+	completeFlags(command, a.completeAccounts(), "account")
+	completeFlags(command, a.completeCategories(), "category")
+	completeFlags(command, a.completePayees(), "payee")
 	return command
 }
 

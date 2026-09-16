@@ -50,6 +50,7 @@ one object.
 		}),
 	}
 	output.bind(command, false)
+	command.ValidArgsFunction = a.completeAccounts()
 	return command
 }
 

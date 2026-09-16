@@ -64,6 +64,7 @@ Three reads then one or two writes.
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print the rows as they would be without writing")
 	_ = command.MarkFlagRequired("from")
 	_ = command.MarkFlagRequired("to")
+	completeFlags(command, a.completeSources(), "from", "to")
 	return command
 }
 

@@ -95,6 +95,8 @@ from earlier periods, which the YNAB app ignores, so the two can differ.
 	command.Flags().StringVar(&from, "from", "", "Take the total from this category or ready-to-assign")
 	command.Flags().BoolVar(&force, "force", false, "Fund past what the source has available")
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print the rows as they would be without writing")
+	command.ValidArgsFunction = a.completeCategories()
+	completeFlags(command, a.completeSources(), "from")
 	return command
 }
 

@@ -60,5 +60,7 @@ then one or two writes, the source first.
 	command.Flags().BoolVar(&force, "force", false, "Cover with more than the source has available")
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print the rows as they would be without writing")
 	_ = command.MarkFlagRequired("from")
+	command.ValidArgsFunction = a.completeCategories()
+	completeFlags(command, a.completeSources(), "from")
 	return command
 }

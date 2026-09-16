@@ -137,6 +137,7 @@ the create. A dry run makes every read and skips the create.
 	for _, name := range []string{"account", "date", "amount"} {
 		_ = command.MarkFlagRequired(name)
 	}
+	completeTransactionFields(command, a)
 	return command
 }
 

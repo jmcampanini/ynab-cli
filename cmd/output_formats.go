@@ -220,11 +220,40 @@ Status (plans status --jsonl):
   import_error_accounts   array of open account names in direct import
                           error; empty when none
 
+Funding report (reports funding):
+  id                 string
+  name               string
+  group              category group name
+  month              YYYY-MM
+  target_type        TB, TBD, MF, NEED, or DEBT
+  target_amount      amount
+  assigned           amount
+  activity           amount
+  available          amount; negative when overspent
+  underfunded        amount still needed this month; omitted when the
+                     API reports none
+  percent_complete   integer; omitted when absent
+  months_to_assign   months left in the period; omitted when absent
+
+Spending report (reports spending):
+  id             category or payee id; omitted on the Uncategorized and
+                 No payee rows
+  name           category or payee name
+  group          category group name; omitted with --by payee and on the
+                 Uncategorized row
+  outflows       amount, zero or negative
+  inflows        amount, zero or positive
+  net            amount, the sum of both
+  transactions   transactions touching the row
+
 Config (config --jsonl):
   allow_writes   boolean
   plan           string
   token          "<redacted>" when set, "" otherwise
-  sources        object of field to source; only with --provenance`,
+  sources        object of field to source; only with --provenance
+
+The api commands have no --jsonl or --csv: they print the API's response
+body as returned, with milliunit amounts and the API's field names.`,
 		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
 }
