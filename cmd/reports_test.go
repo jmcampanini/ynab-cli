@@ -78,8 +78,8 @@ func TestFundingReportKeepsUnderfundedVisibleTargets(t *testing.T) {
 		t.Errorf("--underfunded rows = %v, want Internet", names)
 	}
 	for _, report := range []fundingReport{all, only} {
-		if report.underfundedCount != 1 || report.underfundedTotal != short {
-			t.Errorf("summary = %d underfunded totaling %s, want 1 totaling %s", report.underfundedCount, report.underfundedTotal, short)
+		if report.targets != 2 || report.underfundedCount != 1 || report.underfundedTotal != short {
+			t.Errorf("summary = %d targets, %d underfunded totaling %s, want 2, 1 totaling %s", report.targets, report.underfundedCount, report.underfundedTotal, short)
 		}
 	}
 	if all.records[0].Assigned != 20000 {

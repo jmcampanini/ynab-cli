@@ -26,10 +26,12 @@ type fundingRecord struct {
 	MonthsToAssign  *int         `json:"months_to_assign,omitempty"`
 }
 
-// fundingReport is the rows of the funding report with the totals the
-// summary states.
+// fundingReport is the rows of the funding report with the counts the
+// summary states: every target, and the underfunded ones with their
+// total, whether or not the rows were filtered to them.
 type fundingReport struct {
 	records          []fundingRecord
+	targets          int
 	underfundedCount int
 	underfundedTotal ynab.Amount
 }
@@ -50,6 +52,7 @@ func newFundingReport(groups []ynab.CategoryGroup, month ynab.Month, underfunded
 		if category.Target == nil || category.Internal {
 			continue
 		}
+		report.targets++
 		underfunded := category.Target.Underfunded != nil && *category.Target.Underfunded > 0
 		if underfunded {
 			report.underfundedCount++
@@ -111,9 +114,10 @@ func (r fundingReport) rows(currency *ynab.CurrencyFormat, colors palette) [][]c
 	return rows
 }
 
-// summary is the count line under the table.
+// summary is the count line under the table, counting every target even
+// when --underfunded kept only some rows.
 func (r fundingReport) summary(month string, currency *ynab.CurrencyFormat) string {
-	return fmt.Sprintf("%s in %s, %d underfunded, %s still needed", countNoun(len(r.records), "target", "targets"), month, r.underfundedCount, r.underfundedTotal.Format(currency))
+	return fmt.Sprintf("%s in %s, %d underfunded, %s still needed", countNoun(r.targets, "target", "targets"), month, r.underfundedCount, r.underfundedTotal.Format(currency))
 }
 
 func newReportsFunding(a *app) *cobra.Command {
