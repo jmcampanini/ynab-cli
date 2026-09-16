@@ -35,7 +35,7 @@ listing with --all-unapproved, then one bulk update per 100 transactions.
 				return usageError("--account narrows --all-unapproved; with IDs, name the transactions alone")
 			}
 
-			s, err := a.openWrite(cmd, dryRun)
+			s, err := a.openTransactionWrite(cmd, dryRun)
 			if err != nil {
 				return err
 			}

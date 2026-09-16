@@ -36,7 +36,7 @@ bulk update per 100 transactions.
 				return err
 			}
 
-			s, err := a.openWrite(cmd, dryRun)
+			s, err := a.openTransactionWrite(cmd, dryRun)
 			if err != nil {
 				return err
 			}

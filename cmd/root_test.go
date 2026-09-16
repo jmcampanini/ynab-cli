@@ -131,6 +131,9 @@ type harness struct {
 	env      map[string]string
 	// writes records every non-GET request as "METHOD path body".
 	writes []string
+	// failWrite, when set, makes every non-GET request whose path contains
+	// it answer 500, so a test can pick which write of a sequence fails.
+	failWrite string
 }
 
 func newHarness(t *testing.T) *harness {
@@ -152,6 +155,14 @@ func newHarness(t *testing.T) *harness {
 		monthCategories := map[string]string{"2026-08-01": fixtureAugustCategories, "2026-09-01": fixtureCurrentCategories(t)}
 		monthPath := regexp.MustCompile(`^/plans/p1/months/(\d{4}-\d{2}-\d{2})(?:/categories/(\w+))?$`)
 		if r.Method != http.MethodGet {
+			if h.failWrite != "" && strings.Contains(r.URL.Path, h.failWrite) {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = io.WriteString(w, `{"error":{"id":"500","name":"internal_server_error","detail":"boom"}}`)
+				return
+			}
+			if servePlanWrites(t, w, r, monthCategories) {
+				return
+			}
 			serveRegisterWrites(t, w, r)
 			return
 		}

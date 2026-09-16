@@ -44,7 +44,7 @@ each transaction's account.
 				return usageError("give at least one field flag to change")
 			}
 
-			s, err := a.openWrite(cmd, dryRun)
+			s, err := a.openTransactionWrite(cmd, dryRun)
 			if err != nil {
 				return err
 			}

@@ -104,9 +104,10 @@ func newScheduled(a *app) *cobra.Command {
 		Use: "scheduled", Short: "List and read the plan's scheduled transactions",
 		Long: `Read the scheduled transactions of the configured plan: the recurring
 and future transactions YNAB enters on their next date. A bare
-'ynab scheduled' prints this help and exits 0. Writes arrive in a later
-release; the API cannot create split scheduled transactions, though it
-returns the lines of existing ones.
+'ynab scheduled' prints this help and exits 0. The CLI does not create,
+change, or delete scheduled transactions; it reads them and lets the
+transactions they enter be imported. The API cannot create split
+scheduled transactions, though it returns the lines of existing ones.
 
 ` + planHelp,
 		Args: cobra.NoArgs,

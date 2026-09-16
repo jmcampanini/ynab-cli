@@ -6,8 +6,10 @@ JSON lines and CSV for scripts and agents. Writes are disabled until the
 configuration enables them, and every write has a dry run. This release
 reads plans, accounts, categories, months, transactions, payees, scheduled
 transactions, and money movements, summarizes the month with
-`ynab plans status`, and writes transactions: create, update, delete,
-approve, categorize, clear, unclear, flag, and import; the
+`ynab plans status`, writes transactions (create, update, delete, approve,
+categorize, clear, unclear, flag, import), moves money between categories
+(`months assign`, `move`, `cover`, `fund`), and creates or updates
+categories, category groups, payees, and accounts; the
 [milestones](plans/milestones.md) record the order the rest lands in, and
 the [domain map](plans/domain-map.md) records the nouns, verbs, and
 decisions.
@@ -60,6 +62,13 @@ make build
 | `ynab category-groups list` | List the category groups with their category counts. |
 | `ynab months list` | List every month's income, assigned, activity, ready to assign, and age of money. |
 | `ynab months get` | Show this month's totals and its category rows. |
+| `ynab months move 50 --from "Dining Out" --to Groceries --dry-run` | Show both rows as a move would leave them, changing nothing. |
+| `ynab months cover "Dining Out" --from ready-to-assign --allow-writes` | Move exactly an overspent category's shortfall into it. |
+| `ynab months fund --all-underfunded --allow-writes` | Assign what every underfunded target still needs, with the total. |
+| `ynab categories update Groceries --target 600 --allow-writes` | Set a monthly target on a category. |
+| `ynab category-groups create Savings --allow-writes` | Create an empty category group. |
+| `ynab payees rename "AMZN Mktp" Amazon --allow-writes` | Rename a payee. |
+| `ynab accounts create "Emergency Fund" --type savings --balance 0 --allow-writes` | Create an account; the API cannot undo it. |
 | `ynab transactions list --since 2026-08-01 --until 2026-08-31 --csv > august.csv` | Write a month of the register as CSV, one row per split line. |
 | `ynab transactions list --account Visa --unapproved` | List the imports awaiting approval in one account. |
 | `ynab transactions list --category Groceries --jsonl >> history.jsonl` | Append the transactions touching one category, splits included. |

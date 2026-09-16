@@ -31,7 +31,7 @@ prints nothing with --jsonl.
   ynab transactions import --allow-writes --jsonl | jq .count`,
 		Args: cobra.NoArgs,
 		RunE: run(func(cmd *cobra.Command, _ []string) error {
-			s, err := a.openWrite(cmd, dryRun)
+			s, err := a.openTransactionWrite(cmd, dryRun)
 			if err != nil {
 				return err
 			}

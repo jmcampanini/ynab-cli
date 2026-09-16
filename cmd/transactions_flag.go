@@ -25,7 +25,7 @@ update per 100 transactions.
   ynab transactions flag --color none 7a3e... 9c1d... --allow-writes`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
-			s, err := a.openWrite(cmd, dryRun)
+			s, err := a.openTransactionWrite(cmd, dryRun)
 			if err != nil {
 				return err
 			}

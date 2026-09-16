@@ -1,6 +1,10 @@
 package ynab
 
-import "context"
+import (
+	"context"
+	"errors"
+	"net/http"
+)
 
 // Payee is who a transaction paid. A transfer payee stands for an account
 // and carries that account's ID in TransferAccountID.
@@ -21,4 +25,44 @@ func (c *Client) Payees(ctx context.Context, planID string) ([]Payee, error) {
 		return nil, err
 	}
 	return data.Payees, nil
+}
+
+// savedPayee is the data of the payee create and update responses.
+type savedPayee struct {
+	Payee *Payee `json:"payee"`
+}
+
+// CreatePayee creates a payee with the name and returns it as stored.
+func (c *Client) CreatePayee(ctx context.Context, planID, name string) (Payee, error) {
+	var data savedPayee
+	if err := c.do(ctx, http.MethodPost, "/plans/"+planID+"/payees", nil, payeeBody(name), &data); err != nil {
+		return Payee{}, err
+	}
+	if data.Payee == nil {
+		return Payee{}, errors.New("the API created the payee but returned no record")
+	}
+	return *data.Payee, nil
+}
+
+// UpdatePayee renames a payee, the only field the API writes, and
+// returns it as stored.
+func (c *Client) UpdatePayee(ctx context.Context, planID, payeeID, name string) (Payee, error) {
+	var data savedPayee
+	if err := c.do(ctx, http.MethodPatch, "/plans/"+planID+"/payees/"+payeeID, nil, payeeBody(name), &data); err != nil {
+		return Payee{}, err
+	}
+	if data.Payee == nil {
+		return Payee{}, errors.New("the API updated the payee but returned no record")
+	}
+	return *data.Payee, nil
+}
+
+func payeeBody(name string) any {
+	return struct {
+		Payee struct {
+			Name string `json:"name"`
+		} `json:"payee"`
+	}{Payee: struct {
+		Name string `json:"name"`
+	}{Name: name}}
 }

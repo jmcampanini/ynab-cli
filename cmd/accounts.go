@@ -68,15 +68,16 @@ func (r accountRecord) directImport() string {
 
 func newAccounts(a *app) *cobra.Command {
 	command := &cobra.Command{
-		Use: "accounts", Short: "List and read the plan's accounts",
-		Long: `Read the accounts of the configured plan. A bare 'ynab accounts' prints
-this help and exits 0. The API cannot rename, close, delete, or reconcile
-an account, so no such verbs exist here.
+		Use: "accounts", Short: "Read and create the plan's accounts",
+		Long: `Read the accounts of the configured plan, or create one. A bare
+'ynab accounts' prints this help and exits 0. The API cannot rename,
+close, delete, or reconcile an account, so no such verbs exist here and
+a create cannot be undone.
 
-` + planHelp,
+` + writeHelp + "\n\n" + planHelp,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
-	command.AddCommand(newAccountsList(a), newAccountsGet(a))
+	command.AddCommand(newAccountsList(a), newAccountsGet(a), newAccountsCreate(a))
 	return command
 }

@@ -77,15 +77,18 @@ func exitCodesTopic() *cobra.Command {
   0  Success, including an empty list, help, version, completion, and
      'ynab help <unknown>', which prints the root usage.
   1  Command failure: the API returned an error, the token or plan is not
-     configured or not found, an account, category, payee, or transaction
-     did not match, a later batch of a bulk update failed, a cleared
-     state change needed --force, or the configuration file could not be
-     loaded.
+     configured or not found, an account, category, group, payee, or
+     transaction did not match, a later batch of a bulk update or a
+     later write of a money move failed, a cleared state change or a move
+     past the available amount needed --force, a name to create already
+     exists, a target flag is not supported on the category, or the
+     configuration file could not be loaded.
   2  Usage: an unknown command, flag, or operand count, an invalid flag
      value such as --color bold, a month that is not current, YYYY-MM, or
-     YYYY-MM-01, an amount with separators or too many decimals, or
-     conflicting write flags such as --split with --category. Nothing ran
-     and stdout is empty.
+     YYYY-MM-01, an amount with separators or too many decimals, a name
+     past the API's length limit, or conflicting write flags such as
+     --split with --category or --target-frequency with --target-date.
+     Nothing ran and stdout is empty.
   3  Writes disabled: a mutating command ran without allow_writes in the
      configuration, YNAB_ALLOW_WRITES, or --allow-writes, and without
      --dry-run. The configuration was loaded, no request was made, and

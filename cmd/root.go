@@ -61,9 +61,11 @@ func newRoot(deps dependencies) *cobra.Command {
 and CSV for scripts and agents. Every command is 'ynab <noun> <verb>'; a
 bare noun prints its help. This release reads plans, accounts, categories,
 category groups, months, transactions, payees, scheduled transactions,
-and money movements, summarizes the month with 'plans status', and
-writes transactions: create, update, delete, approve, categorize, clear,
-unclear, flag, and import. Writes stay disabled until allow_writes is
+and money movements, summarizes the month with 'plans status', writes
+transactions (create, update, delete, approve, categorize, clear,
+unclear, flag, import), moves money between categories ('months assign',
+'move', 'cover', 'fund'), and creates or updates categories, category
+groups, payees, and accounts. Writes stay disabled until allow_writes is
 set, and every write accepts --dry-run; see 'ynab transactions --help'.
 
 ynab needs a personal access token from https://app.ynab.com/settings/developer
@@ -80,6 +82,9 @@ prompts, and keeps nothing on disk.
   ynab transactions approve --all-unapproved --dry-run
   ynab transactions create --account Checking --date today --amount -12.50 \
     --payee "Corner Store" --category Groceries --allow-writes
+  ynab months move 50 --from "Dining Out" --to Groceries --dry-run
+  ynab months fund --all-underfunded --allow-writes
+  ynab categories update Groceries --target 600 --allow-writes
   ynab plans status
   ynab config --provenance`,
 		SilenceErrors: true, SilenceUsage: true, Version: Version,

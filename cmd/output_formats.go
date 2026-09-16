@@ -26,7 +26,7 @@ Plan (plans list, plans get):
   date_format        such as "MM/DD/YYYY"; omitted when unavailable
   configured         true for the plan the configuration selects
 
-Account (accounts list, accounts get):
+Account (accounts list, accounts get, accounts create):
   id                      string
   name                    string
   type                    checking, savings, cash, creditCard, lineOfCredit,
@@ -42,8 +42,11 @@ Account (accounts list, accounts get):
   direct_import_linked    boolean
   direct_import_in_error  boolean
   last_reconciled_at      timestamp; omitted when never reconciled
+  dry_run                 true on the output of accounts create run with
+                          --dry-run; omitted otherwise
 
-Category (categories list, categories get):
+Category (categories list, categories get, categories create,
+categories update, months assign, move, cover, fund):
   id                  string
   name                string
   group               category group name
@@ -74,16 +77,24 @@ Category (categories list, categories get):
     overall_funded      amount; omitted when absent
     overall_left        amount; omitted when absent
     snoozed_at          timestamp; omitted unless snoozed
+  dry_run             true on the output of a mutating command run with
+                      --dry-run; omitted otherwise in JSONL and false in
+                      CSV. A month write's dry run applies the change
+                      arithmetically to assigned, available, and
+                      underfunded; a category create or update's dry run
+                      previews the target's type, amount, and date.
   In CSV the target object becomes target_type, target_amount, and so
   on, all empty when there is no target.
 
-Category group (category-groups list):
+Category group (category-groups list, create, rename):
   id               string
   name             string
   hidden           boolean
   internal         boolean
   category_count   categories shown by categories list; every category
-                   with --hidden
+                   with --hidden; 0 on create
+  dry_run          true on the output of a mutating command run with
+                   --dry-run; omitted otherwise
 
 Month (months list, months get):
   month             YYYY-MM
@@ -145,11 +156,13 @@ approve, categorize, clear, unclear, flag):
   parent's id in parent_id, and the parent's date, account, cleared,
   approved, and flag.
 
-Payee (payees list, payees get):
+Payee (payees list, payees get, payees create, payees rename):
   id                    string
   name                  string
   transfer_account      account name; omitted unless a transfer payee
   transfer_account_id   string; omitted unless a transfer payee
+  dry_run               true on the output of a mutating command run
+                        with --dry-run; omitted otherwise
 
 Scheduled transaction (scheduled list, scheduled get):
   id                    string

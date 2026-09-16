@@ -21,7 +21,7 @@ instead.
   ynab transactions delete 7a3e... --allow-writes --jsonl >> deleted.jsonl`,
 		Args: cobra.ExactArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
-			s, err := a.openWrite(cmd, dryRun)
+			s, err := a.openTransactionWrite(cmd, dryRun)
 			if err != nil {
 				return err
 			}
