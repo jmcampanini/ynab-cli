@@ -75,11 +75,7 @@ func (a *app) completeCategories() completer {
 		if err != nil {
 			return nil, err
 		}
-		listing, err := listCategories(groups, nil, "", true)
-		if err != nil {
-			return nil, err
-		}
-		return completionNames(listing.records()), nil
+		return completionNames(groups), nil
 	})
 }
 
@@ -96,22 +92,26 @@ func (a *app) completeSources() completer {
 	}
 }
 
-// completionNames returns the name of each shown record, qualified by its
-// group when any record, hidden ones included, shares the name.
-func completionNames(records []categoryRecord) []string {
+// completionNames returns the name of each shown category, qualified by its
+// group when any category, hidden ones included, shares the name.
+func completionNames(groups []ynab.CategoryGroup) []string {
 	shared := map[string]int{}
-	for _, record := range records {
-		shared[strings.ToLower(record.Name)]++
+	for _, group := range groups {
+		for _, category := range group.Categories {
+			shared[strings.ToLower(category.Name)]++
+		}
 	}
 	var names []string
-	for _, record := range records {
-		switch {
-		case record.Internal || record.Hidden:
-			continue
-		case shared[strings.ToLower(record.Name)] > 1:
-			names = append(names, record.Group+": "+record.Name)
-		default:
-			names = append(names, record.Name)
+	for _, group := range groups {
+		for _, category := range group.Categories {
+			switch {
+			case category.Internal || category.Hidden || group.Hidden:
+				continue
+			case shared[strings.ToLower(category.Name)] > 1:
+				names = append(names, group.Name+": "+category.Name)
+			default:
+				names = append(names, category.Name)
+			}
 		}
 	}
 	return names

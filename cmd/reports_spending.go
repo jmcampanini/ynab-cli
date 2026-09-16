@@ -96,13 +96,13 @@ type spendingReport struct {
 func newSpendingReport(by string, transactions []ynab.Transaction, onPlan map[string]bool, groupNames map[string]string) spendingReport {
 	report := spendingReport{by: by}
 	rows := map[string]*spendingRecord{}
-	counted := map[string]map[string]bool{}
 	for _, tx := range transactions {
 		lines := spendingLines(tx, onPlan)
 		if len(lines) == 0 {
 			continue
 		}
 		report.transactions++
+		touched := map[string]bool{}
 		for _, line := range lines {
 			id, name := line.categoryID, line.category
 			if by == byPayee {
@@ -120,7 +120,6 @@ func newSpendingReport(by string, transactions []ynab.Transaction, onPlan map[st
 					row.Group = groupNames[id]
 				}
 				rows[id] = row
-				counted[id] = map[string]bool{}
 			}
 			if line.amount < 0 {
 				row.Outflows += line.amount
@@ -130,8 +129,8 @@ func newSpendingReport(by string, transactions []ynab.Transaction, onPlan map[st
 				report.inflows += line.amount
 			}
 			row.Net += line.amount
-			if !counted[id][tx.ID] {
-				counted[id][tx.ID] = true
+			if !touched[id] {
+				touched[id] = true
 				row.Transactions++
 			}
 		}
