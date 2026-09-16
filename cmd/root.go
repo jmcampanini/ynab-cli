@@ -61,9 +61,10 @@ func newRoot(deps dependencies) *cobra.Command {
 and CSV for scripts and agents. Every command is 'ynab <noun> <verb>'; a
 bare noun prints its help. This release reads plans, accounts, categories,
 category groups, months, transactions, payees, scheduled transactions,
-and money movements, and summarizes the month with 'plans status'. Writes
-are not implemented yet; when they arrive they stay disabled until
-allow_writes is set, and every write will accept --dry-run.
+and money movements, summarizes the month with 'plans status', and
+writes transactions: create, update, delete, approve, categorize, clear,
+unclear, flag, and import. Writes stay disabled until allow_writes is
+set, and every write accepts --dry-run; see 'ynab transactions --help'.
 
 ynab needs a personal access token from https://app.ynab.com/settings/developer
 and network access to api.ynab.com. It runs no external programs, never
@@ -76,6 +77,9 @@ prompts, and keeps nothing on disk.
   ynab categories get "Bills: Internet"
   ynab transactions list --since 2026-08-01 --csv > august.csv
   ynab transactions review
+  ynab transactions approve --all-unapproved --dry-run
+  ynab transactions create --account Checking --date today --amount -12.50 \
+    --payee "Corner Store" --category Groceries --allow-writes
   ynab plans status
   ynab config --provenance`,
 		SilenceErrors: true, SilenceUsage: true, Version: Version,

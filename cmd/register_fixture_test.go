@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -11,9 +13,12 @@ import (
 // returns it: an August inflow and rent, then September's split at Costco,
 // a transfer pair between Chase Checking and Visa, an unapproved flagged
 // import, a transaction that is both unapproved and uncategorized, an
-// uncategorized one, and an unapproved split at Costco whose lines each
-// name another payee.
+// uncategorized one, an unapproved split at Costco whose lines each name
+// another payee, and a 2024 rent payment that only a since_date or a
+// request by ID reaches, since the fake applies the API's one-year
+// default window.
 const fixtureTransactions = `[
+{"id":"t9","date":"2024-03-02","amount":-1500000,"memo":"old rent","cleared":"reconciled","approved":true,"flag_color":null,"flag_name":null,"account_id":"a1","account_name":"Chase Checking","payee_id":"p1","payee_name":"Landlord","category_id":"c2","category_name":"Rent","transfer_account_id":null,"transfer_transaction_id":null,"matched_transaction_id":null,"import_id":null,"import_payee_name":null,"import_payee_name_original":null,"debt_transaction_type":null,"deleted":false,"subtransactions":[]},
 {"id":"t7","date":"2026-08-01","amount":3000000,"memo":null,"cleared":"reconciled","approved":true,"flag_color":null,"flag_name":null,"account_id":"a1","account_name":"Chase Checking","payee_id":"p6","payee_name":"Employer","category_id":"c7","category_name":"Inflow: Ready to Assign","transfer_account_id":null,"transfer_transaction_id":null,"matched_transaction_id":null,"import_id":null,"import_payee_name":null,"import_payee_name_original":null,"debt_transaction_type":null,"deleted":false,"subtransactions":[]},
 {"id":"t6","date":"2026-08-20","amount":-1500000,"memo":"August rent","cleared":"reconciled","approved":true,"flag_color":null,"flag_name":null,"account_id":"a1","account_name":"Chase Checking","payee_id":"p1","payee_name":"Landlord","category_id":"c2","category_name":"Rent","transfer_account_id":null,"transfer_transaction_id":null,"matched_transaction_id":null,"import_id":null,"import_payee_name":null,"import_payee_name_original":null,"debt_transaction_type":null,"deleted":false,"subtransactions":[]},
 {"id":"t1","date":"2026-09-02","amount":-100000,"memo":"weekly run","cleared":"cleared","approved":true,"flag_color":"","flag_name":null,"account_id":"a1","account_name":"Chase Checking","payee_id":"p2","payee_name":"Costco","category_id":null,"category_name":"Split","transfer_account_id":null,"transfer_transaction_id":null,"matched_transaction_id":null,"import_id":null,"import_payee_name":null,"import_payee_name_original":null,"debt_transaction_type":null,"deleted":false,"subtransactions":[
@@ -103,9 +108,11 @@ func fixtureArray(entries []fixtureEntry) string {
 
 // serveRegister answers the transaction, payee, scheduled, and money
 // movement routes of plan p1, applying the listing query as the API does:
-// since_date and until_date bound the date, type unapproved keeps
-// unapproved rows, and type uncategorized keeps rows with no category, no
-// lines, and no transfer. It reports false for paths it does not own.
+// since_date and until_date bound the date, the plan and account listings
+// default since_date to a year before the harness clock, type unapproved
+// keeps unapproved rows, and type uncategorized keeps rows with no
+// category and no lines, transfers included as the real API does. It
+// reports false for paths it does not own.
 func serveRegister(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
 	t.Helper()
 	path := strings.TrimPrefix(r.URL.Path, "/plans/p1/")
@@ -122,13 +129,17 @@ func serveRegister(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
 		}
 		notFound(w)
 	}
-	listTransactions := func(keep func(fixtureEntry) bool) {
+	listTransactions := func(defaultWindow bool, keep func(fixtureEntry) bool) {
+		since := query.Get("since_date")
+		if since == "" && defaultWindow {
+			since = fixtureNow.AddDate(-1, 0, 0).Format("2006-01-02")
+		}
 		var kept []fixtureEntry
 		for _, entry := range fixtureEntries(t, fixtureTransactions) {
 			f := entry.fields
-			uncategorized := f.CategoryID == nil && len(f.Subtransactions) == 0 && f.TransferAccountID == nil
+			uncategorized := f.CategoryID == nil && len(f.Subtransactions) == 0
 			if !keep(entry) ||
-				query.Get("since_date") != "" && f.Date < query.Get("since_date") ||
+				f.Date < since ||
 				query.Get("until_date") != "" && f.Date > query.Get("until_date") ||
 				query.Get("type") == "unapproved" && f.Approved ||
 				query.Get("type") == "uncategorized" && !uncategorized {
@@ -141,15 +152,15 @@ func serveRegister(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
 
 	switch {
 	case path == "transactions":
-		listTransactions(func(fixtureEntry) bool { return true })
+		listTransactions(true, func(fixtureEntry) bool { return true })
 	case strings.HasPrefix(path, "transactions/"):
 		writeOne("transaction", fixtureTransactions, strings.TrimPrefix(path, "transactions/"))
 	case strings.HasPrefix(path, "accounts/") && strings.HasSuffix(path, "/transactions"):
 		accountID := strings.TrimSuffix(strings.TrimPrefix(path, "accounts/"), "/transactions")
-		listTransactions(func(e fixtureEntry) bool { return e.fields.AccountID == accountID })
+		listTransactions(true, func(e fixtureEntry) bool { return e.fields.AccountID == accountID })
 	case strings.HasPrefix(path, "months/") && strings.HasSuffix(path, "/transactions"):
 		month := strings.TrimSuffix(strings.TrimPrefix(path, "months/"), "/transactions")
-		listTransactions(func(e fixtureEntry) bool { return strings.HasPrefix(e.fields.Date, month[:7]) })
+		listTransactions(false, func(e fixtureEntry) bool { return strings.HasPrefix(e.fields.Date, month[:7]) })
 	case path == "payees":
 		_, _ = w.Write([]byte(fixturePayees))
 	case path == "scheduled_transactions":
@@ -171,4 +182,158 @@ func serveRegister(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	return true
+}
+
+// Names the fake fills in on a stored transaction, as the API does.
+var (
+	fixtureAccountNames  = map[string]string{"a1": "Chase Checking", "a2": "Visa", "a3": "Old Savings"}
+	fixtureCategoryNames = map[string]string{"c1": "Internet", "c2": "Rent", "c3": "Dining Out", "c4": "Old Hobby", "c5": "Internet", "c6": "Visa", "c7": "Inflow: Ready to Assign"}
+)
+
+// serveRegisterWrites answers the transaction writes of plan p1 the way
+// the API does, without keeping state: a create returns the body as
+// stored under the id "n1"; a bulk update merges each entry into the
+// fixture row its id names, or into a copy of t4 for an id the fixture
+// lacks, so a test can send hundreds of ids; a delete returns the row;
+// an import returns two ids. An update entry whose id is "boom" fails
+// with 500 so a later batch can fail, and one whose id is "drop" is left
+// out of the answer. A create whose import_id is "dup" is a 409.
+func serveRegisterWrites(t *testing.T, w http.ResponseWriter, r *http.Request) {
+	t.Helper()
+	path := strings.TrimPrefix(r.URL.Path, "/plans/p1/")
+	var body struct {
+		Transaction  map[string]any   `json:"transaction"`
+		Transactions []map[string]any `json:"transactions"`
+	}
+	if r.Body != nil {
+		_ = json.NewDecoder(r.Body).Decode(&body)
+	}
+	rows := map[string]map[string]any{}
+	for _, entry := range fixtureEntries(t, fixtureTransactions) {
+		var row map[string]any
+		if err := json.Unmarshal(entry.raw, &row); err != nil {
+			t.Fatal(err)
+		}
+		rows[entry.fields.ID] = row
+	}
+	reply := func(status int, data any) {
+		encoded, err := json.Marshal(map[string]any{"data": data})
+		if err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(status)
+		_, _ = w.Write(encoded)
+	}
+
+	switch {
+	case r.Method == http.MethodPost && path == "transactions":
+		if body.Transaction["import_id"] == "dup" {
+			w.WriteHeader(http.StatusConflict)
+			_, _ = io.WriteString(w, `{"error":{"id":"409","name":"conflict","detail":"Conflict"}}`)
+			return
+		}
+		stored := fixtureStored(map[string]any{"id": "n1", "cleared": "uncleared", "approved": false, "subtransactions": []any{}}, body.Transaction)
+		reply(http.StatusCreated, map[string]any{"transaction_ids": []string{"n1"}, "transaction": stored, "duplicate_import_ids": []string{}})
+	case r.Method == http.MethodPatch && path == "transactions":
+		var stored []map[string]any
+		for _, entry := range body.Transactions {
+			id, _ := entry["id"].(string)
+			if id == "boom" {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = io.WriteString(w, `{"error":{"id":"500","name":"internal_server_error","detail":"boom"}}`)
+				return
+			}
+			if id == "drop" {
+				continue
+			}
+			base, ok := rows[id]
+			if !ok {
+				base = map[string]any{}
+				for key, value := range rows["t4"] {
+					base[key] = value
+				}
+				base["id"] = id
+			}
+			stored = append(stored, fixtureStored(base, entry))
+		}
+		reply(http.StatusOK, map[string]any{"transaction_ids": []string{}, "transactions": stored, "duplicate_import_ids": []string{}})
+	case r.Method == http.MethodDelete && strings.HasPrefix(path, "transactions/"):
+		row, ok := rows[strings.TrimPrefix(path, "transactions/")]
+		if !ok {
+			notFound(w)
+			return
+		}
+		reply(http.StatusOK, map[string]any{"transaction": row})
+	case r.Method == http.MethodPost && path == "transactions/import":
+		reply(http.StatusCreated, map[string]any{"transaction_ids": []string{"i1", "i2"}})
+	default:
+		notFound(w)
+	}
+}
+
+// fixtureStored merges a request entry into a row as the API does: on an
+// existing split the date, amount, and category are ignored. It fills in
+// the names the API derives: the account, category, and payee names, the
+// transfer account behind a transfer payee, a new payee's id, and split
+// line ids.
+func fixtureStored(row, entry map[string]any) map[string]any {
+	lines, _ := row["subtransactions"].([]any)
+	for key, value := range entry {
+		if len(lines) > 0 && (key == "date" || key == "amount" || key == "category_id") {
+			continue
+		}
+		row[key] = value
+	}
+	if id, ok := row["account_id"].(string); ok {
+		row["account_name"] = fixtureAccountNames[id]
+	}
+	if id, ok := row["category_id"].(string); ok {
+		row["category_name"] = fixtureCategoryNames[id]
+	}
+	if name, ok := entry["payee_name"].(string); ok {
+		row["payee_id"], row["payee_name"] = "pnew", name
+	}
+	if id, ok := entry["payee_id"].(string); ok {
+		if account, isTransfer := strings.CutPrefix(id, "tp"); isTransfer {
+			row["payee_name"] = "Transfer : " + fixtureAccountNames["a"+account]
+			row["transfer_account_id"] = "a" + account
+		}
+		for _, payee := range fixturePayeeNames() {
+			if payee[0] == id {
+				row["payee_name"] = payee[1]
+			}
+		}
+	}
+	if lines, ok := entry["subtransactions"].([]any); ok {
+		var stored []any
+		row["category_id"], row["category_name"] = nil, "Split"
+		for i, line := range lines {
+			fields, _ := line.(map[string]any)
+			fields["id"] = fmt.Sprintf("n1s%d", i+1)
+			if id, ok := fields["category_id"].(string); ok {
+				fields["category_name"] = fixtureCategoryNames[id]
+			}
+			stored = append(stored, fields)
+		}
+		row["subtransactions"] = stored
+	}
+	return row
+}
+
+// fixturePayeeNames lists the payee fixture as id, name pairs.
+func fixturePayeeNames() [][2]string {
+	var data struct {
+		Data struct {
+			Payees []struct {
+				ID   string `json:"id"`
+				Name string `json:"name"`
+			} `json:"payees"`
+		} `json:"data"`
+	}
+	_ = json.Unmarshal([]byte(fixturePayees), &data)
+	pairs := make([][2]string, len(data.Data.Payees))
+	for i, payee := range data.Data.Payees {
+		pairs[i] = [2]string{payee.ID, payee.Name}
+	}
+	return pairs
 }

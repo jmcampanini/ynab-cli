@@ -94,8 +94,9 @@ Month (months list, months get):
   ready_to_assign   amount; negative when overassigned
   age_of_money      days; omitted until the plan has one
 
-Transaction (transactions list, transactions get, transactions review):
-  id                          string
+Transaction (transactions list, get, review, create, update, delete,
+approve, categorize, clear, unclear, flag):
+  id                          string; empty on a dry-run create
   parent_id                   CSV only: the parent's id on a split line,
                               empty on a transaction
   date                        YYYY-MM-DD
@@ -136,6 +137,9 @@ Transaction (transactions list, transactions get, transactions review):
     transfer_transaction_id     string; omitted unless a transfer
   needs                       transactions review only: approve,
                               categorize, or both
+  dry_run                     true on the output of a mutating command
+                              run with --dry-run; omitted otherwise in
+                              JSONL and false in CSV
   In CSV each split line becomes its own row after the parent, with the
   line's id, payee, category, memo, amount, and transfer fields, the
   parent's id in parent_id, and the parent's date, account, cleared,
@@ -185,6 +189,10 @@ Money movement (money-movements list):
   amount     amount
   note       string; omitted when empty
   group_id   the movement group; omitted when absent
+
+Import (transactions import --jsonl):
+  count             transactions imported, zero or more
+  transaction_ids   array of their ids; empty when none
 
 Status (plans status --jsonl):
   month                   YYYY-MM, the current month

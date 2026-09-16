@@ -124,13 +124,13 @@ age of money
 overspent        1 category, -$25.00: Dining Out -$25.00
 underfunded      none
 unapproved       3 transactions
-uncategorized    2 transactions
+uncategorized    4 transactions
 import errors    Visa
 `
 	if table != wantTable {
 		t.Errorf("plans status =\n%s\nwant\n%s", table, wantTable)
 	}
-	wantJSONL := `{"month":"2026-09","ready_to_assign":-500.00,"overspent_count":1,"overspent_total":-25.00,"underfunded_count":0,"underfunded_total":0.00,"unapproved_count":3,"uncategorized_count":2,"import_error_accounts":["Visa"]}` + "\n"
+	wantJSONL := `{"month":"2026-09","ready_to_assign":-500.00,"overspent_count":1,"overspent_total":-25.00,"underfunded_count":0,"underfunded_total":0.00,"unapproved_count":3,"uncategorized_count":4,"import_error_accounts":["Visa"]}` + "\n"
 	if jsonl != wantJSONL {
 		t.Errorf("plans status --jsonl =\n%s\nwant\n%s", jsonl, wantJSONL)
 	}
