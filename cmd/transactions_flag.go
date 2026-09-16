@@ -30,10 +30,9 @@ update per 100 transactions.
 				return err
 			}
 
-			change := ynab.SaveTransaction{FlagColor: ynab.SomeValue(color)}
+			change := ynab.SaveTransaction{FlagColor: flagColorValue(color)}
 			past := "flagged"
 			if color == "none" {
-				change.FlagColor = ynab.NullValue[string]()
 				past = "unflagged"
 			}
 			return s.bulk(cmd, output, bulkWrite{base: "flag", change: change, ids: args, past: past})

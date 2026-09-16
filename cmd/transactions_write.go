@@ -75,10 +75,6 @@ func (s *writeSession) amount(text string) (ynab.Amount, error) {
 	return amount, nil
 }
 
-func (s *writeSession) account(query string) (ynab.Account, error) {
-	return findAccount(query, s.accounts)
-}
-
 // accountByID returns the account, or a zero account when the ID is
 // unknown to the plan.
 func (s *writeSession) accountByID(id string) ynab.Account {
@@ -491,7 +487,7 @@ func (s *writeSession) bulk(cmd *cobra.Command, output outputFlags, write bulkWr
 			}
 			return errors.Join(err, s.printTransactions(out, output, applied, write.summary(s, len(applied))))
 		}
-		s.warnIgnoredSplitFields(cmd, write.change, stored)
+		warnIgnoredSplitFields(cmd, write.change, stored)
 		applied = append(applied, stored...)
 	}
 	return s.printTransactions(out, output, applied, write.summary(s, len(applied)))
@@ -519,7 +515,7 @@ func missingRecords(batch []string, stored []ynab.Transaction) error {
 // warnIgnoredSplitFields says on stderr which stored records are splits
 // whose date, amount, or category the API ignored, since a real run
 // cannot know a transaction is a split before the update answers.
-func (s *writeSession) warnIgnoredSplitFields(cmd *cobra.Command, change ynab.SaveTransaction, stored []ynab.Transaction) {
+func warnIgnoredSplitFields(cmd *cobra.Command, change ynab.SaveTransaction, stored []ynab.Transaction) {
 	if change.Date == "" && change.Milliunits == nil && change.CategoryID == nil {
 		return
 	}
@@ -605,7 +601,7 @@ func (f *transactionFields) resolve(cmd *cobra.Command, s *writeSession) (change
 	ctx := cmd.Context()
 	flags := cmd.Flags()
 	if flags.Changed("account") {
-		account, err := s.account(f.account)
+		account, err := findAccount(f.account, s.accounts)
 		if err != nil {
 			return change, nil, err
 		}
@@ -638,7 +634,7 @@ func (f *transactionFields) resolve(cmd *cobra.Command, s *writeSession) (change
 		}
 	}
 	if flags.Changed("transfer-to") {
-		target, err := s.account(f.transferTo)
+		target, err := findAccount(f.transferTo, s.accounts)
 		if err != nil {
 			return change, nil, err
 		}
@@ -667,10 +663,16 @@ func (f *transactionFields) resolve(cmd *cobra.Command, s *writeSession) (change
 		change.Approved = &approved
 	}
 	if flags.Changed("flag") {
-		change.FlagColor = ynab.SomeValue(f.flag)
-		if f.flag == "none" {
-			change.FlagColor = ynab.NullValue[string]()
-		}
+		change.FlagColor = flagColorValue(f.flag)
 	}
 	return change, transfer, nil
+}
+
+// flagColorValue is the flag_color to send for a --flag or --color
+// value: null for none, which removes the flag, otherwise the color.
+func flagColorValue(color string) ynab.Nullable[string] {
+	if color == "none" {
+		return ynab.NullValue[string]()
+	}
+	return ynab.SomeValue(color)
 }

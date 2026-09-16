@@ -67,7 +67,7 @@ func (s *writeSession) listUnapproved(cmd *cobra.Command, account string) ([]yna
 	if account == "" {
 		transactions, err = s.client.Transactions(cmd.Context(), s.plan.ID, filter)
 	} else {
-		found, findErr := s.account(account)
+		found, findErr := findAccount(account, s.accounts)
 		if findErr != nil {
 			return nil, findErr
 		}
