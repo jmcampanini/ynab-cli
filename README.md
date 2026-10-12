@@ -41,10 +41,18 @@ brew upgrade --fetch-HEAD ynab
 
 ### From source
 
+With Git and [mise](https://mise.jdx.dev) installed (`brew install mise` on macOS), mise supplies the pinned Go toolchain from `mise.toml`:
+
 ```sh
-make build
+git clone https://github.com/jmcampanini/ynab-cli
+cd ynab-cli
+mise trust
+mise install
+mise run build
 # then copy ./build/ynab to a directory on your PATH
 ```
+
+To upgrade, run `git pull`, rebuild with `mise install && mise run build`, and replace the binary on your `PATH`.
 
 ## Representative commands
 
