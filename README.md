@@ -1,17 +1,8 @@
 # ynab-cli
 
-ynab-cli is a command line for a YNAB plan. It reads accounts, categories,
-months, and transactions, writes transactions and assigned amounts, and emits
-JSON lines and CSV for scripts and agents. Writes are disabled until the
-configuration enables them, and every write has a dry run. It reads plans,
-accounts, categories, months, transactions, payees, scheduled transactions,
-and money movements, summarizes the month with `ynab plans status`, writes
-transactions (create, update, delete, approve, categorize, clear, unclear,
-flag, import), moves money between categories (`months assign`, `move`,
-`cover`, `fund`), creates or updates categories, category groups, payees,
-and accounts, derives the `reports funding` and `reports spending` reports,
-and passes anything else through `ynab api` as a raw request. Shell
-completion for bash, zsh, fish, and powershell completes names from the plan. The
+ynab-cli reads and writes a YNAB plan from the terminal and emits JSON lines
+and CSV for scripts and agents. Writes are disabled until the configuration
+enables them, and every write has a dry run. The
 [domain map](plans/domain-map.md) records the nouns, verbs, and decisions,
 and the [milestones](plans/milestones.md) record the order they landed in.
 
