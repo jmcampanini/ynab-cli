@@ -1,21 +1,12 @@
 # ynab-cli
 
-ynab-cli reads and writes a YNAB plan from the terminal and emits JSON lines
-and CSV for scripts and agents. Writes are disabled until the configuration
-enables them, and every write has a dry run. The
-[domain map](plans/domain-map.md) records the nouns, verbs, and decisions,
-and the [milestones](plans/milestones.md) record the order they landed in.
+ynab-cli reads and writes a YNAB plan from the terminal and emits JSON lines and CSV for scripts and agents. Writes are disabled until the configuration enables them, and every write has a dry run. The [domain map](plans/domain-map.md) records the nouns, verbs, and decisions, and the [milestones](plans/milestones.md) record the order they landed in.
 
-Command help is the canonical reference: `ynab --help` and each command's
-`--help` describe every user-facing contract, `ynab config --help` describes
-the configuration file, discovery, and precedence, `ynab help exit-codes`
-describes exit statuses, and `ynab help output-formats` describes every
-`--jsonl` and `--csv` record.
+Command help is the canonical reference: `ynab --help` and each command's `--help` describe every user-facing contract, `ynab config --help` describes the configuration file, discovery, and precedence, `ynab help exit-codes` describes exit statuses, and `ynab help output-formats` describes every `--jsonl` and `--csv` record.
 
 ## Install
 
-ynab-cli distributes from HEAD only; there is no release channel or tagged
-binary.
+ynab-cli distributes from HEAD only; there is no release channel or tagged binary.
 
 ### Homebrew
 
@@ -87,17 +78,11 @@ None. ynab-cli needs network access to api.ynab.com and never prompts.
 
 ## Configuration
 
-ynab-cli reads `$XDG_CONFIG_HOME/ynab/ynab.toml`, or `~/.config/ynab/ynab.toml`
-when `XDG_CONFIG_HOME` is empty; a missing file is fine. `--config PATH`
-replaces discovery, and the file must exist. `YNAB_PLAN`, `YNAB_TOKEN`, and
-`YNAB_ALLOW_WRITES` override the file; `--plan` and `--allow-writes` override
-the environment. There is no `--token` flag. A minimal file:
+ynab-cli reads `$XDG_CONFIG_HOME/ynab/ynab.toml`, or `~/.config/ynab/ynab.toml` when `XDG_CONFIG_HOME` is empty; a missing file is fine. `--config PATH` replaces discovery, and the file must exist. `YNAB_PLAN`, `YNAB_TOKEN`, and `YNAB_ALLOW_WRITES` override the file; `--plan` and `--allow-writes` override the environment. There is no `--token` flag. A minimal file:
 
 ```toml
 plan = "Household"
 token = "your-personal-access-token"
 ```
 
-Create a token at https://app.ynab.com/settings/developer. `ynab config --help`
-documents the format and precedence, and `ynab config` prints the values in
-effect with the token redacted.
+Create a token at https://app.ynab.com/settings/developer. `ynab config --help` documents the format and precedence, and `ynab config` prints the values in effect with the token redacted.
