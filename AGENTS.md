@@ -1,8 +1,7 @@
 - Read [plans/domain-map.md](plans/domain-map.md) before changing behavior, names, or scope. It owns the nouns, verbs, and settled decisions.
 - Read [plans/milestones.md](plans/milestones.md) to find the current slice. Each milestone has a GitHub issue describing its implementation; work the issue, not beyond it.
-- Follow the Gibson wiki in the sibling `gibson` checkout for the `go` and `cli` facets: `wiki/cli/` and `wiki/go/`.
+- Follow the Go repositories and CLI repositories RFCs indexed at `rfcs/index.md` in the sibling `gibson` checkout.
 - Command help is the canonical user-facing documentation; the README is a landing page.
-- Install prerequisites with `brew install git mise`, then run `mise trust` and `mise install`.
 - Run repository tasks with `mise run <task>`; do not invoke pinned tools directly. Use `mise run check` for local and CI verification. Keep formatting and dependency updates in `mise run fmt` and `mise run tidy`.
 - Bump a tool with `mise upgrade --bump <tool>`, then run `mise lock` and `mise run check`. When bumping Go, keep the `go.mod` Go version aligned with the pin.
 - The `output-formats` help topic in `cmd/output_formats.go` is written by hand. Update it in the same change as any edit to the record structs it describes: `planRecord`, `accountRecord`, and `configRecord`.
