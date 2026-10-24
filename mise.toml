@@ -24,8 +24,13 @@ go build -trimpath -buildvcs=false -ldflags "-X github.com/jmcampanini/ynab-cli/
 '''
 
 [tasks.install]
-description = "Install the CLI."
-run = "go install ."
+description = "Install the built CLI as ynab."
+depends = ["build"]
+run = '''
+install_dir="${GOBIN:-$(go env GOPATH)/bin}"
+mkdir -p "$install_dir"
+cp build/ynab "$install_dir/ynab"
+'''
 
 [tasks.test]
 description = "Run all tests uncached with the race detector."
