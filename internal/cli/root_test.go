@@ -81,7 +81,7 @@ var fixtureNow = time.Date(2026, time.September, 15, 12, 0, 0, 0, time.UTC)
 // fixtureCurrentCategories flattens the group fixture into the month
 // endpoint's shape so September's month detail carries the same amounts
 // as the categories endpoint.
-func fixtureCurrentCategories(t *testing.T) string {
+func fixtureCurrentCategories(t *testing.T, categoryGroups string) string {
 	t.Helper()
 	var groups struct {
 		Data struct {
@@ -90,7 +90,7 @@ func fixtureCurrentCategories(t *testing.T) string {
 			} `json:"category_groups"`
 		} `json:"data"`
 	}
-	if err := json.Unmarshal([]byte(fixtureCategoryGroups), &groups); err != nil {
+	if err := json.Unmarshal([]byte(categoryGroups), &groups); err != nil {
 		t.Fatal(err)
 	}
 	var categories []json.RawMessage
@@ -128,10 +128,11 @@ func fixtureCategoryIn(t *testing.T, categories, id string) (string, bool) {
 // harness runs a fresh root against a fake API in an isolated environment
 // and records the API paths, with their queries, each execution requested.
 type harness struct {
-	deps     dependencies
-	requests []string
-	terminal bool
-	env      map[string]string
+	categoryGroups string
+	deps           dependencies
+	requests       []string
+	terminal       bool
+	env            map[string]string
 	// stdin is the input a command reads, empty when unset.
 	stdin io.Reader
 	// writes records every non-GET request as "METHOD path body".
@@ -143,7 +144,7 @@ type harness struct {
 
 func newHarness(t *testing.T) *harness {
 	t.Helper()
-	h := &harness{env: map[string]string{}}
+	h := &harness{env: map[string]string{}, categoryGroups: fixtureCategoryGroups}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.requests = append(h.requests, r.URL.RequestURI())
 		if r.Method != http.MethodGet {
@@ -157,7 +158,7 @@ func newHarness(t *testing.T) *harness {
 			return
 		}
 		months := map[string]string{"2026-08-01": fixtureAugustTotals, "2026-09-01": fixtureSeptemberTotals}
-		monthCategories := map[string]string{"2026-08-01": fixtureAugustCategories, "2026-09-01": fixtureCurrentCategories(t)}
+		monthCategories := map[string]string{"2026-08-01": fixtureAugustCategories, "2026-09-01": fixtureCurrentCategories(t, h.categoryGroups)}
 		monthPath := regexp.MustCompile(`^/plans/p1/months/(\d{4}-\d{2}-\d{2})(?:/categories/(\w+))?$`)
 		if r.Method != http.MethodGet {
 			if h.failWrite != "" && strings.Contains(r.URL.Path, h.failWrite) {
@@ -180,7 +181,7 @@ func newHarness(t *testing.T) *harness {
 		case r.URL.Path == "/plans/p1/accounts":
 			_, _ = io.WriteString(w, fixtureAccounts)
 		case r.URL.Path == "/plans/p1/categories":
-			_, _ = io.WriteString(w, fixtureCategoryGroups)
+			_, _ = io.WriteString(w, h.categoryGroups)
 		case r.URL.Path == "/plans/p1/months":
 			_, _ = io.WriteString(w, `{"data":{"months":[{`+fixtureAugustTotals+`},{`+fixtureSeptemberTotals+`}]}}`)
 		case match != nil && match[2] == "" && months[match[1]] != "":

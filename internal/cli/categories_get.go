@@ -29,11 +29,9 @@ cadence_frequency units; 3 to 12 every 2 to 11 months; 14 every 2 years.
 day is a weekday (0 Sunday) for weekly targets, otherwise a day of the
 month; null on a repeating non-weekly target means the last day of the
 month. needs_whole_amount, on NEED targets, is true to set aside the full
-amount each period and false to refill up to it. For a NEED target in a
-future month, the API's underfunded amount counts funding from earlier
-periods, which the YNAB app ignores, so the two can differ.
+amount each period and false to refill up to it.
 
-` + planHelp + "\n\n" + monthHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
+` + futureRefillHelp + "\n\n" + planHelp + "\n\n" + monthHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
 		Example: `  ynab categories get Internet
   ynab categories get "Bills: Internet" --month 2026-08
   ynab categories get 7a3e... --jsonl`,
@@ -67,6 +65,7 @@ periods, which the YNAB app ignores, so the two can differ.
 			}
 
 			record := categoryview.NewRecord(category, group, apiMonth)
+			a.warnFutureRefill(cmd, []categoryview.Record{record}, plan.CurrencyFormat)
 			out := cmd.OutOrStdout()
 			if output.jsonl {
 				return render.JSONL(out, []categoryview.Record{record})
