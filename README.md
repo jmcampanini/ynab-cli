@@ -4,9 +4,11 @@ ynab-cli reads and writes a YNAB plan from the terminal and emits JSON lines and
 
 Command help is the canonical reference: `ynab --help` and each command's `--help` describe every user-facing contract, `ynab config --help` describes the configuration file, discovery, and precedence, `ynab help exit-codes` describes exit statuses, and `ynab help output-formats` describes every `--jsonl` and `--csv` record.
 
+
 ## Install
 
 ynab-cli distributes from HEAD only; there is no release channel or tagged binary.
+
 
 ### Homebrew
 
@@ -21,6 +23,7 @@ Upgrade to the latest commit:
 brew upgrade --fetch-HEAD ynab
 ```
 
+
 ### From source
 
 ```sh
@@ -30,6 +33,7 @@ mise install
 mise run build
 # then copy ./build/ynab to a directory on your PATH
 ```
+
 
 ## Representative commands
 
@@ -75,9 +79,11 @@ mise run build
 | `ynab completion zsh > "${fpath[1]}/_ynab"` | Install shell completion; `ynab completion --help` covers bash, fish, and powershell. |
 | `ynab config --provenance` | Print the effective configuration with each field's source. |
 
+
 ## Required external programs
 
 None. ynab-cli needs network access to api.ynab.com and never prompts.
+
 
 ## Configuration
 
