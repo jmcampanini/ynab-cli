@@ -1,8 +1,6 @@
 # ynab-cli
 
-ynab-cli reads and writes a YNAB plan from the terminal and emits JSON lines and CSV for scripts and agents. Writes are disabled until the configuration enables them, and every write has a dry run. The [domain map](plans/domain-map.md) records the nouns, verbs, and decisions, and the [milestones](plans/milestones.md) record the order they landed in.
-
-Command help is the canonical reference: `ynab --help` and each command's `--help` describe every user-facing contract, `ynab config --help` describes the configuration file, discovery, and precedence, `ynab help exit-codes` describes exit statuses, and `ynab help output-formats` describes every `--jsonl` and `--csv` record.
+ynab-cli reads and writes a YNAB plan from the terminal and emits JSON lines and CSV for scripts and agents. Writes are disabled until the configuration enables them, and every write has a dry run. ynab-cli needs network access to api.ynab.com and never prompts.
 
 
 ## Install
@@ -28,6 +26,8 @@ brew upgrade --fetch-HEAD ynab
 
 ```sh
 brew install git mise
+git clone https://github.com/jmcampanini/ynab-cli
+cd ynab-cli
 mise trust
 mise install
 mise run build
@@ -37,61 +37,35 @@ mise run build
 
 ## Representative commands
 
+Reads print a table by default, and `--jsonl` or `--csv` emit the same records for scripts. Writes stay disabled until `--allow-writes` or the configuration enables them, and `--dry-run` prints what a write would do without sending it.
+
 | Command | Result |
 |---|---|
 | `ynab plans list` | List every plan the token can read, marking the configured one. |
-| `ynab plans get` | Show the configured plan's months, currency, and date format. |
+| `ynab plans status` | Show ready to assign, overspent, underfunded, unapproved, uncategorized, and import errors on one screen. |
 | `ynab accounts list` | List the plan's open accounts with balances as a table. |
-| `ynab accounts list --closed` | Include closed accounts. |
-| `ynab accounts list --jsonl \| jq .balance` | Emit one JSON object per account. |
-| `ynab accounts list --csv > accounts.csv` | Write the same records as CSV. |
-| `ynab accounts get "Chase Checking"` | Show every field of one account by exact name or ID. |
-| `ynab categories list` | List this month's categories by group with assigned, activity, available, and targets. |
-| `ynab categories list --month 2026-08 --jsonl \| jq 'select(.available < 0)'` | Find last month's overspent categories. |
-| `ynab categories get "Bills: Internet"` | Show one category by ID, exact name, or `Group: Name`, with its target decoded. |
-| `ynab category-groups list` | List the category groups with their category counts. |
-| `ynab months list` | List every month's income, assigned, activity, ready to assign, and age of money. |
-| `ynab months get` | Show this month's totals and its category rows. |
+| `ynab categories list --month 2026-08 --jsonl \| jq 'select(.available < 0)'` | Find August 2026's overspent categories. |
+| `ynab transactions list --since 2026-08-01 --until 2026-08-31 --csv > august.csv` | Write a month of the register as CSV, with split lines after their parent row. |
+| `ynab transactions review` | List what needs approval or a category, oldest first, with counts. |
+| `ynab transactions approve --all-unapproved --dry-run` | Show what approving every pending import would do, changing nothing. |
 | `ynab months move 50 --from "Dining Out" --to Groceries --dry-run` | Show both rows as a move would leave them, changing nothing. |
 | `ynab months cover "Dining Out" --from ready-to-assign --allow-writes` | Move exactly an overspent category's shortfall into it. |
 | `ynab months fund --all-underfunded --allow-writes` | Assign what every underfunded target still needs, with the total. |
-| `ynab categories update Groceries --target 600 --allow-writes` | Set a monthly target on a category. |
-| `ynab category-groups create Savings --allow-writes` | Create an empty category group. |
-| `ynab payees rename "AMZN Mktp" Amazon --allow-writes` | Rename a payee. |
-| `ynab accounts create "Emergency Fund" --type savings --balance 0 --allow-writes` | Create an account; the API cannot undo it. |
-| `ynab transactions list --since 2026-08-01 --until 2026-08-31 --csv > august.csv` | Write a month of the register as CSV, with split lines after their parent row. |
-| `ynab transactions list --account Visa --unapproved` | List the imports awaiting approval in one account. |
-| `ynab transactions list --category Groceries --jsonl >> history.jsonl` | Append the transactions touching one category, splits included. |
-| `ynab transactions get ID` | Show every field of one transaction, with its split lines. |
-| `ynab transactions review` | List what needs approval or a category, oldest first, with counts. |
-| `ynab transactions approve --all-unapproved --dry-run` | Show what approving every pending import would do, changing nothing. |
 | `ynab transactions create --account Checking --date today --amount -12.50 --payee "Corner Store" --category Groceries --allow-writes` | Record a transaction; a new payee name creates the payee. |
-| `ynab transactions categorize --category Groceries ID... --allow-writes` | Set a category on transactions by ID, 100 per request. |
-| `ynab transactions delete ID --allow-writes --jsonl >> deleted.jsonl` | Delete a transaction and keep the record it printed. |
-| `ynab payees list --unused` | List payees no transaction references. |
-| `ynab scheduled list` | List the scheduled transactions with their next dates. |
-| `ynab money-movements list --month current` | List this month's recorded moves between categories. |
-| `ynab plans status` | Show ready to assign, overspent, underfunded, unapproved, uncategorized, and import errors on one screen. |
 | `ynab reports funding --underfunded` | List the targets still needing money this month with what they need. |
 | `ynab reports spending --by payee --since 2026-01-01 --csv` | Total outflows and inflows per payee since a date, ready for a spreadsheet. |
 | `ynab api get /user` | Print the raw API response, milliunits and all. |
-| `ynab api patch "/plans/{plan}/months/current/categories/ID" --body '{"category":{"budgeted":1000}}' --dry-run` | Show the raw request a passthrough write would send. |
-| `ynab completion zsh > "${fpath[1]}/_ynab"` | Install shell completion; `ynab completion --help` covers bash, fish, and powershell. |
-| `ynab config --provenance` | Print the effective configuration with each field's source. |
 
-
-## Required external programs
-
-None. ynab-cli needs network access to api.ynab.com and never prompts.
+The canonical reference is `ynab --help`, each command's `--help`, and the help topics `ynab help exit-codes` and `ynab help output-formats`.
 
 
 ## Configuration
 
-ynab-cli reads `$XDG_CONFIG_HOME/ynab/ynab.toml`, or `~/.config/ynab/ynab.toml` when `XDG_CONFIG_HOME` is empty; a missing file is fine. `--config PATH` replaces discovery, and the file must exist. `YNAB_PLAN`, `YNAB_TOKEN`, and `YNAB_ALLOW_WRITES` override the file; `--plan` and `--allow-writes` override the environment. There is no `--token` flag. A minimal file:
+ynab-cli reads `$XDG_CONFIG_HOME/ynab/ynab.toml`, or `~/.config/ynab/ynab.toml` when `XDG_CONFIG_HOME` is empty; a missing file is fine. A minimal file:
 
 ```toml
 plan = "Household"
 token = "your-personal-access-token"
 ```
 
-Create a token at https://app.ynab.com/settings/developer. `ynab config --help` documents the format and precedence, and `ynab config` prints the values in effect with the token redacted.
+Create a token at https://app.ynab.com/settings/developer. `ynab config --help` documents the format and precedence.
