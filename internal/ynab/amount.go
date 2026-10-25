@@ -157,3 +157,12 @@ func allDigits(text string) bool {
 	}
 	return true
 }
+
+// DecimalDigits is the plan's currency precision, two when the plan has
+// no currency format.
+func DecimalDigits(plan Plan) int {
+	if plan.CurrencyFormat != nil {
+		return plan.CurrencyFormat.DecimalDigits
+	}
+	return 2
+}

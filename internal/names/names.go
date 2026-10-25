@@ -46,7 +46,7 @@ func Resolve(noun, query string, candidates []Candidate) (int, error) {
 		if len(candidates) == 0 {
 			return 0, fmt.Errorf("%s %q not found; the plan has nothing to match", noun, query)
 		}
-		return 0, fmt.Errorf("%s %q not found; closest names: %s", noun, query, quoteAll(closest(query, candidates)))
+		return 0, fmt.Errorf("%s %q not found; closest names: %s", noun, query, QuoteAll(closest(query, candidates)))
 	default:
 		matched := make([]string, len(matches))
 		for i, index := range matches {
@@ -106,7 +106,9 @@ func qualified(candidate Candidate) string {
 	return candidate.Names[len(candidate.Names)-1]
 }
 
-func quoteAll(values []string) string {
+// QuoteAll joins values as a comma-separated list of quoted strings for an
+// error message.
+func QuoteAll(values []string) string {
 	quoted := make([]string, len(values))
 	for i, value := range values {
 		quoted[i] = strconv.Quote(value)

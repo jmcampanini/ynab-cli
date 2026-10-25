@@ -4,5 +4,5 @@
 - Command help is the canonical user-facing documentation; the README is a landing page.
 - Run repository tasks with `mise run <task>`; do not invoke pinned tools directly. Use `mise run check` for local and CI verification. Keep formatting and dependency updates in `mise run fmt` and `mise run tidy`.
 - Bump a tool with `mise upgrade --bump <tool>`, then run `mise lock` and `mise run check`. When bumping Go, keep the `go.mod` Go version aligned with the pin.
-- The `output-formats` help topic in `cmd/output_formats.go` is written by hand. Update it in the same change as any edit to the record structs it describes: `planRecord`, `accountRecord`, and `configRecord`.
+- The `output-formats` help topic in `internal/cli/output_formats.go` is written by hand. Update it in the same change as any edit to the record structs it describes: `planRecord`, `accountRecord`, and `configRecord`.
 - Say `plan`, never `budget`. Say `assigned`, `available`, `ready to assign`, and `target` in user-facing text, as the domain map's terminology table defines them.
