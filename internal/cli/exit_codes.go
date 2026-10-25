@@ -11,11 +11,13 @@ func exitCodesTopic() *cobra.Command {
 
   0  Success, including an empty list, help, version, completion, and
      'ynab help <unknown>', which prints the root usage. A
-     [future-refill-funding] warning alone does not change success.
+     [future-refill-funding] or [split-delete-recalculated] warning alone
+     does not change success.
   1  Command failure: the API returned an error, the token or plan is not
      configured or not found, an account, category, group, payee, or
      transaction did not match, a later batch of a bulk update or a
-     later write of a money move failed, a cleared state change or a move
+     later write of a money move or split-deletion workaround failed,
+     a cleared state change or a move
      past the available amount needed --force, a name to create already
      exists, a target flag is not supported on the category, the
      configuration file could not be loaded, or an api command got a
