@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 
+	"github.com/jmcampanini/ynab-cli/internal/categoryview"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -27,11 +28,9 @@ The money comes from ready to assign, and the command refuses to leave
 it negative unless --force is given. --from SOURCE instead subtracts the
 total from a category first, refusing when it has less available unless
 --force is given, or from ready-to-assign explicitly. Three reads then
-one write per category, the source first. For a "plan your spending"
-target in a future month, the API's underfunded amount counts funding
-from earlier periods, which the YNAB app ignores, so the two can differ.
+one write per category, the source first.
 
-` + monthWriteHelp + "\n\n" + writeHelp + "\n\n" + planHelp + "\n\n" + monthHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
+` + futureRefillHelp + "\n\n" + monthWriteHelp + "\n\n" + writeHelp + "\n\n" + planHelp + "\n\n" + monthHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
 		Example: `  ynab months fund --all-underfunded --dry-run
   ynab months fund Groceries "Bills: Internet" --allow-writes
   ynab months fund --all-underfunded --from "Dining Out" --month 2026-10`,
@@ -48,11 +47,21 @@ from earlier periods, which the YNAB app ignores, so the two can differ.
 			if err != nil {
 				return err
 			}
-			targets, skipped, err := ms.underfunded(args)
+			candidates, err := ms.fundingCategories(args)
 			if err != nil {
 				return err
 			}
 			currency := ms.plan.CurrencyFormat
+			var targets []monthCategory
+			var skipped int
+			for _, candidate := range candidates {
+				a.warnFutureRefill(cmd, []categoryview.Record{categoryview.NewRecord(candidate.category, candidate.group, ms.apiMonth)}, currency)
+				if candidate.category.TargetUnderfunded != nil && *candidate.category.TargetUnderfunded > 0 {
+					targets = append(targets, candidate)
+				} else if len(args) > 0 {
+					skipped++
+				}
+			}
 			skippedText := ""
 			if skipped > 0 {
 				skippedText = fmt.Sprintf(", %s already funded", render.CountNoun(skipped, "category", "categories"))
@@ -102,35 +111,28 @@ from earlier periods, which the YNAB app ignores, so the two can differ.
 	return command
 }
 
-// underfunded selects the categories to fund: the named ones whose
-// target needs money, or with no names every visible one that does. A
-// category named twice, by ID and name or in both name forms, counts
-// once. skipped counts named categories whose target needs nothing.
-func (ms *monthSession) underfunded(queries []string) (targets []monthCategory, skipped int, err error) {
-	needsMoney := func(category ynab.Category) bool {
-		return category.TargetUnderfunded != nil && *category.TargetUnderfunded > 0
-	}
+// fundingCategories selects named categories with targets, or every visible
+// category for the sweep, before filtering by API underfunding. A category
+// named twice counts once, including when both its ID and name are given.
+func (ms *monthSession) fundingCategories(queries []string) ([]monthCategory, error) {
+	var targets []monthCategory
 	seen := map[string]bool{}
 	for _, query := range queries {
 		target, err := ms.category(query)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 		if seen[target.category.ID] {
 			continue
 		}
 		seen[target.category.ID] = true
 		if target.category.TargetType == nil {
-			return nil, 0, fmt.Errorf("category %q has no target to fund", query)
-		}
-		if !needsMoney(target.category) {
-			skipped++
-			continue
+			return nil, fmt.Errorf("category %q has no target to fund", query)
 		}
 		targets = append(targets, target)
 	}
 	if len(queries) > 0 {
-		return targets, skipped, nil
+		return targets, nil
 	}
 
 	for _, group := range ms.categories {
@@ -139,11 +141,11 @@ func (ms *monthSession) underfunded(queries []string) (targets []monthCategory, 
 		}
 		for _, category := range group.Categories {
 			row, ok := ms.rows[category.ID]
-			if category.Hidden || category.Internal || !ok || !needsMoney(row) {
+			if category.Hidden || category.Internal || !ok {
 				continue
 			}
 			targets = append(targets, monthCategory{category: row, group: group})
 		}
 	}
-	return targets, 0, nil
+	return targets, nil
 }

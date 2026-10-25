@@ -41,19 +41,12 @@ type fundingReport struct {
 	underfundedTotal ynab.Amount
 }
 
-// newFundingReport builds one row per category with a target, in plan
-// order, over the categories 'categories list' shows: hidden categories
-// and the API's internal ones are left out. With underfundedOnly, only
-// rows whose target still needs money are kept. Rows whose target
-// carries no underfunded amount count as needing nothing.
-func newFundingReport(groups []ynab.CategoryGroup, month ynab.Month, underfundedOnly bool) (fundingReport, error) {
-	listing, err := categoryview.List(groups, ynab.CategoriesByID(month.Categories), month.Month, false)
-	if err != nil {
-		return fundingReport{}, err
-	}
-
+// newFundingReport builds one row per non-internal category with a target.
+// With underfundedOnly, only rows whose target still needs money are kept.
+// Rows whose target carries no underfunded amount count as needing nothing.
+func newFundingReport(categories []categoryview.Record, underfundedOnly bool) fundingReport {
 	var report fundingReport
-	for _, category := range listing.Records() {
+	for _, category := range categories {
 		if category.Target == nil || category.Internal {
 			continue
 		}
@@ -81,7 +74,7 @@ func newFundingReport(groups []ynab.CategoryGroup, month ynab.Month, underfunded
 			Underfunded:     category.Target.Underfunded,
 		})
 	}
-	return report, nil
+	return report
 }
 
 var fundingColumns = []render.Column{
@@ -143,14 +136,14 @@ need, whether or not --underfunded is set; 'ynab months fund
 
 Three requests: the plans endpoint, the month, whose rows carry the
 amounts and the target fields, and the categories endpoint, which
-supplies the group names and the hidden flags. For a "plan your
-spending" target in a future month, the API's underfunded amount counts
-funding from earlier periods, which the YNAB app ignores, so the two
-can differ. --jsonl and --csv carry the target type as the API's code:
+supplies the group names and the hidden flags. --jsonl and --csv carry
+the target type as the API's code:
 TB target balance, TBD target balance by date, MF monthly funding, NEED
 plan your spending, DEBT debt payoff.
 
-` + planHelp + "\n\n" + monthHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
+Future-refill warnings include categories omitted by --underfunded.
+
+` + futureRefillHelp + "\n\n" + planHelp + "\n\n" + monthHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
 		Example: `  ynab reports funding
   ynab reports funding --underfunded
   ynab reports funding --month 2026-10 --csv > october-targets.csv
@@ -178,10 +171,13 @@ plan your spending, DEBT debt payoff.
 				return err
 			}
 
-			report, err := newFundingReport(groups, month, underfundedOnly)
+			listing, err := categoryview.List(groups, ynab.CategoriesByID(month.Categories), month.Month, false)
 			if err != nil {
 				return err
 			}
+			categories := listing.Records()
+			a.warnFutureRefill(cmd, categories, plan.CurrencyFormat)
+			report := newFundingReport(categories, underfundedOnly)
 			out := cmd.OutOrStdout()
 			switch {
 			case output.jsonl:

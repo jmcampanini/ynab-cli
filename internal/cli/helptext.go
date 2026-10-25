@@ -27,6 +27,17 @@ const monthHelp = `Months:
   calendar month in UTC, which is how the API defines the current plan
   month. Any other form is a usage error.`
 
+const futureRefillHelp = `Future refill targets:
+  Amounts follow the API. A future month's refill target (NEED with
+  needs_whole_amount false) can count prior-period funding that the web
+  app ignores. warning [future-refill-funding] on stderr identifies each
+  affected category and month, even when API underfunding is zero or
+  absent. It flags a possible difference, not a confirmed discrepancy.
+  Check the web target panel before treating the category as funded.
+  Warnings also appear with --jsonl, --csv where supported, and dry runs.
+  Agents must capture stderr as well as stdout, including empty results.
+  Warnings do not change funding amounts or a successful exit status.`
+
 const outputHelp = `Output:
   Results go to stdout; diagnostics go to stderr. The default is a human
   table or field listing. --jsonl writes one JSON object per line and --csv

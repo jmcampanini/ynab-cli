@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jmcampanini/ynab-cli/internal/categoryview"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 )
 
@@ -62,14 +63,12 @@ func TestFundingReportKeepsUnderfundedVisibleTargets(t *testing.T) {
 		{ID: "e", Name: "Inflow: Ready to Assign", Internal: true, TargetType: &need, TargetUnderfunded: &short},
 	}}
 
-	all, err := newFundingReport(groups, month, false)
+	listing, err := categoryview.List(groups, ynab.CategoriesByID(month.Categories), month.Month, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	only, err := newFundingReport(groups, month, true)
-	if err != nil {
-		t.Fatal(err)
-	}
+	all := newFundingReport(listing.Records(), false)
+	only := newFundingReport(listing.Records(), true)
 
 	if names := recordNames(all.records); !reflect.DeepEqual(names, []string{"Internet", "Rent"}) {
 		t.Errorf("all rows = %v, want Internet and Rent", names)

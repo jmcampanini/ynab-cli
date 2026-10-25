@@ -54,7 +54,7 @@ func servePlanWrites(t *testing.T, w http.ResponseWriter, r *http.Request, month
 		row := map[string]any{"id": "cnew", "hidden": false, "internal": false, "note": nil, "budgeted": 0, "activity": 0, "balance": 0, "goal_type": nil, "goal_target": 0, "deleted": false}
 		reply(http.StatusCreated, "category", fixtureStoredCategory(row, body["category"]))
 	case r.Method == http.MethodPatch && strings.HasPrefix(path, "categories/"):
-		raw, ok := fixtureCategoryIn(t, fixtureCurrentCategories(t), strings.TrimPrefix(path, "categories/"))
+		raw, ok := fixtureCategoryIn(t, fixtureCurrentCategories(t, fixtureCategoryGroups), strings.TrimPrefix(path, "categories/"))
 		if !ok {
 			notFound(w)
 			return true

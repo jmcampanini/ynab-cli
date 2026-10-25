@@ -23,7 +23,7 @@ endpoint, the categories endpoint for the group order, then the month.
 --jsonl prints one object with the month's totals; the category rows come
 from 'ynab categories list --month MONTH --jsonl'.
 
-` + planHelp + "\n\n" + monthHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
+` + futureRefillHelp + "\n\n" + planHelp + "\n\n" + monthHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
 		Example: `  ynab months get
   ynab months get 2026-08
   ynab months get --jsonl | jq .ready_to_assign`,
@@ -60,6 +60,7 @@ from 'ynab categories list --month MONTH --jsonl'.
 				return err
 			}
 
+			a.warnFutureRefill(cmd, listing.Records(), plan.CurrencyFormat)
 			out := cmd.OutOrStdout()
 			if output.jsonl {
 				return render.JSONL(out, []monthRecord{record})

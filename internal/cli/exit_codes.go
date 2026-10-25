@@ -10,7 +10,8 @@ func exitCodesTopic() *cobra.Command {
 		Long: `ynab uses four exit statuses:
 
   0  Success, including an empty list, help, version, completion, and
-     'ynab help <unknown>', which prints the root usage.
+     'ynab help <unknown>', which prints the root usage. A
+     [future-refill-funding] warning alone does not change success.
   1  Command failure: the API returned an error, the token or plan is not
      configured or not found, an account, category, group, payee, or
      transaction did not match, a later batch of a bulk update or a
