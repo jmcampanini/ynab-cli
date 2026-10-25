@@ -1,11 +1,10 @@
-// Package selection resolves plan records by ID or name.
+// Package selection resolves plans, accounts, categories, groups, and
+// payees by ID or name and names the accounts transfers point at.
 package selection
 
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/jmcampanini/ynab-cli/internal/config"
 	"github.com/jmcampanini/ynab-cli/internal/names"
@@ -28,9 +27,9 @@ func Plan(ctx context.Context, client *ynab.Client, cfg config.Config) (ynab.Pla
 	case 1:
 		return matches[0], nil
 	case 0:
-		return ynab.Plan{}, fmt.Errorf("plan %q not found; the token can read: %s", cfg.Plan, quoteAll(planNames(plans)))
+		return ynab.Plan{}, fmt.Errorf("plan %q not found; the token can read: %s", cfg.Plan, names.QuoteAll(planNames(plans)))
 	default:
-		return ynab.Plan{}, fmt.Errorf("plan %q matches %d plans; use an ID from 'ynab plans list': %s", cfg.Plan, len(matches), quoteAll(planNames(matches)))
+		return ynab.Plan{}, fmt.Errorf("plan %q matches %d plans; use an ID from 'ynab plans list': %s", cfg.Plan, len(matches), names.QuoteAll(planNames(matches)))
 	}
 }
 
@@ -55,14 +54,4 @@ func planNames(plans []ynab.Plan) []string {
 		list[i] = plan.Name
 	}
 	return list
-}
-
-// quoteAll joins values as a comma-separated list of quoted strings for an
-// error message.
-func quoteAll(values []string) string {
-	quoted := make([]string, len(values))
-	for i, value := range values {
-		quoted[i] = strconv.Quote(value)
-	}
-	return strings.Join(quoted, ", ")
 }

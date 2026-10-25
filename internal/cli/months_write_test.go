@@ -172,7 +172,7 @@ func TestMonthsMovePartialFailurePrintsTheReversal(t *testing.T) {
 
 	out, err := h.execute(t, "months", "move", "10", "--from", "Visa", "--to", "Rent", "--allow-writes")
 
-	if err == nil || status.Code(err) != status.Failure {
+	if err == nil || status.Code(err) != status.ExitFailure {
 		t.Fatalf("move with a failing second write = %v (exit %d), want exit 1", err, status.Code(err))
 	}
 	for _, want := range []string{

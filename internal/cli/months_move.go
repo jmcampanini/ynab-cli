@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/status"
-	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,7 @@ Three reads then one or two writes.
 			if err != nil {
 				return err
 			}
-			amount, err := ynab.InputAmount(args[0], ms.plan)
+			amount, err := input.Amount(args[0], ms.plan)
 			if err != nil {
 				return err
 			}

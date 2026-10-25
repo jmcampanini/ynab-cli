@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/jmcampanini/ynab-cli/internal/names"
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/spf13/cobra"
@@ -27,7 +27,7 @@ cannot merge them.
   ynab payees rename 7a3e... "Corner Store" --allow-writes`,
 		Args: cobra.ExactArgs(2),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
-			if err := names.CheckLength(args[1], maxPayeeNameLength); err != nil {
+			if err := input.NameLength(args[1], maxPayeeNameLength); err != nil {
 				return err
 			}
 

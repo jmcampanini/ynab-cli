@@ -80,7 +80,7 @@ PAYEE  CATEGORY    MEMO     AMOUNT
 	if jsonl != wantJSONL {
 		t.Errorf("scheduled get st1 --jsonl =\n%s\nwant\n%s", jsonl, wantJSONL)
 	}
-	if missing == nil || status.Code(missing) != status.Failure || !strings.Contains(missing.Error(), "not found") {
+	if missing == nil || status.Code(missing) != status.ExitFailure || !strings.Contains(missing.Error(), "not found") {
 		t.Errorf("scheduled get nope = %v", missing)
 	}
 }

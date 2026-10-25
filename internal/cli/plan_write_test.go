@@ -27,7 +27,7 @@ func TestNewWritesExitThreeWithoutAllowWritesAndPreviewWithDryRun(t *testing.T) 
 			h := newHarness(t)
 
 			out, err := h.execute(t, args...)
-			if err == nil || out != "" || status.Code(err) != status.WritesDisabledCode || len(h.requests) != 0 {
+			if err == nil || out != "" || status.Code(err) != status.ExitWritesDisabled || len(h.requests) != 0 {
 				t.Fatalf("execute(%v) = %q, %v (exit %d), requests %v; want exit 3, empty stdout, no request", args, out, err, status.Code(err), h.requests)
 			}
 
@@ -86,26 +86,26 @@ func TestCategoryWritesRefuseWhatTheSpecForbids(t *testing.T) {
 		// parsed at the plan's precision.
 		reads bool
 	}{
-		{[]string{"create", "Water", "--group", "Bills", "--target-date", "2027-01"}, "--target-date requires --target on create", status.UsageCode, false},
-		{[]string{"create", "Water", "--group", "Bills", "--needs-whole-amount"}, "--needs-whole-amount requires --target on create", status.UsageCode, false},
-		{[]string{"create", "Water", "--group", "Bills", "--target", "10", "--target-frequency", "monthly", "--target-date", "2027-01"}, "target-frequency", status.UsageCode, false},
-		{[]string{"create", "Water", "--group", "Bills", "--target", "10", "--target-frequency", "daily"}, "invalid --target-frequency", status.UsageCode, false},
-		{[]string{"create", "Water", "--group", "Bills", "--target", "0"}, "--target must be positive", status.UsageCode, true},
-		{[]string{"create", "Water", "--group", "Bills", "--target", "5", "--target-date", "2027-13"}, "invalid --target-date", status.UsageCode, false},
-		{[]string{"create", "", "--group", "Bills"}, "NAME must not be empty", status.UsageCode, false},
-		{[]string{"update", "Rent", "--target-frequency", "monthly"}, "--target-frequency requires --target", status.UsageCode, false},
-		{[]string{"update", "Rent", "--no-target", "--target", "5"}, "no-target", status.UsageCode, false},
-		{[]string{"update", "Rent"}, "at least one field flag", status.UsageCode, false},
-		{[]string{"update", "Rent", "--name", ""}, "--name must not be empty", status.UsageCode, false},
-		{[]string{"update", "Credit Card Payments: Visa", "--target", "100", "--target-frequency", "monthly"}, "--target-frequency is not supported on a credit card payment category", status.Failure, false},
-		{[]string{"update", "Credit Card Payments: Visa", "--needs-whole-amount"}, "--needs-whole-amount is not supported on a credit card payment category", status.Failure, false},
-		{[]string{"update", "Inflow: Ready to Assign", "--name", "Income"}, "is internal", status.Failure, false},
-		{[]string{"update", "Rent", "--group", "Internal Master Category"}, `group "Internal Master Category" belongs to the API`, status.Failure, false},
-		{[]string{"update", "Rent", "--name", "internet"}, `group "Bills" already has a category named "Internet"`, status.Failure, false},
-		{[]string{"update", "Rent", "--group", "Wishes", "--name", "Internet"}, `group "Wishes" already has a category named "Internet"`, status.Failure, false},
-		{[]string{"create", "Water", "--group", "Credit Card Payments"}, `group "Credit Card Payments" belongs to the API`, status.Failure, false},
-		{[]string{"create", "rent", "--group", "Bills"}, `group "Bills" already has a category named "Rent"`, status.Failure, false},
-		{[]string{"create", "Water", "--group", "Utilities"}, `category group "Utilities" not found`, status.Failure, false},
+		{[]string{"create", "Water", "--group", "Bills", "--target-date", "2027-01"}, "--target-date requires --target on create", status.ExitUsage, false},
+		{[]string{"create", "Water", "--group", "Bills", "--needs-whole-amount"}, "--needs-whole-amount requires --target on create", status.ExitUsage, false},
+		{[]string{"create", "Water", "--group", "Bills", "--target", "10", "--target-frequency", "monthly", "--target-date", "2027-01"}, "target-frequency", status.ExitUsage, false},
+		{[]string{"create", "Water", "--group", "Bills", "--target", "10", "--target-frequency", "daily"}, "invalid --target-frequency", status.ExitUsage, false},
+		{[]string{"create", "Water", "--group", "Bills", "--target", "0"}, "--target must be positive", status.ExitUsage, true},
+		{[]string{"create", "Water", "--group", "Bills", "--target", "5", "--target-date", "2027-13"}, "invalid --target-date", status.ExitUsage, false},
+		{[]string{"create", "", "--group", "Bills"}, "NAME must not be empty", status.ExitUsage, false},
+		{[]string{"update", "Rent", "--target-frequency", "monthly"}, "--target-frequency requires --target", status.ExitUsage, false},
+		{[]string{"update", "Rent", "--no-target", "--target", "5"}, "no-target", status.ExitUsage, false},
+		{[]string{"update", "Rent"}, "at least one field flag", status.ExitUsage, false},
+		{[]string{"update", "Rent", "--name", ""}, "--name must not be empty", status.ExitUsage, false},
+		{[]string{"update", "Credit Card Payments: Visa", "--target", "100", "--target-frequency", "monthly"}, "--target-frequency is not supported on a credit card payment category", status.ExitFailure, false},
+		{[]string{"update", "Credit Card Payments: Visa", "--needs-whole-amount"}, "--needs-whole-amount is not supported on a credit card payment category", status.ExitFailure, false},
+		{[]string{"update", "Inflow: Ready to Assign", "--name", "Income"}, "is internal", status.ExitFailure, false},
+		{[]string{"update", "Rent", "--group", "Internal Master Category"}, `group "Internal Master Category" belongs to the API`, status.ExitFailure, false},
+		{[]string{"update", "Rent", "--name", "internet"}, `group "Bills" already has a category named "Internet"`, status.ExitFailure, false},
+		{[]string{"update", "Rent", "--group", "Wishes", "--name", "Internet"}, `group "Wishes" already has a category named "Internet"`, status.ExitFailure, false},
+		{[]string{"create", "Water", "--group", "Credit Card Payments"}, `group "Credit Card Payments" belongs to the API`, status.ExitFailure, false},
+		{[]string{"create", "rent", "--group", "Bills"}, `group "Bills" already has a category named "Rent"`, status.ExitFailure, false},
+		{[]string{"create", "Water", "--group", "Utilities"}, `category group "Utilities" not found`, status.ExitFailure, false},
 	}
 	for _, tc := range cases {
 		t.Run(strings.Join(tc.args, " "), func(t *testing.T) {
@@ -119,7 +119,7 @@ func TestCategoryWritesRefuseWhatTheSpecForbids(t *testing.T) {
 			if len(h.writes) != 0 {
 				t.Errorf("writes = %v, want none", h.writes)
 			}
-			if tc.wantExit == status.UsageCode && !tc.reads && len(h.requests) != 0 {
+			if tc.wantExit == status.ExitUsage && !tc.reads && len(h.requests) != 0 {
 				t.Errorf("usage error made requests: %v", h.requests)
 			}
 		})
@@ -255,14 +255,14 @@ renamed category group "Bills" to "Monthly Bills"
 		wantErr  string
 		wantExit int
 	}{
-		{[]string{"create", "bills"}, `a category group named "Bills" already exists (g1)`, status.Failure},
-		{[]string{"rename", "Credit Card Payments", "Cards"}, "belongs to the API", status.Failure},
-		{[]string{"rename", "Internal Master Category", "Master"}, "belongs to the API", status.Failure},
-		{[]string{"rename", "Fun", "Bills"}, `already exists (g1)`, status.Failure},
-		{[]string{"rename", "Chores", "Fun"}, `category group "Chores" not found`, status.Failure},
-		{[]string{"create", ""}, "NAME must not be empty", status.UsageCode},
-		{[]string{"create", strings.Repeat("x", 51)}, "NAME is 51 characters; the API allows at most 50", status.UsageCode},
-		{[]string{"rename", "Bills", strings.Repeat("é", 51)}, "NAME is 51 characters", status.UsageCode},
+		{[]string{"create", "bills"}, `a category group named "Bills" already exists (g1)`, status.ExitFailure},
+		{[]string{"rename", "Credit Card Payments", "Cards"}, "belongs to the API", status.ExitFailure},
+		{[]string{"rename", "Internal Master Category", "Master"}, "belongs to the API", status.ExitFailure},
+		{[]string{"rename", "Fun", "Bills"}, `already exists (g1)`, status.ExitFailure},
+		{[]string{"rename", "Chores", "Fun"}, `category group "Chores" not found`, status.ExitFailure},
+		{[]string{"create", ""}, "NAME must not be empty", status.ExitUsage},
+		{[]string{"create", strings.Repeat("x", 51)}, "NAME is 51 characters; the API allows at most 50", status.ExitUsage},
+		{[]string{"rename", "Bills", strings.Repeat("é", 51)}, "NAME is 51 characters", status.ExitUsage},
 	}
 	for _, tc := range refused {
 		h := newHarness(t)
@@ -270,7 +270,7 @@ renamed category group "Bills" to "Monthly Bills"
 		if err == nil || !strings.Contains(err.Error(), tc.wantErr) || status.Code(err) != tc.wantExit || out != "" || len(h.writes) != 0 {
 			t.Errorf("category-groups %v = %q, %v (exit %d), writes %v; want exit %d, an error containing %q, and no write", tc.args, out, err, status.Code(err), h.writes, tc.wantExit, tc.wantErr)
 		}
-		if tc.wantExit == status.UsageCode && len(h.requests) != 0 {
+		if tc.wantExit == status.ExitUsage && len(h.requests) != 0 {
 			t.Errorf("category-groups %v made requests before the usage error: %v", tc.args, h.requests)
 		}
 	}
@@ -317,12 +317,12 @@ func TestPayeesCreateAndRename(t *testing.T) {
 		wantErr  string
 		wantExit int
 	}{
-		{[]string{"create", "costco"}, `a payee named "Costco" already exists (p2)`, status.Failure},
-		{[]string{"rename", "Amazon", "Landlord"}, `already exists (p1)`, status.Failure},
-		{[]string{"rename", "Transfer : Visa", "Card"}, "is a transfer payee", status.Failure},
-		{[]string{"rename", "Nobody", "Somebody"}, `payee "Nobody" not found`, status.Failure},
-		{[]string{"create", strings.Repeat("x", 501)}, "NAME is 501 characters; the API allows at most 500", status.UsageCode},
-		{[]string{"rename", "Amazon", ""}, "NAME must not be empty", status.UsageCode},
+		{[]string{"create", "costco"}, `a payee named "Costco" already exists (p2)`, status.ExitFailure},
+		{[]string{"rename", "Amazon", "Landlord"}, `already exists (p1)`, status.ExitFailure},
+		{[]string{"rename", "Transfer : Visa", "Card"}, "is a transfer payee", status.ExitFailure},
+		{[]string{"rename", "Nobody", "Somebody"}, `payee "Nobody" not found`, status.ExitFailure},
+		{[]string{"create", strings.Repeat("x", 501)}, "NAME is 501 characters; the API allows at most 500", status.ExitUsage},
+		{[]string{"rename", "Amazon", ""}, "NAME must not be empty", status.ExitUsage},
 	}
 	for _, tc := range refused {
 		h := newHarness(t)
@@ -330,7 +330,7 @@ func TestPayeesCreateAndRename(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), tc.wantErr) || status.Code(err) != tc.wantExit || out != "" || len(h.writes) != 0 {
 			t.Errorf("payees %v = %q, %v (exit %d), writes %v; want exit %d, an error containing %q, and no write", tc.args, out, err, status.Code(err), h.writes, tc.wantExit, tc.wantErr)
 		}
-		if tc.wantExit == status.UsageCode && len(h.requests) != 0 {
+		if tc.wantExit == status.ExitUsage && len(h.requests) != 0 {
 			t.Errorf("payees %v made requests before the usage error: %v", tc.args, h.requests)
 		}
 	}
@@ -379,11 +379,11 @@ created savings account "Emergency Fund" with $1,000.50
 		wantErr  string
 		wantExit int
 	}{
-		{[]string{"visa", "--type", "cash", "--balance", "0"}, `an account named "Visa" already exists (a2)`, status.Failure},
-		{[]string{"House", "--type", "mortgage", "--balance", "0"}, "invalid --type", status.UsageCode},
-		{[]string{"House", "--type", "cash", "--balance", "1,000"}, "invalid amount", status.UsageCode},
-		{[]string{"House", "--type", "cash"}, "balance", status.UsageCode},
-		{[]string{"", "--type", "cash", "--balance", "0"}, "NAME must not be empty", status.UsageCode},
+		{[]string{"visa", "--type", "cash", "--balance", "0"}, `an account named "Visa" already exists (a2)`, status.ExitFailure},
+		{[]string{"House", "--type", "mortgage", "--balance", "0"}, "invalid --type", status.ExitUsage},
+		{[]string{"House", "--type", "cash", "--balance", "1,000"}, "invalid amount", status.ExitUsage},
+		{[]string{"House", "--type", "cash"}, "balance", status.ExitUsage},
+		{[]string{"", "--type", "cash", "--balance", "0"}, "NAME must not be empty", status.ExitUsage},
 	}
 	for _, tc := range refused {
 		h := newHarness(t)
@@ -393,7 +393,7 @@ created savings account "Emergency Fund" with $1,000.50
 		}
 		// The balance parses at the plan's precision, so that check alone
 		// costs the plans read.
-		if tc.wantExit == status.UsageCode && tc.wantErr != "invalid amount" && len(h.requests) != 0 {
+		if tc.wantExit == status.ExitUsage && tc.wantErr != "invalid amount" && len(h.requests) != 0 {
 			t.Errorf("accounts create %v made requests before the usage error: %v", tc.args, h.requests)
 		}
 	}

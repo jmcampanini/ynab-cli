@@ -17,9 +17,23 @@ import (
 // planPlaceholder is the PATH token the configured plan's ID replaces.
 const planPlaceholder = "{plan}"
 
+// apiOptions are the flag values of one api verb. The write verbs add a
+// body and --dry-run to --pretty.
 type apiOptions struct {
 	body, bodyFile string
 	pretty, dryRun bool
+}
+
+func (o *apiOptions) bindRead(cmd *cobra.Command) {
+	cmd.Flags().BoolVar(&o.pretty, "pretty", false, "Re-indent the JSON response")
+}
+
+func (o *apiOptions) bindWrite(cmd *cobra.Command) {
+	o.bindRead(cmd)
+	cmd.Flags().StringVar(&o.body, "body", "", "JSON request body")
+	cmd.Flags().StringVar(&o.bodyFile, "body-file", "", "File holding the JSON request body; - reads stdin")
+	cmd.MarkFlagsMutuallyExclusive("body", "body-file")
+	cmd.Flags().BoolVar(&o.dryRun, "dry-run", false, "Print the request that would be sent without sending it")
 }
 
 func newAPI(a *app) *cobra.Command {
@@ -61,7 +75,9 @@ documents every path and body.
 	return command
 }
 
-func newAPIVerb(a *app, command *cobra.Command, method string, writes bool, options *apiOptions) *cobra.Command {
+// newAPIVerb gives a verb command its operand rule and runner. writes
+// marks the verbs that go through the write gate.
+func newAPIVerb(a *app, command *cobra.Command, method string, writes bool, options *apiOptions) {
 	command.Args = cobra.ExactArgs(1)
 	command.RunE = run(func(cmd *cobra.Command, args []string) error {
 		path := args[0]
@@ -110,7 +126,6 @@ func newAPIVerb(a *app, command *cobra.Command, method string, writes bool, opti
 		}
 		return nil
 	})
-	return command
 }
 
 // requestBody reads the body from --body or --body-file and checks that

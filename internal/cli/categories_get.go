@@ -2,7 +2,7 @@ package cli
 
 import (
 	"github.com/jmcampanini/ynab-cli/internal/categoryview"
-	"github.com/jmcampanini/ynab-cli/internal/dates"
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/spf13/cobra"
@@ -39,7 +39,7 @@ periods, which the YNAB app ignores, so the two can differ.
   ynab categories get 7a3e... --jsonl`,
 		Args: cobra.ExactArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
-			apiMonth, err := dates.MonthInput(monthText, a.deps.now())
+			apiMonth, err := input.Month(monthText, a.deps.now())
 			if err != nil {
 				return err
 			}

@@ -112,7 +112,7 @@ func (l Listing) Rows(currency *ynab.CurrencyFormat, colors render.Palette) [][]
 	return rows
 }
 
-// Row renders one category in the categoryColumns, its name
+// Row renders one category in Columns, its name
 // prefixed by indent.
 func Row(record Record, indent string, currency *ynab.CurrencyFormat, colors render.Palette) []render.Cell {
 	underfunded := render.Plain("")

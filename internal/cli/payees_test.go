@@ -80,7 +80,7 @@ transfer account id  a2
 	if byID != "{\"id\":\"p2\",\"name\":\"Costco\"}\n" {
 		t.Errorf("payees get p2 --jsonl = %s", byID)
 	}
-	if missing == nil || status.Code(missing) != status.Failure || !strings.HasPrefix(missing.Error(), `payee "Costcos" not found; closest names: "Costco"`) {
+	if missing == nil || status.Code(missing) != status.ExitFailure || !strings.HasPrefix(missing.Error(), `payee "Costcos" not found; closest names: "Costco"`) {
 		t.Errorf("payees get Costcos = %v", missing)
 	}
 }

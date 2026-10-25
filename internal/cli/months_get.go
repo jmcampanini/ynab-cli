@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jmcampanini/ynab-cli/internal/categoryview"
-	"github.com/jmcampanini/ynab-cli/internal/dates"
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -33,7 +33,7 @@ from 'ynab categories list --month MONTH --jsonl'.
 			if len(args) == 1 {
 				monthText = args[0]
 			}
-			apiMonth, err := dates.MonthInput(monthText, a.deps.now())
+			apiMonth, err := input.Month(monthText, a.deps.now())
 			if err != nil {
 				return err
 			}

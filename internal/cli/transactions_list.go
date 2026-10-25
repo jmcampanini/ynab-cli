@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jmcampanini/ynab-cli/internal/dates"
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/register"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
@@ -145,17 +145,17 @@ To total whole transactions, include only rows with an empty parent_id.
 		RunE: run(func(cmd *cobra.Command, _ []string) error {
 			filters := transactionFilters{cleared: cleared, flag: flag, memo: memo, Query: register.Query{Unapproved: unapproved, Uncategorized: uncategorized}}
 			var err error
-			if filters.Since, err = dates.OptionalDate(since, a.deps.now()); err != nil {
+			if filters.Since, err = input.OptionalDate(since, a.deps.now()); err != nil {
 				return err
 			}
-			if filters.Until, err = dates.OptionalDate(until, a.deps.now()); err != nil {
+			if filters.Until, err = input.OptionalDate(until, a.deps.now()); err != nil {
 				return err
 			}
 			if filters.Since != "" && filters.Until != "" && filters.Since > filters.Until {
 				return status.Usage(fmt.Sprintf("--since %s is after --until %s", filters.Since, filters.Until))
 			}
 			if cmd.Flags().Changed("month") {
-				if filters.Month, err = dates.MonthInput(month, a.deps.now()); err != nil {
+				if filters.Month, err = input.Month(month, a.deps.now()); err != nil {
 					return err
 				}
 			}

@@ -95,7 +95,7 @@ func TestPlanMissAndAmbiguityListNames(t *testing.T) {
 	h := newHarness(t)
 
 	_, err := h.execute(t, "plans", "get", "--plan", "Nope")
-	if err == nil || !strings.Contains(err.Error(), `"Household", "Side Business"`) || status.Code(err) != status.Failure {
+	if err == nil || !strings.Contains(err.Error(), `"Household", "Side Business"`) || status.Code(err) != status.ExitFailure {
 		t.Errorf("plans get with unknown plan = %v", err)
 	}
 

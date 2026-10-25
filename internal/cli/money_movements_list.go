@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/jmcampanini/ynab-cli/internal/dates"
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -31,7 +31,7 @@ categories), then the money movements endpoint.
 			apiMonth := ""
 			if cmd.Flags().Changed("month") {
 				var err error
-				if apiMonth, err = dates.MonthInput(month, a.deps.now()); err != nil {
+				if apiMonth, err = input.Month(month, a.deps.now()); err != nil {
 					return err
 				}
 			}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -61,7 +62,7 @@ delete an account, so a mistaken create must be fixed in the YNAB app.
 					return fmt.Errorf("an account named %q already exists (%s)", account.Name, account.ID)
 				}
 			}
-			balance, err := ynab.InputAmount(balanceText, s.plan)
+			balance, err := input.Amount(balanceText, s.plan)
 			if err != nil {
 				return err
 			}

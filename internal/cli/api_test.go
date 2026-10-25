@@ -41,7 +41,7 @@ func TestAPINon2xxPrintsTheBodyAndExitsOne(t *testing.T) {
 	if out != `{"error":{"id":"404.2","name":"resource_not_found","detail":"Resource not found"}}`+"\n" {
 		t.Errorf("stdout = %q, want the error body as served", out)
 	}
-	if err == nil || status.Code(err) != status.Failure || err.Error() != "HTTP 404 Not Found" {
+	if err == nil || status.Code(err) != status.ExitFailure || err.Error() != "HTTP 404 Not Found" {
 		t.Errorf("err = %v (exit %d), want HTTP 404 Not Found with exit 1", err, status.Code(err))
 	}
 	if want := []string{"/nope"}; !reflect.DeepEqual(h.requests, want) {
@@ -53,7 +53,7 @@ func TestAPIWritesGoThroughTheGate(t *testing.T) {
 	h := newHarness(t)
 
 	out, err := h.execute(t, "api", "patch", "/plans/{plan}/x", "--body", `{"a":1}`)
-	if err == nil || status.Code(err) != status.WritesDisabledCode || out != "" || len(h.requests) != 0 {
+	if err == nil || status.Code(err) != status.ExitWritesDisabled || out != "" || len(h.requests) != 0 {
 		t.Errorf("patch without allow_writes = %q, %v (exit %d), requests %v; want exit 3 and no request", out, err, status.Code(err), h.requests)
 	}
 
@@ -71,7 +71,7 @@ func TestAPIWritesGoThroughTheGate(t *testing.T) {
 
 	h.requests, h.writes = nil, nil
 	out, err = h.execute(t, "api", "post", "/plans/{plan}/x", "--body", `{"a":1}`, "--allow-writes")
-	if err == nil || status.Code(err) != status.Failure || !strings.Contains(out, "resource_not_found") {
+	if err == nil || status.Code(err) != status.ExitFailure || !strings.Contains(out, "resource_not_found") {
 		t.Errorf("post to an unknown path = %q, %v (exit %d), want the 404 body and exit 1", out, err, status.Code(err))
 	}
 	if want := []string{`POST /plans/p1/x {"a":1}`}; !reflect.DeepEqual(h.writes, want) {
@@ -104,7 +104,7 @@ func TestAPIBodyComesFromAFileOrStdinAndMustBeJSON(t *testing.T) {
 	if !strings.HasSuffix(fromStdin, "\n{\"from\":\"stdin\"}\n") {
 		t.Errorf("--body-file - dry run =\n%s", fromStdin)
 	}
-	if err == nil || status.Code(err) != status.UsageCode || out != "" || len(h.requests) != 0 {
+	if err == nil || status.Code(err) != status.ExitUsage || out != "" || len(h.requests) != 0 {
 		t.Errorf("--body 'not json' = %q, %v (exit %d), requests %v; want a usage error before any request", out, err, status.Code(err), h.requests)
 	}
 }

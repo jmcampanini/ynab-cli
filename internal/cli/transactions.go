@@ -207,6 +207,20 @@ func writeTransactionFields(out io.Writer, record transactionRecord, currency *y
 	return render.Table(out, render.SplitColumns, rows)
 }
 
+// Help paragraphs only transactions members use.
+const dateFlagHelp = `Dates:
+  --date accepts YYYY-MM-DD, today, or yesterday. today and yesterday
+  follow the local clock. Any other form is a usage error.`
+
+const bulkHelp = `Bulk updates:
+  IDs are sent in one bulk update per 100 transactions, a limit this CLI
+  chooses; past one batch, progress goes to stderr. If a later batch
+  fails, the records already applied are printed before the error with
+  the IDs not changed, and the exit status is 1. A dry run, or a check
+  that needs the current records, reads them with one plan listing
+  request plus one request per ID older than the API's one-year default
+  window; a dry run prints them with the change applied.`
+
 // Flag values for --cleared and --flag.
 var (
 	clearedStates = []string{"uncleared", "cleared", "reconciled"}

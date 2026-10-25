@@ -28,7 +28,7 @@ func TestWritesExitThreeWithoutAllowWrites(t *testing.T) {
 
 			out, err := h.execute(t, args...)
 
-			if err == nil || out != "" || status.Code(err) != status.WritesDisabledCode {
+			if err == nil || out != "" || status.Code(err) != status.ExitWritesDisabled {
 				t.Fatalf("execute(%v) = %q, %v (exit %d), want exit 3 and empty stdout", args, out, err, status.Code(err))
 			}
 			for _, want := range []string{"allow_writes", "YNAB_ALLOW_WRITES", "--allow-writes", "ynab.toml"} {
@@ -275,7 +275,7 @@ func TestClearAndUnclearRefuseReconciledWithoutForce(t *testing.T) {
 
 		out, err := h.execute(t, "transactions", verb, "t3", "t7", "--allow-writes")
 
-		if err == nil || out != "" || status.Code(err) != status.Failure || !strings.Contains(err.Error(), "t7 is reconciled") || !strings.Contains(err.Error(), "--force") {
+		if err == nil || out != "" || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), "t7 is reconciled") || !strings.Contains(err.Error(), "--force") {
 			t.Errorf("%s of a reconciled transaction = %q, %v (exit %d)", verb, out, err, status.Code(err))
 		}
 		if len(h.writes) != 0 {
@@ -289,7 +289,7 @@ func TestUpdateRefusesCategoryOnTransferBetweenPlanAccounts(t *testing.T) {
 
 	_, err := h.execute(t, "transactions", "update", "t3", "--transfer-to", "Chase Checking", "--category", "Rent", "--allow-writes")
 
-	if err == nil || status.Code(err) != status.UsageCode || !strings.Contains(err.Error(), "--category is not allowed") || len(h.writes) != 0 {
+	if err == nil || status.Code(err) != status.ExitUsage || !strings.Contains(err.Error(), "--category is not allowed") || len(h.writes) != 0 {
 		t.Errorf("update = %v (exit %d), writes %v; want a usage error before writing", err, status.Code(err), h.writes)
 	}
 }
@@ -362,7 +362,7 @@ func TestBulkUpdatesBatchAndReportPartialFailure(t *testing.T) {
 	h = newHarness(t)
 	ids[150] = "boom"
 	out, _, err = h.executeStreams(t, append([]string{"transactions", "flag", "--color", "green", "--allow-writes"}, ids...)...)
-	if err == nil || status.Code(err) != status.Failure || !strings.Contains(err.Error(), "batch 2 of 3 failed after 100 transactions were applied") || !strings.Contains(err.Error(), "150 transactions not changed: x101 x102") || !strings.HasSuffix(err.Error(), " x250") {
+	if err == nil || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), "batch 2 of 3 failed after 100 transactions were applied") || !strings.Contains(err.Error(), "150 transactions not changed: x101 x102") || !strings.HasSuffix(err.Error(), " x250") {
 		t.Errorf("failing batch = %v (exit %d), want exit 1 naming the batch", err, status.Code(err))
 	}
 	if len(h.writes) != 2 || strings.Count(out, "\n") != 102 || !strings.HasSuffix(out, "\nflagged 100 transactions\n") {
@@ -426,7 +426,7 @@ func TestWriteUsageErrorsExitTwoWithoutWriting(t *testing.T) {
 
 			out, err := h.execute(t, append([]string{"transactions", "--allow-writes"}, tc.args...)...)
 
-			if err == nil || out != "" || status.Code(err) != status.UsageCode || !strings.Contains(err.Error(), tc.want) {
+			if err == nil || out != "" || status.Code(err) != status.ExitUsage || !strings.Contains(err.Error(), tc.want) {
 				t.Errorf("execute = %q, %v (exit %d), want a usage error mentioning %q", out, err, status.Code(err), tc.want)
 			}
 			if len(h.writes) != 0 {
@@ -454,7 +454,7 @@ func TestWriteLookupFailuresExitOne(t *testing.T) {
 
 			out, err := h.execute(t, append([]string{"transactions", "--allow-writes"}, tc.args...)...)
 
-			if err == nil || out != "" || status.Code(err) != status.Failure || !strings.Contains(err.Error(), tc.want) {
+			if err == nil || out != "" || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), tc.want) {
 				t.Errorf("execute = %q, %v (exit %d), want exit 1 mentioning %q", out, err, status.Code(err), tc.want)
 			}
 			if len(h.writes) != 0 {
@@ -517,7 +517,7 @@ func TestSplitDateAndAmountChangesFailInDryAndRealRuns(t *testing.T) {
 
 				out, err := h.execute(t, args...)
 
-				if out != "" || err == nil || status.Code(err) != status.Failure || !strings.Contains(err.Error(), "split") {
+				if out != "" || err == nil || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), "split") {
 					t.Errorf("split update = %q, %v; want no records and a split failure", out, err)
 				}
 				if mode == "--dry-run" && len(h.writes) != 0 {
@@ -533,7 +533,7 @@ func TestShortBulkAnswerFailsAndPrintsWhatWasApplied(t *testing.T) {
 
 	out, err := h.execute(t, "transactions", "flag", "--color", "red", "t3", "drop", "--allow-writes")
 
-	if err == nil || status.Code(err) != status.Failure || !strings.Contains(err.Error(), "returned 1 of 2 records; missing: drop") || !strings.Contains(err.Error(), "1 transaction not changed: drop") {
+	if err == nil || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), "returned 1 of 2 records; missing: drop") || !strings.Contains(err.Error(), "1 transaction not changed: drop") {
 		t.Errorf("flag with a dropped record = %v (exit %d)", err, status.Code(err))
 	}
 	if !strings.Contains(out, "t3") && !strings.Contains(out, "Amazon") || !strings.HasSuffix(out, "flagged 1 transaction\n") {
@@ -566,7 +566,7 @@ func TestDuplicateImportIDNamesTheImportID(t *testing.T) {
 
 	out, err := h.execute(t, "transactions", "create", "--account", "Visa", "--date", "today", "--amount", "-1", "--import-id", "dup", "--allow-writes")
 
-	if err == nil || out != "" || status.Code(err) != status.Failure || !strings.Contains(err.Error(), `import id "dup" is already on a transaction: conflict`) {
+	if err == nil || out != "" || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), `import id "dup" is already on a transaction: conflict`) {
 		t.Errorf("create with a duplicate import id = %q, %v (exit %d)", out, err, status.Code(err))
 	}
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/jmcampanini/ynab-cli/internal/categoryview"
 	"github.com/jmcampanini/ynab-cli/internal/dates"
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -35,7 +36,7 @@ type monthSession struct {
 // openMonth parses the month operand, applies the write gate, and reads
 // the plan, the categories, and the month.
 func (a *app) openMonth(cmd *cobra.Command, dryRun bool, monthText string) (*monthSession, error) {
-	apiMonth, err := dates.MonthInput(monthText, a.deps.now())
+	apiMonth, err := input.Month(monthText, a.deps.now())
 	if err != nil {
 		return nil, err
 	}

@@ -3,9 +3,9 @@ package cli
 import (
 	"fmt"
 
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/status"
-	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +36,7 @@ endpoint, the month, then the write.
 			if err != nil {
 				return err
 			}
-			amount, err := ynab.InputAmount(args[1], ms.plan)
+			amount, err := input.Amount(args[1], ms.plan)
 			if err != nil {
 				return err
 			}

@@ -142,7 +142,7 @@ func TestAccountsGetMissListsClosestNames(t *testing.T) {
 
 	out, err := h.execute(t, "accounts", "get", "Chase Cheking")
 
-	if err == nil || out != "" || status.Code(err) != status.Failure {
+	if err == nil || out != "" || status.Code(err) != status.ExitFailure {
 		t.Fatalf("accounts get miss = %q, %v (exit %d)", out, err, status.Code(err))
 	}
 	if !strings.Contains(err.Error(), `closest names: "Chase Checking", `) {

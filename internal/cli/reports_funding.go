@@ -6,6 +6,7 @@ import (
 
 	"github.com/jmcampanini/ynab-cli/internal/categoryview"
 	"github.com/jmcampanini/ynab-cli/internal/dates"
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -156,7 +157,7 @@ plan your spending, DEBT debt payoff.
   ynab reports funding --jsonl | jq 'select(.percent_complete < 100)'`,
 		Args: cobra.NoArgs,
 		RunE: run(func(cmd *cobra.Command, _ []string) error {
-			apiMonth, err := dates.MonthInput(monthText, a.deps.now())
+			apiMonth, err := input.Month(monthText, a.deps.now())
 			if err != nil {
 				return err
 			}

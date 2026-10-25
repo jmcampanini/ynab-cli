@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/jmcampanini/ynab-cli/internal/categoryview"
-	"github.com/jmcampanini/ynab-cli/internal/dates"
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/status"
@@ -92,7 +92,7 @@ func (f *targetFlags) resolve(cmd *cobra.Command, s *writeSession, save *ynab.Sa
 	}
 
 	if flags.Changed("target") {
-		amount, err := ynab.InputAmount(f.amount, s.plan)
+		amount, err := input.Amount(f.amount, s.plan)
 		if err != nil {
 			return err
 		}
@@ -174,7 +174,7 @@ func previewCategory(category ynab.Category, save ynab.SaveCategory, group ynab.
 // printCategory writes one category as 'categories get' does, followed
 // in human output by the summary line.
 func (s *writeSession) printCategory(cmd *cobra.Command, output outputFlags, category ynab.Category, group ynab.CategoryGroup, summary string) error {
-	apiMonth, err := dates.MonthInput("current", s.app.deps.now())
+	apiMonth, err := input.Month("current", s.app.deps.now())
 	if err != nil {
 		return err
 	}

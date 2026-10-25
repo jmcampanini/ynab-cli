@@ -250,7 +250,7 @@ func TestEveryApplicationCommandDeclaresArgsAndGroupsAreRunnable(t *testing.T) {
 			walk(child)
 		}
 	}
-	walk(NewRoot())
+	walk(newRoot(defaultDependencies()))
 }
 
 func TestExitCodesTopicPrintsSameHelpFromBothEntryPoints(t *testing.T) {
@@ -295,7 +295,7 @@ func TestEveryApplicationCommandHasWrappedLongHelp(t *testing.T) {
 			walk(child)
 		}
 	}
-	walk(NewRoot())
+	walk(newRoot(defaultDependencies()))
 }
 
 func TestUsageErrorsExitTwoBeforeAnyRequest(t *testing.T) {
@@ -312,7 +312,7 @@ func TestUsageErrorsExitTwoBeforeAnyRequest(t *testing.T) {
 
 	for _, args := range cases {
 		out, err := h.execute(t, args...)
-		if err == nil || out != "" || status.Code(err) != status.UsageCode {
+		if err == nil || out != "" || status.Code(err) != status.ExitUsage {
 			t.Errorf("execute(%v) = %q, %v (exit %d), want a usage error", args, out, err, status.Code(err))
 		}
 	}
@@ -327,7 +327,7 @@ func TestMissingTokenAndPlanExitOneNamingTheSetting(t *testing.T) {
 	t.Setenv("YNAB_PLAN", "")
 
 	_, err := h.execute(t, "plans", "list")
-	if err == nil || status.Code(err) != status.Failure || !strings.Contains(err.Error(), "YNAB_TOKEN") || !strings.Contains(err.Error(), "ynab.toml") {
+	if err == nil || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), "YNAB_TOKEN") || !strings.Contains(err.Error(), "ynab.toml") {
 		t.Errorf("plans list without token = %v (exit %d)", err, status.Code(err))
 	}
 
@@ -338,7 +338,7 @@ func TestMissingTokenAndPlanExitOneNamingTheSetting(t *testing.T) {
 			t.Errorf("accounts list without plan = %v, want mention of %q", err, want)
 		}
 	}
-	if status.Code(err) != status.Failure || len(h.requests) != 0 {
+	if status.Code(err) != status.ExitFailure || len(h.requests) != 0 {
 		t.Errorf("exit %d, requests %v; want exit 1 and no request", status.Code(err), h.requests)
 	}
 }
@@ -349,7 +349,7 @@ func TestAPIErrorsExitOne(t *testing.T) {
 
 	out, err := h.execute(t, "plans", "list")
 
-	if err == nil || out != "" || status.Code(err) != status.Failure || !strings.Contains(err.Error(), "YNAB_TOKEN") {
+	if err == nil || out != "" || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), "YNAB_TOKEN") {
 		t.Errorf("plans list with bad token = %q, %v (exit %d)", out, err, status.Code(err))
 	}
 }

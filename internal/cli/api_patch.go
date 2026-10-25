@@ -15,12 +15,9 @@ replaced by the configured plan's ID, and print the response body as
 returned. See 'ynab api --help' for the contract: raw milliunits and API
 field names, --pretty, and the exit status 1 with the body on stdout and
 the status on stderr for a non-2xx response.`,
-		Example: "  ynab api patch " + "/plans/{plan}/categories/ID \\\n    --body '{\"category\":{\"note\":\"x\"}}' --dry-run",
+		Example: "  ynab api patch /plans/{plan}/categories/ID \\\n    --body '{\"category\":{\"note\":\"x\"}}' --dry-run",
 	}
-	command.Flags().BoolVar(&options.pretty, "pretty", false, "Re-indent the JSON response")
-	command.Flags().StringVar(&options.body, "body", "", "JSON request body")
-	command.Flags().StringVar(&options.bodyFile, "body-file", "", "File holding the JSON request body; - reads stdin")
-	command.MarkFlagsMutuallyExclusive("body", "body-file")
-	command.Flags().BoolVar(&options.dryRun, "dry-run", false, "Print the request that would be sent without sending it")
-	return newAPIVerb(a, command, http.MethodPatch, true, &options)
+	options.bindWrite(command)
+	newAPIVerb(a, command, http.MethodPatch, true, &options)
+	return command
 }

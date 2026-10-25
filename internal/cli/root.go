@@ -53,11 +53,7 @@ type app struct {
 	deps  dependencies
 }
 
-// NewRoot constructs a fresh command tree without performing command work.
-func NewRoot() *cobra.Command {
-	return newRoot(defaultDependencies())
-}
-
+// newRoot constructs a fresh command tree without performing command work.
 func newRoot(deps dependencies) *cobra.Command {
 	a := &app{color: colorAuto, deps: deps}
 	root := &cobra.Command{
@@ -120,7 +116,7 @@ payee names from the plan.
 func Execute() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	err := NewRoot().ExecuteContext(ctx)
+	err := newRoot(defaultDependencies()).ExecuteContext(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ynab: %s\n", err)
 	}

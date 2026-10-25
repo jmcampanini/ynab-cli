@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/jmcampanini/ynab-cli/internal/names"
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
@@ -26,7 +26,7 @@ delete or hide a group afterwards.
   ynab category-groups create "Annual Bills" --allow-writes`,
 		Args: cobra.ExactArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
-			if err := names.CheckLength(args[0], maxCategoryGroupNameLength); err != nil {
+			if err := input.NameLength(args[0], maxCategoryGroupNameLength); err != nil {
 				return err
 			}
 

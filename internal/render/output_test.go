@@ -20,7 +20,7 @@ func TestWriteTablePadsByRuneCount(t *testing.T) {
 
 	want := "NAME         BALANCE  NOTE\nÉpargne  -1.234,56 €  x\nCash          5,00 €  y\n"
 	if out.String() != want {
-		t.Errorf("writeTable() =\n%s\nwant\n%s", out.String(), want)
+		t.Errorf("Table() =\n%s\nwant\n%s", out.String(), want)
 	}
 }
 
@@ -48,7 +48,7 @@ func TestWriteCSVFlattensNestedObjectsAndKeepsTimestampsWhole(t *testing.T) {
 
 	want := "id,nested_code,nested_count,seen\na,x,3,2026-09-01T00:00:00Z\nb,,,0001-01-01T00:00:00Z\n"
 	if out.String() != want {
-		t.Errorf("writeCSV() =\n%s\nwant\n%s", out.String(), want)
+		t.Errorf("CSV() =\n%s\nwant\n%s", out.String(), want)
 	}
 }
 
@@ -61,6 +61,6 @@ func TestWriteFieldsContinuesMultilineValuesUnderTheValueColumn(t *testing.T) {
 
 	want := "id     c1\nnote   line one\n\n       line three\nempty\n"
 	if out.String() != want {
-		t.Errorf("writeFields() = %q, want %q", out.String(), want)
+		t.Errorf("Fields() = %q, want %q", out.String(), want)
 	}
 }

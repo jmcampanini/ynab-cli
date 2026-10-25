@@ -10,10 +10,10 @@ import (
 // starts; every runner failure is a command failure unless it carries
 // another status.
 const (
-	Success            = 0
-	Failure            = 1
-	UsageCode          = 2
-	WritesDisabledCode = 3
+	ExitSuccess        = 0
+	ExitFailure        = 1
+	ExitUsage          = 2
+	ExitWritesDisabled = 3
 )
 
 // exitError carries the process exit status for a failure.
@@ -29,13 +29,13 @@ func (e *exitError) Unwrap() error { return e.err }
 // Usage marks a failure raised by a runner that is still a usage
 // mistake, such as an empty --config value.
 func Usage(message string) error {
-	return &exitError{code: UsageCode, err: errors.New(message)}
+	return &exitError{code: ExitUsage, err: errors.New(message)}
 }
 
 // WritesDisabled is the failure of a mutating command run without
-// allow_writes, which exits WritesDisabledCode before any request.
+// allow_writes, which exits ExitWritesDisabled before any request.
 func WritesDisabled(configPath string) error {
-	return &exitError{code: WritesDisabledCode, err: fmt.Errorf("writes are disabled: set allow_writes = true in %s or YNAB_ALLOW_WRITES=true, or pass --allow-writes; --dry-run previews without writing", configPath)}
+	return &exitError{code: ExitWritesDisabled, err: fmt.Errorf("writes are disabled: set allow_writes = true in %s or YNAB_ALLOW_WRITES=true, or pass --allow-writes; --dry-run previews without writing", configPath)}
 }
 
 // Code maps an error returned by the root command to a process exit
@@ -43,13 +43,13 @@ func WritesDisabled(configPath string) error {
 // runner started.
 func Code(err error) int {
 	if err == nil {
-		return Success
+		return ExitSuccess
 	}
 	var exit *exitError
 	if errors.As(err, &exit) {
 		return exit.code
 	}
-	return UsageCode
+	return ExitUsage
 }
 
 // CommandFailure gives runner failures a status unless they already carry one.
@@ -61,5 +61,5 @@ func CommandFailure(err error) error {
 	if errors.As(err, &exit) {
 		return err
 	}
-	return &exitError{code: Failure, err: err}
+	return &exitError{code: ExitFailure, err: err}
 }

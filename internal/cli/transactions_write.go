@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/jmcampanini/ynab-cli/internal/dates"
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/names"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
@@ -121,16 +121,6 @@ func (s *writeSession) payee(ctx context.Context, query string) (id, name string
 		matched[i] = s.payees[index].ID
 	}
 	return "", "", fmt.Errorf("payee %q names %d payees; use an ID: %s", query, len(matches), strings.Join(matched, ", "))
-}
-
-// knownPayee reports whether the loaded payees carry the ID.
-func (s *writeSession) knownPayee(id string) bool {
-	for _, payee := range s.payees {
-		if payee.ID == id {
-			return true
-		}
-	}
-	return false
 }
 
 // looksLikeID reports whether text has the API's UUID shape: 36
@@ -534,9 +524,6 @@ type transactionFields struct {
 	approved                                                                bool
 }
 
-// transactionFieldFlags are the flag names transactionFields binds.
-var transactionFieldFlags = []string{"account", "date", "amount", "payee", "transfer-to", "category", "memo", "cleared", "approved", "flag"}
-
 func (f *transactionFields) bind(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.account, "account", "", "Account ID or exact name")
 	cmd.Flags().StringVar(&f.date, "date", "", "Date: YYYY-MM-DD, today, yesterday")
@@ -566,12 +553,12 @@ func (f *transactionFields) resolve(cmd *cobra.Command, s *writeSession) (change
 		change.AccountID = account.ID
 	}
 	if flags.Changed("date") {
-		if change.Date, err = dates.DateInput(f.date, s.app.deps.now()); err != nil {
+		if change.Date, err = input.Date(f.date, s.app.deps.now()); err != nil {
 			return change, nil, err
 		}
 	}
 	if flags.Changed("amount") {
-		amount, err := ynab.InputAmount(f.amount, s.plan)
+		amount, err := input.Amount(f.amount, s.plan)
 		if err != nil {
 			return change, nil, err
 		}
@@ -633,4 +620,36 @@ func flagColorValue(color string) ynab.Nullable[string] {
 		return ynab.NullValue[string]()
 	}
 	return ynab.SomeValue(color)
+}
+
+// clearedStateOptions are the flags clear and unclear share.
+type clearedStateOptions struct {
+	output        outputFlags
+	dryRun, force bool
+}
+
+func (o *clearedStateOptions) bind(cmd *cobra.Command) {
+	o.output.bind(cmd, true)
+	cmd.Flags().BoolVar(&o.force, "force", false, "Change a reconciled transaction too")
+	cmd.Flags().BoolVar(&o.dryRun, "dry-run", false, "Preview the records without changing them")
+}
+
+// setClearedState is the runner clear and unclear share; they differ
+// only in the state they set, and both refuse to touch a reconciled
+// transaction without --force.
+func (a *app) setClearedState(verb, state string, options *clearedStateOptions) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		s, err := a.openTransactionWrite(cmd, options.dryRun)
+		if err != nil {
+			return err
+		}
+
+		check := func(tx ynab.Transaction) error {
+			if tx.Cleared == "reconciled" && !options.force {
+				return fmt.Errorf("transaction %s is reconciled; --force marks it %s, which undoes the reconciliation in the app", tx.ID, state)
+			}
+			return nil
+		}
+		return s.bulk(cmd, options.output, bulkWrite{base: verb, change: ynab.SaveTransaction{Cleared: state}, check: check, ids: args, past: state})
+	}
 }

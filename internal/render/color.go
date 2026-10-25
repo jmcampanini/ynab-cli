@@ -18,17 +18,3 @@ func (p Palette) wrap(code, text string) string {
 	}
 	return "\x1b[" + code + "m" + text + "\x1b[0m"
 }
-
-// ResolveColor applies the explicit mode before environment and terminal defaults.
-func ResolveColor(mode string, explicit, noColor, terminal bool) bool {
-	switch {
-	case explicit && mode == "always":
-		return true
-	case explicit && mode == "never":
-		return false
-	case explicit:
-		return terminal
-	default:
-		return terminal && !noColor
-	}
-}

@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/jmcampanini/ynab-cli/internal/names"
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -28,7 +28,7 @@ categories endpoint, then the update.
   ynab category-groups rename 7a3e... Fun --allow-writes`,
 		Args: cobra.ExactArgs(2),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
-			if err := names.CheckLength(args[1], maxCategoryGroupNameLength); err != nil {
+			if err := input.NameLength(args[1], maxCategoryGroupNameLength); err != nil {
 				return err
 			}
 

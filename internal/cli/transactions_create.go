@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -157,7 +158,7 @@ func (s *writeSession) resolveSplits(cmd *cobra.Command, lines []splitLine, tota
 		if err != nil {
 			return nil, err
 		}
-		amount, err := ynab.InputAmount(line.amount, s.plan)
+		amount, err := input.Amount(line.amount, s.plan)
 		if err != nil {
 			return nil, err
 		}
@@ -172,4 +173,14 @@ func (s *writeSession) resolveSplits(cmd *cobra.Command, lines []splitLine, tota
 		return nil, status.Usage(fmt.Sprintf("--split lines total %s but --amount is %s", sum, total))
 	}
 	return subtransactions, nil
+}
+
+// knownPayee reports whether the loaded payees carry the ID.
+func (s *writeSession) knownPayee(id string) bool {
+	for _, payee := range s.payees {
+		if payee.ID == id {
+			return true
+		}
+	}
+	return false
 }

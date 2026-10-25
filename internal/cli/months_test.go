@@ -113,7 +113,7 @@ func TestInvalidMonthIsAUsageErrorBeforeAnyRequest(t *testing.T) {
 
 	for _, args := range cases {
 		out, err := h.execute(t, args...)
-		if err == nil || out != "" || status.Code(err) != status.UsageCode || !strings.Contains(err.Error(), "YYYY-MM") {
+		if err == nil || out != "" || status.Code(err) != status.ExitUsage || !strings.Contains(err.Error(), "YYYY-MM") {
 			t.Errorf("execute(%v) = %q, %v (exit %d), want a usage error naming the forms", args, out, err, status.Code(err))
 		}
 	}

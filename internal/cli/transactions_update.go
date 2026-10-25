@@ -79,6 +79,9 @@ each transaction's account.
 	return command
 }
 
+// transactionFieldFlags are the flag names transactionFields binds.
+var transactionFieldFlags = []string{"account", "date", "amount", "payee", "transfer-to", "category", "memo", "cleared", "approved", "flag"}
+
 // given reports whether any field flag was set.
 func (f *transactionFields) given(cmd *cobra.Command) bool {
 	for _, name := range transactionFieldFlags {

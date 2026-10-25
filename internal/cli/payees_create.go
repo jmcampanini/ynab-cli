@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/jmcampanini/ynab-cli/internal/names"
+	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
@@ -27,7 +27,7 @@ payee afterwards.
   ynab payees create "City Water" --allow-writes`,
 		Args: cobra.ExactArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
-			if err := names.CheckLength(args[0], maxPayeeNameLength); err != nil {
+			if err := input.NameLength(args[0], maxPayeeNameLength); err != nil {
 				return err
 			}
 

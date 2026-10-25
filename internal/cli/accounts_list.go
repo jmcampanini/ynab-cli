@@ -89,9 +89,9 @@ func accountRows(records []accountRecord, currency *ynab.CurrencyFormat, colors 
 		}
 		row := []render.Cell{
 			render.Plain(name), render.Plain(record.Type), render.Plain(record.kind()),
-			amountCell(record.Balance, currency, colors),
-			amountCell(record.ClearedBalance, currency, colors),
-			amountCell(record.UnclearedBalance, currency, colors),
+			render.Available(record.Balance, currency, colors),
+			render.Available(record.ClearedBalance, currency, colors),
+			render.Available(record.UnclearedBalance, currency, colors),
 			render.Plain(record.directImport()),
 		}
 		if record.Closed {
@@ -102,12 +102,4 @@ func accountRows(records []accountRecord, currency *ynab.CurrencyFormat, colors 
 		rows[i] = row
 	}
 	return rows
-}
-
-func amountCell(amount ynab.Amount, currency *ynab.CurrencyFormat, colors render.Palette) render.Cell {
-	c := render.Plain(amount.Format(currency))
-	if amount < 0 {
-		c.Paint = colors.Red
-	}
-	return c
 }

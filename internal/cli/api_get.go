@@ -15,8 +15,9 @@ replaced by the configured plan's ID, and print the response body as
 returned. See 'ynab api --help' for the contract: raw milliunits and API
 field names, --pretty, and the exit status 1 with the body on stdout and
 the status on stderr for a non-2xx response.`,
-		Example: "  ynab api get " + "/user",
+		Example: "  ynab api get /user",
 	}
-	command.Flags().BoolVar(&options.pretty, "pretty", false, "Re-indent the JSON response")
-	return newAPIVerb(a, command, http.MethodGet, false, &options)
+	options.bindRead(command)
+	newAPIVerb(a, command, http.MethodGet, false, &options)
+	return command
 }

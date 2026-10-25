@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/jmcampanini/ynab-cli/internal/register"
-
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -92,30 +91,11 @@ s4,t8,2026-09-13,Chase Checking,a1,Unknown Vendor,p4,Internet,c1,cable,-15.00,cl
 	}
 }
 
-func TestTransactionFiltersChooseTheListing(t *testing.T) {
-	cases := []struct {
-		name    string
-		filters transactionFilters
-		want    register.Listing
-	}{
-		{"plan", transactionFilters{}, register.Listing{Kind: register.Plan}},
-		{"dates", transactionFilters{Query: register.Query{Since: "2026-08-01", Until: "2026-08-31"}}, register.Listing{Kind: register.Plan, Filter: ynab.TransactionFilter{SinceDate: "2026-08-01", UntilDate: "2026-08-31"}}},
-		{"account", transactionFilters{Query: register.Query{AccountID: "a1"}}, register.Listing{Kind: register.Account}},
-		{"month", transactionFilters{Query: register.Query{Month: "2026-08-01"}}, register.Listing{Kind: register.Month}},
-		{"account over month", transactionFilters{Query: register.Query{AccountID: "a1", Month: "2026-08-01"}}, register.Listing{Kind: register.Account, Filter: ynab.TransactionFilter{SinceDate: "2026-08-01", UntilDate: "2026-08-31"}}},
-		{"account, month, and narrower dates", transactionFilters{Query: register.Query{AccountID: "a1", Month: "2026-08-01", Since: "2026-08-10", Until: "2026-09-30"}}, register.Listing{Kind: register.Account, Filter: ynab.TransactionFilter{SinceDate: "2026-08-10", UntilDate: "2026-08-31"}}},
-		{"category stays client-side", transactionFilters{categoryID: "c3", payeeID: "p2"}, register.Listing{Kind: register.Plan}},
-		{"unapproved", transactionFilters{Query: register.Query{Unapproved: true}}, register.Listing{Kind: register.Plan, Filter: ynab.TransactionFilter{Type: "unapproved"}}},
-		{"uncategorized wins", transactionFilters{Query: register.Query{Unapproved: true, Uncategorized: true, Month: "2026-09-01"}}, register.Listing{Kind: register.Month, Filter: ynab.TransactionFilter{Type: "uncategorized"}}},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := tc.filters.Listing()
+func TestNameFiltersStayClientSide(t *testing.T) {
+	filters := transactionFilters{categoryID: "c3", payeeID: "p2"}
 
-			if got != tc.want {
-				t.Errorf("listing() = %+v, want %+v", got, tc.want)
-			}
-		})
+	if got := filters.Listing(); got != (register.Listing{Kind: register.Plan}) {
+		t.Errorf("Listing() = %+v, want the plan listing with no API-side query", got)
 	}
 }
 
@@ -181,7 +161,7 @@ func TestTransactionsListRejectsBadFilterValues(t *testing.T) {
 
 	for _, args := range cases {
 		out, err := h.execute(t, append([]string{"transactions", "list"}, args...)...)
-		if err == nil || out != "" || status.Code(err) != status.UsageCode {
+		if err == nil || out != "" || status.Code(err) != status.ExitUsage {
 			t.Errorf("transactions list %v = %q, %v (exit %d), want a usage error", args, out, err, status.Code(err))
 		}
 	}
@@ -195,7 +175,7 @@ func TestTransactionsListNameMissesExitOne(t *testing.T) {
 
 	for _, args := range [][]string{{"--account", "Chase"}, {"--category", "Internet"}, {"--payee", "Costcos"}} {
 		_, err := h.execute(t, append([]string{"transactions", "list"}, args...)...)
-		if err == nil || status.Code(err) != status.Failure {
+		if err == nil || status.Code(err) != status.ExitFailure {
 			t.Errorf("transactions list %v = %v (exit %d), want exit 1", args, err, status.Code(err))
 		}
 	}
@@ -260,7 +240,7 @@ PAYEE  CATEGORY    MEMO     AMOUNT
 	if !strings.Contains(flagged, "flag                   red (Reimbursable)\n") {
 		t.Errorf("transactions get t3 = %s, want the flag color and name", flagged)
 	}
-	if missing == nil || status.Code(missing) != status.Failure || !strings.Contains(missing.Error(), "not found") {
+	if missing == nil || status.Code(missing) != status.ExitFailure || !strings.Contains(missing.Error(), "not found") {
 		t.Errorf("transactions get nope = %v (exit %d)", missing, status.Code(missing))
 	}
 	if want := []string{"/plans", "/plans/p1/accounts", "/plans/p1/transactions/t2"}; !reflect.DeepEqual(h.requests[:3], want) {
@@ -348,7 +328,7 @@ func TestReviewCategoryNeedsRespectAccountTypes(t *testing.T) {
 	review := reviewList([]ynab.Transaction{candidates[1]}, needed, selection.NewAccountNames(accounts))
 
 	if want := []ynab.Transaction{candidates[0], candidates[3]}; !reflect.DeepEqual(needed, want) {
-		t.Errorf("transactionsNeedingCategory() = %+v, want %+v", needed, want)
+		t.Errorf("TransactionsNeedingCategory() = %+v, want %+v", needed, want)
 	}
 	if len(review) != 3 || review[0].ID != "payment" || review[0].Needs != needsApprove {
 		t.Errorf("reviewList() = %+v, want the unapproved payment plus two category-needed rows", review)
