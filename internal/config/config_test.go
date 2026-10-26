@@ -49,7 +49,7 @@ func TestTokenHasNoFlag(t *testing.T) {
 
 func TestLayersProvenanceAndRoundTrip(t *testing.T) {
 	isolateEnv(t)
-	path := filepath.Join(t.TempDir(), "ynab.toml")
+	path := filepath.Join(t.TempDir(), "config.toml")
 	if err := os.WriteFile(path, []byte("plan = \"From File\"\ntoken = \"file-token\"\nallow_writes = true\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestDiscoveryToleratesAbsentFileAndExplicitFileMustExist(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", root)
 	t.Setenv("YNAB_TOKEN", "env-token")
-	discovered := filepath.Join(root, "ynab", "ynab.toml")
+	discovered := filepath.Join(root, "ynab", "config.toml")
 
 	loaded, err := Load("", flags(t))
 	if err != nil || loaded.Path != discovered || loaded.Config.Token != "env-token" || loaded.Config.Plan != "" || loaded.Config.AllowWrites {
@@ -115,7 +115,7 @@ func TestUnknownKeysAndBadValuesFail(t *testing.T) {
 	isolateEnv(t)
 	root := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", root)
-	path := filepath.Join(root, "ynab", "ynab.toml")
+	path := filepath.Join(root, "ynab", "config.toml")
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func TestUnknownKeysAndBadValuesFail(t *testing.T) {
 
 func TestUnquotedTokenParseErrorHidesTheValue(t *testing.T) {
 	isolateEnv(t)
-	path := filepath.Join(t.TempDir(), "ynab.toml")
+	path := filepath.Join(t.TempDir(), "config.toml")
 	if err := os.WriteFile(path, []byte("token = deadbeefdeadbeef\nplan = 3\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestUnquotedTokenParseErrorHidesTheValue(t *testing.T) {
 
 func TestEmptyTokenEnvDoesNotOverrideFile(t *testing.T) {
 	isolateEnv(t)
-	path := filepath.Join(t.TempDir(), "ynab.toml")
+	path := filepath.Join(t.TempDir(), "config.toml")
 	if err := os.WriteFile(path, []byte("token = \"file-token\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}

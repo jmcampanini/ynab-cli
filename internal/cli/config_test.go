@@ -10,7 +10,7 @@ import (
 
 func TestConfigRedactsTokenInEveryOutputPath(t *testing.T) {
 	h := newHarness(t)
-	path := filepath.Join(t.TempDir(), "ynab.toml")
+	path := filepath.Join(t.TempDir(), "config.toml")
 	if err := os.WriteFile(path, []byte("token = \"file-token\"\nplan = \"Household\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}

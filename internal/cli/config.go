@@ -37,7 +37,7 @@ Example configuration:
 ` + configHelp + "\n\n" + outputHelp,
 		Example: `  ynab config
   ynab config --provenance
-  ynab config --config ./ynab.toml --plan Household --jsonl`,
+  ynab config --config ./config.toml --plan Household --jsonl`,
 		Args: cobra.NoArgs,
 		RunE: run(func(cmd *cobra.Command, _ []string) error {
 			path, err := configPath(cmd)

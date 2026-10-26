@@ -4,7 +4,7 @@ package cli
 // text cannot drift between commands.
 
 const configHelp = `Configuration:
-  Read $XDG_CONFIG_HOME/ynab/ynab.toml, or ~/.config/ynab/ynab.toml when
+  Read $XDG_CONFIG_HOME/ynab/config.toml, or ~/.config/ynab/config.toml when
   XDG_CONFIG_HOME is empty; a missing file is fine. Relative XDG_CONFIG_HOME
   follows go-config-loader and resolves against the working directory.
   --config PATH replaces discovery and the file must exist. Precedence is

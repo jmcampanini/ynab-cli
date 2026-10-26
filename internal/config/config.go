@@ -44,13 +44,13 @@ type Loaded struct {
 }
 
 // Load applies defaults, the TOML file, environment, then root flags. An
-// empty path discovers $XDG_CONFIG_HOME/ynab/ynab.toml, which may be absent;
+// empty path discovers $XDG_CONFIG_HOME/ynab/config.toml, which may be absent;
 // an explicit path must exist.
 func Load(path string, flags *pflag.FlagSet) (Loaded, error) {
 	var fileLoader configloader.ConfigLoader[Config]
 	var err error
 	if path == "" {
-		helper, helperErr := configloader.NewFileHelper("ynab", "ynab.toml")
+		helper, helperErr := configloader.NewFileHelper("ynab", "config.toml")
 		if helperErr != nil {
 			return Loaded{}, helperErr
 		}

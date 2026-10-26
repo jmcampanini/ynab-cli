@@ -75,7 +75,7 @@ The canonical reference is `ynab --help`, each command's `--help`, and the help 
 
 ## Configuration
 
-ynab reads `$XDG_CONFIG_HOME/ynab/ynab.toml`, or `~/.config/ynab/ynab.toml` when `XDG_CONFIG_HOME` is empty; a missing file is fine. A minimal file:
+ynab reads `$XDG_CONFIG_HOME/ynab/config.toml`, or `~/.config/ynab/config.toml` when `XDG_CONFIG_HOME` is empty; a missing file is fine. A minimal file:
 
 ```toml
 plan = "Household"
