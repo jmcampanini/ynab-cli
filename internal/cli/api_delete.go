@@ -14,7 +14,9 @@ func newAPIDelete(a *app) *cobra.Command {
 replaced by the configured plan's ID, and print the response body as
 returned. See 'ynab api --help' for the contract: raw milliunits and API
 field names, --pretty, and the exit status 1 with the body on stdout and
-the status on stderr for a non-2xx response.`,
+the status on stderr for a non-2xx response.
+
+` + apiBodyHelp,
 		Example: "  ynab api delete /plans/{plan}/transactions/ID --allow-writes",
 	}
 	options.bindWrite(command)

@@ -3,9 +3,7 @@ package cli
 import "github.com/spf13/cobra"
 
 func outputFormatsTopic() *cobra.Command {
-	return &cobra.Command{
-		Use: "output-formats", Short: "Record shapes for --jsonl and --csv", Args: cobra.NoArgs,
-		Long: `--jsonl writes one JSON object per line: one per record for list
+	return helpTopic("output-formats", "Record shapes for --jsonl and --csv", `--jsonl writes one JSON object per line: one per record for list
 commands, one line for get, status, and config. --csv, on list commands,
 writes a header row of the same field names and one row per record with
 the same values. Keys are lowercase snake_case. Amounts are JSON numbers
@@ -253,7 +251,5 @@ Config (config --jsonl):
   sources        object of field to source; only with --provenance
 
 The api commands have no --jsonl or --csv: they print the API's response
-body as returned, with milliunit amounts and the API's field names.`,
-		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
-	}
+body as returned, with milliunit amounts and the API's field names.`)
 }

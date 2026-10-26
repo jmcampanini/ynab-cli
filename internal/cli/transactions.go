@@ -157,12 +157,11 @@ func newTransactions(a *app) *cobra.Command {
 		Use: "transactions", Short: "Read, review, and write the plan's transactions",
 		Long: `Read and write the register of the configured plan: the transaction
 list with its filters, one transaction by ID, the review of what needs
-approval or a category, and the writes that carry the monthly work:
-create, update, delete, approve, categorize, clear, unclear, flag, and
-import. A bare 'ynab transactions' prints this help and exits 0. The API
-cannot edit the lines of an existing split, reconcile an account, or
-read pending bank transactions. Converting an existing transaction to a
-split is available through 'api put', but not 'transactions update'.
+approval or a category, and the writes that carry the monthly work. A
+bare 'ynab transactions' prints this help and exits 0. The API cannot
+edit the lines of an existing split, reconcile an account, or read
+pending bank transactions. Converting an existing transaction to a split
+is available through 'ynab api put', but not through this group.
 
 ` + writeHelp + "\n\n" + planHelp + "\n\n" + dateHelp,
 		Args: cobra.NoArgs,

@@ -77,7 +77,7 @@ delete a category afterwards; it can hide one only in the app.
 	command.Flags().StringVar(&groupText, "group", "", "Category group ID or exact name")
 	command.Flags().StringVar(&note, "note", "", "Note text")
 	target.bind(command, false)
-	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print what would be created without creating it")
+	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print the category without creating it")
 	_ = command.MarkFlagRequired("group")
 	completeFlags(command, a.completeCategoryGroups(), "group")
 	return command

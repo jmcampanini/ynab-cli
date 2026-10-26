@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -60,48 +61,56 @@ func newRoot(deps dependencies) *cobra.Command {
 		Use: "ynab", Short: "Read and write a YNAB plan from the terminal",
 		Long: `ynab reads and writes a YNAB plan from the terminal and emits JSON lines
 and CSV for scripts and agents. Every command is 'ynab <noun> <verb>'; a
-bare noun prints its help. ynab reads plans, accounts, categories,
-category groups, months, transactions, payees, scheduled transactions,
-and money movements, summarizes the month with 'plans status', writes
-transactions (create, update, delete, approve, categorize, clear,
-unclear, flag, import), moves money between categories ('months assign',
-'move', 'cover', 'fund'), creates or updates categories, category
-groups, payees, and accounts, and derives the 'reports funding' and
-'reports spending' reports. Anything the API offers beyond that goes
-through 'ynab api', which sends a raw request and prints the raw
-response. Writes stay disabled until allow_writes is set, and every
+bare noun prints its help. The command groups below cover the plan's
+data and the reports derived from it; anything the API offers beyond
+them goes through 'ynab api', which sends a raw request and prints the
+raw response. Writes stay disabled until allow_writes is set, and every
 write accepts --dry-run; see 'ynab transactions --help'.
 
 ynab needs a personal access token from https://app.ynab.com/settings/developer
-and network access to api.ynab.com. It runs no external programs, never
-prompts, and keeps nothing on disk. 'ynab completion bash|zsh|fish|powershell'
-prints a completion script that also completes account, category, and
-payee names from the plan.
+and network access to api.ynab.com. It runs no external programs and keeps
+nothing on disk. 'ynab completion bash|zsh|fish|powershell' prints a
+completion script that also completes account, category, and payee names
+from the plan.
 
-` + configHelp + "\n\n" + planHelp + "\n\n" + outputHelp,
-		Example: `  ynab plans list
-  ynab accounts list --plan Household
-  ynab accounts list --jsonl | jq .balance
-  ynab categories get "Bills: Internet"
-  ynab transactions list --since 2026-08-01 --csv > august.csv
-  ynab transactions review
-  ynab transactions approve --all-unapproved --dry-run
-  ynab transactions create --account Checking --date today --amount -12.50 \
-    --payee "Corner Store" --category Groceries --allow-writes
-  ynab months move 50 --from "Dining Out" --to Groceries --dry-run
-  ynab months fund --all-underfunded --allow-writes
-  ynab categories update Groceries --target 600 --allow-writes
-  ynab plans status
-  ynab reports funding --underfunded
-  ynab reports spending --by payee --since 2026-01-01 --csv
-  ynab api get /user
-  ynab config --provenance`,
+` + configHelp + "\n\n" + planHelp + "\n\n" + outputHelp + `
+
+Common tasks:
+  List your plans:        ynab plans list
+  Summarize the month:    ynab plans status
+  List accounts:          ynab accounts list --plan Household
+  Export the register:    ynab transactions list --since 2026-08-01 --csv
+  Review the register:    ynab transactions review
+  Preview an approval:    ynab transactions approve --all-unapproved --dry-run
+  Preview a move:         ynab months move 50 --from Fun --to Bills --dry-run
+  Fund every target:      ynab months fund --all-underfunded --allow-writes
+  List what needs money:  ynab reports funding --underfunded
+  Call the API directly:  ynab api get /user
+  Check configuration:    ynab config --provenance
+
+Command groups:
+  plans            Plans the token can access:     ynab plans --help
+  accounts         Accounts and their balances:    ynab accounts --help
+  categories       Categories and their targets:   ynab categories --help
+  category-groups  Groups of categories:           ynab category-groups --help
+  months           Months and assigned money:      ynab months --help
+  transactions     The register and its writes:    ynab transactions --help
+  payees           Payees and their names:         ynab payees --help
+  scheduled        Repeating transactions:         ynab scheduled --help
+  money-movements  Recorded money movements:       ynab money-movements --help
+  reports          Funding and spending reports:   ynab reports --help
+  api              Raw requests to the YNAB API:   ynab api --help`,
 		SilenceErrors: true, SilenceUsage: true, Version: Version,
 		DisableSuggestions: true,
 		RunE:               func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
 	root.InitDefaultHelpFlag()
 	root.InitDefaultVersionFlag()
+	// Cobra's closing usage line is shortened so the help of the
+	// longest-named groups fits 80 columns.
+	root.SetUsageTemplate(strings.Replace(root.UsageTemplate(),
+		`Use "{{.CommandPath}} [command] --help" for more information about a command.`,
+		`Use "{{.CommandPath}} [command] --help" for a command's help.`, 1))
 	root.PersistentFlags().String("config", "", "Read this TOML file instead of the discovered one")
 	root.PersistentFlags().Var(colorValue{mode: &a.color}, "color", "Color human output: auto, always, never")
 	if err := pflagloader.Register[config.Config](root.PersistentFlags()); err != nil {

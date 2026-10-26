@@ -88,7 +88,7 @@ delete an account, so a mistaken create must be fixed in the YNAB app.
 		}),
 	}
 	output.bind(command, false)
-	bindEnumFlag(command, &accountType, "type", "type", "Account type: "+strings.Join(accountCreateTypes, ", "), accountCreateTypes...)
+	bindEnumFlag(command, &accountType, "type", "type", "Account type; one of those the description lists", accountCreateTypes...)
 	command.Flags().StringVar(&balanceText, "balance", "", "Opening balance in currency units")
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print what would be created without creating it")
 	_ = command.MarkFlagRequired("type")

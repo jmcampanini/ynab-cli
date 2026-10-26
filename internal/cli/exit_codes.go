@@ -1,13 +1,9 @@
 package cli
 
-import (
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 func exitCodesTopic() *cobra.Command {
-	return &cobra.Command{
-		Use: "exit-codes", Short: "Exit codes and error categories", Args: cobra.NoArgs,
-		Long: `ynab uses four exit statuses:
+	return helpTopic("exit-codes", "Exit codes and error categories", `ynab uses four exit statuses:
 
   0  Success, including an empty list, help, version, completion, and
      'ynab help <unknown>', which prints the root usage. A
@@ -27,15 +23,13 @@ func exitCodesTopic() *cobra.Command {
      YYYY-MM-01, an amount with separators or too many decimals, a name
      past the API's length limit, an api body that is not JSON, or
      conflicting flags such as --split with --category, --month with
-     --since, or --body with --body-file. Nothing ran and stdout is
-     empty.
+     --since, or --body with --body-file. Nothing was written and stdout
+     is empty, though an amount check may have read the plan first.
   3  Writes disabled: a mutating command, or api post, patch, put, or
      delete, ran without allow_writes in the configuration,
      YNAB_ALLOW_WRITES, or --allow-writes, and without --dry-run. The
      configuration was loaded, no request was made, and stdout is empty.
 
 Errors are written to stderr as 'ynab: <message>'. Machine output that was
-already written stays on stdout when a later failure changes the status.`,
-		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
-	}
+already written stays on stdout when a later failure changes the status.`)
 }

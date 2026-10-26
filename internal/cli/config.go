@@ -23,18 +23,21 @@ func newConfig() *cobra.Command {
 	var provenance bool
 	command := &cobra.Command{
 		Use: "config", Short: "Print the effective configuration",
-		Long: `Print the effective configuration as redirectable TOML after applying
-every layer. A configured token is always shown as "<redacted>", in TOML,
-JSON, and provenance alike. --provenance adds each field's source as a
-TOML comment, or a "sources" object with --jsonl. This command makes no
-API request and needs no token or plan.
+		Long: `Print the effective configuration on stdout as redirectable TOML after
+applying every layer, or as one JSON object with --jsonl. A configured
+token is always shown as "<redacted>", in TOML, JSON, and provenance
+alike. --provenance adds each field's source as a TOML comment, or a
+"sources" object with --jsonl. Diagnostics go to stderr. This command
+makes no API request, needs no token or plan, and never prompts. See
+'ynab help output-formats' for the record and 'ynab help exit-codes' for
+exit statuses.
 
 Example configuration:
   plan = "Household"
   token = "your-personal-access-token"
   allow_writes = false
 
-` + configHelp + "\n\n" + outputHelp,
+` + configHelp,
 		Example: `  ynab config
   ynab config --provenance
   ynab config --config ./config.toml --plan Household --jsonl`,

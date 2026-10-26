@@ -5,25 +5,26 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// palette resolves color for the command's stdout: an explicit --color
-// value wins, then NO_COLOR, then terminal detection with TERM=dumb off.
+// palette resolves color for the command's stdout. always and never
+// decide alone; auto, typed or defaulted, needs a terminal that is not
+// TERM=dumb and an empty or unset NO_COLOR.
 func (a *app) palette(cmd *cobra.Command) render.Palette {
-	explicit := cmd.Root().PersistentFlags().Changed("color")
-	terminal := a.deps.isTerminal(cmd.OutOrStdout()) && a.deps.lookupEnv("TERM") != "dumb"
+	terminal := a.deps.isTerminal(cmd.OutOrStdout())
+	dumb := a.deps.lookupEnv("TERM") == "dumb"
 	noColor := a.deps.lookupEnv("NO_COLOR") != ""
-	return render.Palette{Enabled: resolveColor(a.color, explicit, noColor, terminal)}
+	return render.Palette{Enabled: resolveColor(a.color, noColor, terminal, dumb)}
 }
 
-// resolveColor applies the explicit mode before environment and terminal defaults.
-func resolveColor(mode colorMode, explicit, noColor, terminal bool) bool {
-	switch {
-	case explicit && mode == colorAlways:
+// resolveColor applies the mode to the detected inputs. Terminal status
+// and the dumb profile stay separate: a stream can be a terminal whose
+// TERM=dumb profile renders no color.
+func resolveColor(mode colorMode, noColor, terminal, dumb bool) bool {
+	switch mode {
+	case colorAlways:
 		return true
-	case explicit && mode == colorNever:
+	case colorNever:
 		return false
-	case explicit:
-		return terminal
 	default:
-		return terminal && !noColor
+		return terminal && !dumb && !noColor
 	}
 }
