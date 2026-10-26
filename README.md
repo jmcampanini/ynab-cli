@@ -30,8 +30,8 @@ git clone https://github.com/jmcampanini/ynab-cli
 cd ynab-cli
 mise trust
 mise install
-mise run install
-# installs ynab into $GOBIN, or $(go env GOPATH)/bin when GOBIN is unset
+mise run build
+# then copy ./build/ynab to a directory on your PATH
 ```
 
 
