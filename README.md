@@ -5,10 +5,21 @@ ynab reads and writes a YNAB plan from the terminal and emits JSON lines and CSV
 
 ## Install
 
-ynab distributes from HEAD only; there is no release channel or tagged binary.
+ynab is configured for versioned releases with prebuilt binaries for Linux and macOS on amd64 and arm64. The first release has not been published; until then, use the HEAD formula or build from source. After the first stable release, install and upgrade with mise or the shared Homebrew tap:
+
+```sh
+mise use -g github:jmcampanini/ynab-cli
+mise upgrade github:jmcampanini/ynab-cli
+brew install --cask jmcampanini/tap/ynab
+brew upgrade --cask jmcampanini/tap/ynab
+```
+
+Or download the archive for your platform from the [releases page](https://github.com/jmcampanini/ynab-cli/releases), verify it against the release's SHA-256 checksums file, and put `ynab` on your `PATH`. To upgrade, download the new release and replace the binary. Releases include GitHub build provenance attestations. If a browser download on macOS is quarantined, run `xattr -d com.apple.quarantine ynab` on the extracted binary before running it.
 
 
-### Homebrew
+### Homebrew HEAD alternative
+
+The existing formula remains available for building the latest commit, including its shell completions:
 
 ```sh
 brew tap jmcampanini/ynab-cli https://github.com/jmcampanini/ynab-cli
@@ -18,8 +29,10 @@ brew install --HEAD jmcampanini/ynab-cli/ynab
 Upgrade to the latest commit:
 
 ```sh
-brew upgrade --fetch-HEAD ynab
+brew upgrade --fetch-HEAD jmcampanini/ynab-cli/ynab
 ```
+
+To switch an existing HEAD installation to the released cask after the first stable release, uninstall the formula with `brew uninstall --formula jmcampanini/ynab-cli/ynab` before installing the cask. Both packages install the `ynab` executable.
 
 
 ### From source
@@ -31,8 +44,9 @@ cd ynab-cli
 mise trust
 mise install
 mise run build
-# then copy ./build/ynab to a directory on your PATH
 ```
+
+Copy `./build/ynab` to a directory on your `PATH`. To upgrade a source installation, pull the latest source, run `mise install` and `mise run build`, and replace the installed binary.
 
 
 ## Representative commands
