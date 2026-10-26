@@ -42,8 +42,9 @@ const futureRefillHelp = `Future refill targets:
   Warnings do not change funding amounts or a successful exit status.`
 
 const outputHelp = `Output:
-  Results go to stdout; diagnostics go to stderr. The default is a human
-  table or field listing. --jsonl writes one JSON object per line and --csv
+  Results go to stdout; diagnostics go to stderr. No command prompts or
+  needs a terminal. The default is a human table or field listing. --jsonl
+  writes one JSON object per line and --csv, on commands that list records,
   writes a header row and one row per record; both use the same field names,
   never carry color, and are mutually exclusive. --color auto|always|never
   controls the human output; auto, the default, disables color when
@@ -56,10 +57,15 @@ const dateHelp = `Dates:
   --since and --until accept YYYY-MM-DD, today, or yesterday. today and
   yesterday follow the local clock. Any other form is a usage error.`
 
-const writeHelp = `Writes:
+// writeGateHelp is the write gate every mutating command shares, api verbs
+// included; writeHelp adds the dry-run and record contract of the commands
+// that print records in the read commands' shapes.
+const writeGateHelp = `Writes:
   Mutating commands stay disabled until allow_writes is true in the config
   file or YNAB_ALLOW_WRITES, or --allow-writes is passed; otherwise they
-  exit 3 after loading the configuration and before any request. --dry-run
+  exit 3 after loading the configuration and before any request.`
+
+const writeHelp = writeGateHelp + ` --dry-run
   resolves names and validates input with real reads, builds the request,
   and prints the records the real run would print without sending it;
   --jsonl marks each such record dry_run: true and human output ends with

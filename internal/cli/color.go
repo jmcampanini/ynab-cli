@@ -15,9 +15,9 @@ func (a *app) palette(cmd *cobra.Command) render.Palette {
 	return render.Palette{Enabled: resolveColor(a.color, noColor, terminal, dumb)}
 }
 
-// resolveColor applies the mode to the detected inputs; terminal status
-// and the dumb profile are separate inputs because the RFC treats them as
-// separate capabilities.
+// resolveColor applies the mode to the detected inputs. Terminal status
+// and the dumb profile stay separate: a stream can be a terminal whose
+// TERM=dumb profile renders no color.
 func resolveColor(mode colorMode, noColor, terminal, dumb bool) bool {
 	switch mode {
 	case colorAlways:

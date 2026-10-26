@@ -23,8 +23,8 @@ func exitCodesTopic() *cobra.Command {
      YYYY-MM-01, an amount with separators or too many decimals, a name
      past the API's length limit, an api body that is not JSON, or
      conflicting flags such as --split with --category, --month with
-     --since, or --body with --body-file. Nothing ran and stdout is
-     empty.
+     --since, or --body with --body-file. Nothing was written and stdout
+     is empty, though an amount check may have read the plan first.
   3  Writes disabled: a mutating command, or api post, patch, put, or
      delete, ran without allow_writes in the configuration,
      YNAB_ALLOW_WRITES, or --allow-writes, and without --dry-run. The

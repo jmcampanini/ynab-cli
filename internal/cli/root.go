@@ -68,10 +68,10 @@ raw response. Writes stay disabled until allow_writes is set, and every
 write accepts --dry-run; see 'ynab transactions --help'.
 
 ynab needs a personal access token from https://app.ynab.com/settings/developer
-and network access to api.ynab.com. It runs no external programs, never
-prompts, and keeps nothing on disk. 'ynab completion bash|zsh|fish|powershell'
-prints a completion script that also completes account, category, and
-payee names from the plan.
+and network access to api.ynab.com. It runs no external programs and keeps
+nothing on disk. 'ynab completion bash|zsh|fish|powershell' prints a
+completion script that also completes account, category, and payee names
+from the plan.
 
 ` + configHelp + "\n\n" + planHelp + "\n\n" + outputHelp + `
 
@@ -82,7 +82,7 @@ Common tasks:
   Export the register:    ynab transactions list --since 2026-08-01 --csv
   Review the register:    ynab transactions review
   Preview an approval:    ynab transactions approve --all-unapproved --dry-run
-  Move assigned money:    ynab months move 50 --from "Dining Out" --to Groceries
+  Preview a move:         ynab months move 50 --from Fun --to Bills --dry-run
   Fund every target:      ynab months fund --all-underfunded --allow-writes
   List what needs money:  ynab reports funding --underfunded
   Call the API directly:  ynab api get /user
@@ -92,11 +92,11 @@ Command groups:
   plans            Plans the token can access:     ynab plans --help
   accounts         Accounts and their balances:    ynab accounts --help
   categories       Categories and their targets:   ynab categories --help
-  category-groups  Category groups:                ynab category-groups --help
+  category-groups  Groups of categories:           ynab category-groups --help
   months           Months and assigned money:      ynab months --help
   transactions     The register and its writes:    ynab transactions --help
-  payees           Payees:                         ynab payees --help
-  scheduled        Scheduled transactions:         ynab scheduled --help
+  payees           Payees and their names:         ynab payees --help
+  scheduled        Repeating transactions:         ynab scheduled --help
   money-movements  Recorded money movements:       ynab money-movements --help
   reports          Funding and spending reports:   ynab reports --help
   api              Raw requests to the YNAB API:   ynab api --help`,
@@ -106,7 +106,11 @@ Command groups:
 	}
 	root.InitDefaultHelpFlag()
 	root.InitDefaultVersionFlag()
-	root.SetUsageTemplate(usageTemplate)
+	// Cobra's closing usage line is shortened so the help of the
+	// longest-named groups fits 80 columns.
+	root.SetUsageTemplate(strings.Replace(root.UsageTemplate(),
+		`Use "{{.CommandPath}} [command] --help" for more information about a command.`,
+		`Use "{{.CommandPath}} [command] --help" for a command's help.`, 1))
 	root.PersistentFlags().String("config", "", "Read this TOML file instead of the discovered one")
 	root.PersistentFlags().Var(colorValue{mode: &a.color}, "color", "Color human output: auto, always, never")
 	if err := pflagloader.Register[config.Config](root.PersistentFlags()); err != nil {
@@ -116,12 +120,6 @@ Command groups:
 	root.AddCommand(newConfig(), newPlans(a), newAccounts(a), newCategories(a), newCategoryGroups(a), newMonths(a), newTransactions(a), newPayees(a), newScheduled(a), newMoneyMovements(a), newReports(a), newAPI(a), exitCodesTopic(), outputFormatsTopic())
 	return root
 }
-
-// usageTemplate is Cobra's default with a shorter closing line, so the
-// help of the longest-named groups fits 80 columns.
-var usageTemplate = strings.Replace((&cobra.Command{}).UsageTemplate(),
-	`Use "{{.CommandPath}} [command] --help" for more information about a command.`,
-	`Use "{{.CommandPath}} [command] --help" for a command's help.`, 1)
 
 // Execute runs the command tree with process signals and reports failures.
 func Execute() int {

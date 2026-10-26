@@ -15,8 +15,3 @@ func helpTopic(use, short, long string) *cobra.Command {
 		RunE:        func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
 }
-
-// isHelpTopic reports whether helpTopic built the command.
-func isHelpTopic(cmd *cobra.Command) bool {
-	return cmd.Annotations[topicAnnotation] == "true"
-}

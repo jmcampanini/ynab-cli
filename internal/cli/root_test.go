@@ -235,6 +235,11 @@ func (h *harness) executeStreams(t *testing.T, args ...string) (string, string, 
 	return stdout.String(), stderr.String(), err
 }
 
+// isHelpTopic reports whether helpTopic built the command.
+func isHelpTopic(cmd *cobra.Command) bool {
+	return cmd.Annotations[topicAnnotation] == "true"
+}
+
 // TestEveryApplicationCommandDeclaresArgsAndGroupsAndTopicsAreRunnable
 // is the grammar test: every non-root command declares its operands, and
 // a command group or help topic runs rather than printing help by default.

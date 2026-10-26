@@ -44,7 +44,8 @@ as returned. This is the escape hatch for anything the other commands do
 not cover: the output shape is YNAB's, not this CLI's, so amounts are
 milliunits (1000 per currency unit) and field names are the API's, such
 as budgeted, balance, and goal_target. Nothing else in ynab prints
-milliunits. A bare 'ynab api' prints this help and exits 0.
+milliunits. No verb prompts or needs a terminal. A bare 'ynab api'
+prints this help and exits 0.
 
 PATH is relative to https://api.ynab.com/v1 and may carry a query
 string; the token {plan} in it becomes the configured plan's ID. The
@@ -55,10 +56,10 @@ detail is never lost. Requests count against the API's limit of 200 per
 hour per token like any other.
 
 Each verb makes one request, plus the plans endpoint when PATH names
-{plan}. Every verb but get is a write and takes a request body. The
+{plan}. Every verb but get is a write and may take a request body. The
 API's reference at https://api.ynab.com documents every path and body.
 
-` + apiBodyHelp + "\n\n" + writeHelp + "\n\n" + planHelp + "\n\n" + configHelp,
+` + apiBodyHelp + "\n\n" + apiWriteHelp + "\n\n" + planHelp + "\n\n" + configHelp,
 		Example: `  ynab api get /user
   ynab api get "/plans/{plan}/transactions?since_date=2026-09-01" --pretty
   ynab api patch /plans/{plan}/months/current/categories/ID \
@@ -79,6 +80,11 @@ const apiBodyHelp = `Request body:
   file, resolving a relative path against the working directory, and
   --body-file - reads stdin. The body must parse as JSON. --dry-run prints
   the method, URL, and body that would be sent without sending them.`
+
+// apiWriteHelp is the write gate as the api verbs apply it: a dry run
+// prints the request, not records.
+const apiWriteHelp = writeGateHelp + ` --dry-run
+  wins over --allow-writes. There is no undo.`
 
 // newAPIVerb gives a verb command its operand rule and runner. writes
 // marks the verbs that go through the write gate.

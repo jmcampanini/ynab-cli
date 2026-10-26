@@ -15,7 +15,9 @@ func newTransactionsFlag(a *app) *cobra.Command {
 and print the stored records in the shape of 'transactions list'.
 --color takes red, orange, yellow, green, blue, purple, or none, which
 removes the flag. A flag's custom name belongs to the color in the app
-and cannot be set here.
+and cannot be set here. On this command --color is the flag color, not
+the color mode the Output section describes, so human output always
+follows automatic detection.
 
 Requests: the plans endpoint, the accounts endpoint, then one bulk
 update per 100 transactions.

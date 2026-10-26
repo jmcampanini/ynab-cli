@@ -15,12 +15,12 @@ func newMonthsMove(a *app) *cobra.Command {
 	var monthText, from, to string
 	var dryRun, force bool
 	command := &cobra.Command{
-		Use: "move AMOUNT --from SOURCE --to TARGET", Short: "Move assigned money between categories",
+		Use: "move AMOUNT --from SOURCE --to DESTINATION", Short: "Move assigned money between categories",
 		Long: `Move a positive AMOUNT from one category to another in one month and
 print both rows as stored, in the shape of 'categories list'. The move
 is two writes: the source's assigned amount less AMOUNT, then the
-target's plus AMOUNT. With ready-to-assign as the source or the target,
-only the other side is written, since ready to assign is what is left
+destination's plus AMOUNT. With ready-to-assign on either side, only
+the other side is written, since ready to assign is what is left
 unassigned. The move is refused when the source has less available than
 AMOUNT, or when ready to assign is below it, unless --force is given.
 Three reads then one or two writes.
@@ -61,7 +61,7 @@ Three reads then one or two writes.
 	output.bind(command, true)
 	bindMonthFlag(command, &monthText)
 	command.Flags().StringVar(&from, "from", "", "Source category or ready-to-assign")
-	command.Flags().StringVar(&to, "to", "", "Target category or ready-to-assign")
+	command.Flags().StringVar(&to, "to", "", "Destination category or ready-to-assign")
 	command.Flags().BoolVar(&force, "force", false, "Move more than the source has available")
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print the rows as they would be without writing")
 	_ = command.MarkFlagRequired("from")
