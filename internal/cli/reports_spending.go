@@ -201,7 +201,7 @@ func newReportsSpending(a *app) *cobra.Command {
 	var output outputFlags
 	var by, since, until, month, account string
 	command := &cobra.Command{
-		Use: "spending [--by category|payee] [--since D] [--until D] [--month M] [--account A]", Short: "Total outflows and inflows by category or payee",
+		Use: "spending", Short: "Total outflows and inflows by category or payee",
 		Long: `Total the outflows and inflows of the configured plan's transactions
 over a date range, one row per category (with its group) or, with --by
 payee, per payee, sorted by net with the largest outflow first. Each row

@@ -1,13 +1,9 @@
 package cli
 
-import (
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 func exitCodesTopic() *cobra.Command {
-	return &cobra.Command{
-		Use: "exit-codes", Short: "Exit codes and error categories", Args: cobra.NoArgs,
-		Long: `ynab uses four exit statuses:
+	return helpTopic("exit-codes", "Exit codes and error categories", `ynab uses four exit statuses:
 
   0  Success, including an empty list, help, version, completion, and
      'ynab help <unknown>', which prints the root usage. A
@@ -35,7 +31,5 @@ func exitCodesTopic() *cobra.Command {
      configuration was loaded, no request was made, and stdout is empty.
 
 Errors are written to stderr as 'ynab: <message>'. Machine output that was
-already written stays on stdout when a later failure changes the status.`,
-		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
-	}
+already written stays on stdout when a later failure changes the status.`)
 }

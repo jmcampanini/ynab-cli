@@ -36,9 +36,9 @@ var targetFieldFlags = []string{"target", "target-date", "target-frequency", "ne
 
 func (f *targetFlags) bind(cmd *cobra.Command, update bool) {
 	cmd.Flags().StringVar(&f.amount, "target", "", "Target amount in currency units")
-	cmd.Flags().StringVar(&f.date, "target-date", "", "Target date, YYYY-MM-DD or YYYY-MM, for a by-date target")
+	cmd.Flags().StringVar(&f.date, "target-date", "", "Target date: YYYY-MM-DD or YYYY-MM")
 	bindEnumFlag(cmd, &f.frequency, "target-frequency", "frequency", "Repeat the target: monthly, weekly, yearly", targetFrequencies...)
-	cmd.Flags().BoolVar(&f.needsWholeAmount, "needs-whole-amount", false, "Set aside the full amount each period; =false refills up to it")
+	cmd.Flags().BoolVar(&f.needsWholeAmount, "needs-whole-amount", false, "Set aside the full amount each period")
 	cmd.MarkFlagsMutuallyExclusive("target-frequency", "target-date")
 	if update {
 		cmd.Flags().BoolVar(&f.noTarget, "no-target", false, "Remove the target")

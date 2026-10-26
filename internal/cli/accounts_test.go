@@ -78,6 +78,10 @@ func TestAccountsListColor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	autoOut, err := h.execute(t, "accounts", "list", "--color", "auto")
+	if err != nil {
+		t.Fatal(err)
+	}
 	forced, err := h.execute(t, "accounts", "list", "--color", "always")
 	if err != nil {
 		t.Fatal(err)
@@ -91,6 +95,9 @@ func TestAccountsListColor(t *testing.T) {
 	}
 	if strings.Contains(plainOut, "\x1b[") {
 		t.Errorf("NO_COLOR output carries escapes:\n%q", plainOut)
+	}
+	if autoOut != plainOut {
+		t.Errorf("explicit auto under NO_COLOR = %q, want %q", autoOut, plainOut)
 	}
 	if !strings.Contains(forced, "\x1b[31m") {
 		t.Errorf("--color always under NO_COLOR lacks escapes:\n%q", forced)

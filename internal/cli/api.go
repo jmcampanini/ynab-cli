@@ -33,7 +33,7 @@ func (o *apiOptions) bindWrite(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.body, "body", "", "JSON request body")
 	cmd.Flags().StringVar(&o.bodyFile, "body-file", "", "File holding the JSON request body; - reads stdin")
 	cmd.MarkFlagsMutuallyExclusive("body", "body-file")
-	cmd.Flags().BoolVar(&o.dryRun, "dry-run", false, "Print the request that would be sent without sending it")
+	cmd.Flags().BoolVar(&o.dryRun, "dry-run", false, "Print the request without sending it")
 }
 
 func newAPI(a *app) *cobra.Command {
@@ -54,14 +54,11 @@ status goes to stderr, and the exit status is 1, so the API's own error
 detail is never lost. Requests count against the API's limit of 200 per
 hour per token like any other.
 
-'get' makes one request, plus the plans endpoint when PATH names
-{plan}. 'post', 'patch', 'put', and 'delete' are writes: they take the
-JSON body from --body or --body-file (- for stdin), which must parse as
-JSON, and --dry-run prints the method, URL, and body that would be sent
-without sending them. The API's reference at https://api.ynab.com
-documents every path and body.
+Each verb makes one request, plus the plans endpoint when PATH names
+{plan}. Every verb but get is a write and takes a request body. The
+API's reference at https://api.ynab.com documents every path and body.
 
-` + writeHelp + "\n\n" + planHelp + "\n\n" + configHelp,
+` + apiBodyHelp + "\n\n" + writeHelp + "\n\n" + planHelp + "\n\n" + configHelp,
 		Example: `  ynab api get /user
   ynab api get "/plans/{plan}/transactions?since_date=2026-09-01" --pretty
   ynab api patch /plans/{plan}/months/current/categories/ID \
@@ -74,6 +71,14 @@ documents every path and body.
 	command.AddCommand(newAPIGet(a), newAPIPost(a), newAPIPatch(a), newAPIPut(a), newAPIDelete(a))
 	return command
 }
+
+// apiBodyHelp is the request body contract the api group and each write
+// verb share, so the file a verb reads is named in its own help.
+const apiBodyHelp = `Request body:
+  --body gives the JSON directly; --body-file PATH reads it from that
+  file, resolving a relative path against the working directory, and
+  --body-file - reads stdin. The body must parse as JSON. --dry-run prints
+  the method, URL, and body that would be sent without sending them.`
 
 // newAPIVerb gives a verb command its operand rule and runner. writes
 // marks the verbs that go through the write gate.

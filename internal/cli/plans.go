@@ -41,9 +41,10 @@ func newPlanRecord(plan ynab.Plan, configured bool) planRecord {
 func newPlans(a *app) *cobra.Command {
 	command := &cobra.Command{
 		Use: "plans", Short: "List plans and read the configured plan",
-		Long: `Read the plans the token can access. A bare 'ynab plans' prints this
-help and exits 0. 'plans list' needs only a token; 'plans get' and
-'plans status' also need the configured plan.
+		Long: `Read the plans the token can access, and the configured plan's details
+and month summary. A bare 'ynab plans' prints this help and exits 0.
+Listing the plans needs only a token; the other commands also need the
+configured plan.
 
 ` + planHelp,
 		Args: cobra.NoArgs,

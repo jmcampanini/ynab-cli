@@ -37,12 +37,11 @@ func newMonths(a *app) *cobra.Command {
 		Use:   "months",
 		Short: "Read the plan's months and move its money",
 		Long: `Read the months of the configured plan: income, assigned, activity, ready
-to assign, and age of money, plus each category's row for one month. A
-bare 'ynab months' prints this help and exits 0. The writes set assigned
-amounts: 'assign' sets one category, 'move' shifts money between two or
-from ready to assign, 'cover' clears an overspent category's shortfall,
-and 'fund' assigns what targets still need. The API cannot set month
-notes or record a money movement; a move is two assigned-amount writes.
+to assign, and age of money, plus each category's row for one month. The
+writes set assigned amounts, one category at a time or by moving money
+between categories and ready to assign. A bare 'ynab months' prints this
+help and exits 0. The API cannot set month notes or record a money
+movement; a move is two assigned-amount writes.
 
 ` + writeHelp + "\n\n" + planHelp + "\n\n" + monthHelp,
 		Args: cobra.NoArgs,

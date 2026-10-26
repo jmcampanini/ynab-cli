@@ -235,7 +235,10 @@ func (h *harness) executeStreams(t *testing.T, args ...string) (string, string, 
 	return stdout.String(), stderr.String(), err
 }
 
-func TestEveryApplicationCommandDeclaresArgsAndGroupsAreRunnable(t *testing.T) {
+// TestEveryApplicationCommandDeclaresArgsAndGroupsAndTopicsAreRunnable
+// is the grammar test: every non-root command declares its operands, and
+// a command group or help topic runs rather than printing help by default.
+func TestEveryApplicationCommandDeclaresArgsAndGroupsAndTopicsAreRunnable(t *testing.T) {
 	var walk func(*cobra.Command)
 	walk = func(command *cobra.Command) {
 		for _, child := range command.Commands() {
@@ -245,8 +248,8 @@ func TestEveryApplicationCommandDeclaresArgsAndGroupsAreRunnable(t *testing.T) {
 			if child.Args == nil {
 				t.Errorf("%s has no Args validator", child.CommandPath())
 			}
-			if child.HasSubCommands() && !child.Runnable() {
-				t.Errorf("%s has subcommands but no runner", child.CommandPath())
+			if (child.HasSubCommands() || isHelpTopic(child)) && !child.Runnable() {
+				t.Errorf("%s is a group or help topic without a runner", child.CommandPath())
 			}
 			walk(child)
 		}
@@ -254,41 +257,40 @@ func TestEveryApplicationCommandDeclaresArgsAndGroupsAreRunnable(t *testing.T) {
 	walk(newRoot(defaultDependencies()))
 }
 
-func TestExitCodesTopicPrintsSameHelpFromBothEntryPoints(t *testing.T) {
+// TestEveryApplicationCommandHasShortAndWrappedHelp is the help test: every
+// command carries short and long help, the help that 'ynab ... --help'
+// renders fits 80 columns with flag usage included, and a help topic prints
+// that same help when run directly and through 'ynab help'.
+func TestEveryApplicationCommandHasShortAndWrappedHelp(t *testing.T) {
 	h := newHarness(t)
-
-	a, err := h.execute(t, "exit-codes")
-	if err != nil {
-		t.Fatal(err)
-	}
-	b, err := h.execute(t, "help", "exit-codes")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if a != b {
-		t.Errorf("exit-codes and help exit-codes differ:\n%s\n%s", a, b)
-	}
-	for _, row := range []string{"0  Success", "1  Command failure", "2  Usage", "3  Writes disabled"} {
-		if !strings.Contains(a, row) {
-			t.Errorf("exit-codes topic lacks %q", row)
-		}
-	}
-}
-
-func TestEveryApplicationCommandHasWrappedLongHelp(t *testing.T) {
+	topics := 0
 	var walk func(*cobra.Command)
 	walk = func(command *cobra.Command) {
 		if command.Name() == "help" || command.Name() == "completion" {
 			return
 		}
+		if command.Short == "" {
+			t.Errorf("%s lacks short help", command.CommandPath())
+		}
 		if command.Long == "" {
 			t.Errorf("%s lacks long help", command.CommandPath())
 		}
-		for _, text := range []string{command.Long, command.Example} {
-			for _, line := range strings.Split(text, "\n") {
-				if len(line) > 80 {
-					t.Errorf("%s line exceeds 80 columns: %q", command.CommandPath(), line)
+		path := strings.Fields(command.CommandPath())[1:]
+		help, err := h.execute(t, append(path, "--help")...)
+		if err != nil {
+			t.Fatalf("%s --help: %v", command.CommandPath(), err)
+		}
+		for _, line := range strings.Split(help, "\n") {
+			if len(line) > 80 {
+				t.Errorf("%s help line exceeds 80 columns: %q", command.CommandPath(), line)
+			}
+		}
+		if isHelpTopic(command) {
+			topics++
+			for _, args := range [][]string{path, append([]string{"help"}, path...)} {
+				out, err := h.execute(t, args...)
+				if err != nil || out != help {
+					t.Errorf("execute(%v) = %q, %v; want the topic's help", args, out, err)
 				}
 			}
 		}
@@ -297,6 +299,26 @@ func TestEveryApplicationCommandHasWrappedLongHelp(t *testing.T) {
 		}
 	}
 	walk(newRoot(defaultDependencies()))
+	if topics == 0 {
+		t.Error("the walk found no help topic")
+	}
+	if len(h.requests) != 0 {
+		t.Errorf("help made requests: %v", h.requests)
+	}
+}
+
+func TestExitCodesTopicListsEveryStatus(t *testing.T) {
+	h := newHarness(t)
+
+	out, err := h.execute(t, "exit-codes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range []string{"0  Success", "1  Command failure", "2  Usage", "3  Writes disabled", "'ynab: <message>'"} {
+		if !strings.Contains(out, row) {
+			t.Errorf("exit-codes topic lacks %q", row)
+		}
+	}
 }
 
 func TestUsageErrorsExitTwoBeforeAnyRequest(t *testing.T) {

@@ -15,7 +15,7 @@ func newMonthsMove(a *app) *cobra.Command {
 	var monthText, from, to string
 	var dryRun, force bool
 	command := &cobra.Command{
-		Use: "move AMOUNT --from CATEGORY|ready-to-assign --to CATEGORY|ready-to-assign", Short: "Move assigned money between categories",
+		Use: "move AMOUNT --from SOURCE --to TARGET", Short: "Move assigned money between categories",
 		Long: `Move a positive AMOUNT from one category to another in one month and
 print both rows as stored, in the shape of 'categories list'. The move
 is two writes: the source's assigned amount less AMOUNT, then the

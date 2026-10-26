@@ -17,7 +17,7 @@ func newCategoriesUpdate(a *app) *cobra.Command {
 	var name, groupText, note string
 	var dryRun bool
 	command := &cobra.Command{
-		Use: "update CATEGORY [--name N] [--note TEXT] [--group GROUP] [target flags]", Short: "Change a category's name, note, group, or target",
+		Use: "update CATEGORY", Short: "Change a category's name, note, group, or target",
 		Long: `Change fields on one category and print it as stored, in the shape of
 'categories get', with the current month's amounts. CATEGORY is an ID,
 an exact name, or "Group: Name", matched case-insensitively; hidden
@@ -101,9 +101,9 @@ the update. The API cannot delete or hide a category.
 	output.bind(command, false)
 	command.Flags().StringVar(&name, "name", "", "New name")
 	command.Flags().StringVar(&note, "note", "", "Note text; an empty value clears it")
-	command.Flags().StringVar(&groupText, "group", "", "Move to this category group, by ID or exact name")
+	command.Flags().StringVar(&groupText, "group", "", "New group, by ID or exact name")
 	target.bind(command, true)
-	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print the category as it would be without changing it")
+	command.Flags().BoolVar(&dryRun, "dry-run", false, "Print the category without changing it")
 	command.ValidArgsFunction = a.completeCategories()
 	completeFlags(command, a.completeCategoryGroups(), "group")
 	return command
