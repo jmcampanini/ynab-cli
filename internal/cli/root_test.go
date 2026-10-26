@@ -328,7 +328,7 @@ func TestMissingTokenAndPlanExitOneNamingTheSetting(t *testing.T) {
 	t.Setenv("YNAB_PLAN", "")
 
 	_, err := h.execute(t, "plans", "list")
-	if err == nil || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), "YNAB_TOKEN") || !strings.Contains(err.Error(), "config.toml") {
+	if err == nil || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), "YNAB_TOKEN") || !strings.Contains(err.Error(), filepath.Join("ynab", "config.toml")) {
 		t.Errorf("plans list without token = %v (exit %d)", err, status.Code(err))
 	}
 
