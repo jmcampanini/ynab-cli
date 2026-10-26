@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -31,7 +32,7 @@ func TestWritesExitThreeWithoutAllowWrites(t *testing.T) {
 			if err == nil || out != "" || status.Code(err) != status.ExitWritesDisabled {
 				t.Fatalf("execute(%v) = %q, %v (exit %d), want exit 3 and empty stdout", args, out, err, status.Code(err))
 			}
-			for _, want := range []string{"allow_writes", "YNAB_ALLOW_WRITES", "--allow-writes", "ynab.toml"} {
+			for _, want := range []string{"allow_writes", "YNAB_ALLOW_WRITES", "--allow-writes", filepath.Join("ynab", "config.toml")} {
 				if !strings.Contains(err.Error(), want) {
 					t.Errorf("error %q lacks %q", err, want)
 				}
