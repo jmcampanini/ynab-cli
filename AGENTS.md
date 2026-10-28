@@ -1,6 +1,6 @@
 - Read [plans/domain-map.md](plans/domain-map.md) before changing behavior, names, or scope. It owns the nouns, verbs, and settled decisions.
 - Read [plans/milestones.md](plans/milestones.md) to find the current slice. Each milestone has a GitHub issue describing its implementation; work the issue, not beyond it.
-- Follow the Go repositories and CLI repositories RFCs indexed at `rfcs/index.md` in the sibling `gibson` checkout.
+- Follow the Go and CLI RFCs in jstack, linked into `~/.jstack/rfcs/`: `go-build`, `go-layout`, `go-release`, and every `cli-*` RFC.
 - Command help is the canonical user-facing documentation; the README is a landing page. Both stay consistent with observable behavior.
 - Run repository tasks with `mise run <task>`; do not invoke pinned tools directly. Use `mise run check` for local and CI verification. Keep formatting and dependency updates in `mise run fmt` and `mise run tidy`.
 - Bump a tool with `mise upgrade --bump <tool>`, then run `mise lock` and `mise run check`. When bumping Go, keep the `go.mod` Go version aligned with the pin.
