@@ -1,7 +1,8 @@
 package cli
 
 import (
-	"github.com/jmcampanini/ynab-cli/internal/status"
+	"errors"
+
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +13,7 @@ func configPath(cmd *cobra.Command) (string, error) {
 		return "", err
 	}
 	if cmd.Flags().Changed("config") && path == "" {
-		return "", status.Usage("--config requires a nonempty file path")
+		return "", errors.New("--config requires a nonempty file path")
 	}
 	return path, nil
 }

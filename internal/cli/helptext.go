@@ -5,8 +5,7 @@ package cli
 
 const configHelp = `Configuration:
   Read $XDG_CONFIG_HOME/ynab/config.toml, or ~/.config/ynab/config.toml when
-  XDG_CONFIG_HOME is empty; a missing file is fine. Relative XDG_CONFIG_HOME
-  follows go-config-loader and resolves against the working directory.
+  XDG_CONFIG_HOME is unset, empty, or relative; a missing file is fine.
   --config PATH replaces discovery and the file must exist. Precedence is
   defaults, TOML, environment, then flags. The keys are plan, the ID or
   exact name of the plan to work in; token, the personal access token from
@@ -28,7 +27,7 @@ const planHelp = `Plan selection:
 const monthHelp = `Months:
   MONTH and --month accept current, YYYY-MM, or YYYY-MM-01. current is the
   calendar month in UTC, which is how the API defines the current plan
-  month. Any other form is a usage error.`
+  month. Any other form fails with exit status 1.`
 
 const futureRefillHelp = `Future refill targets:
   Amounts follow the API. A future month's refill target (NEED with
@@ -37,16 +36,17 @@ const futureRefillHelp = `Future refill targets:
   affected category and month, even when API underfunding is zero or
   absent. It flags a possible difference, not a confirmed discrepancy.
   Check the web target panel before treating the category as funded.
-  Warnings also appear with --jsonl, --csv where supported, and dry runs.
+  Warnings also appear in machine output modes and dry runs.
   Agents must capture stderr as well as stdout, including empty results.
   Warnings do not change funding amounts or a successful exit status.`
 
 const outputHelp = `Output:
   Results go to stdout; diagnostics go to stderr. No command prompts or
   needs a terminal. The default is a human table or field listing. --jsonl
-  writes one JSON object per line and --csv, on commands that list records,
-  writes a header row and one row per record; both use the same field names,
-  never carry color, and are mutually exclusive. --color auto|always|never
+  writes one JSON object per line and --csv, where offered, writes a header
+  and one row per record. Remote reads also offer --json. Machine formats
+  use the same fields, never carry color, and are
+  mutually exclusive. --color auto|always|never
   controls the human output; auto, the default, disables color when
   stdout is not a terminal, TERM is dumb, or NO_COLOR is nonempty, and
   always and never override that detection. Amounts are decimal currency
@@ -55,7 +55,7 @@ const outputHelp = `Output:
 
 const dateHelp = `Dates:
   --since and --until accept YYYY-MM-DD, today, or yesterday. today and
-  yesterday follow the local clock. Any other form is a usage error.`
+  yesterday follow the local clock. Any other form fails with exit status 1.`
 
 // writeGateHelp is the write gate every mutating command shares, api verbs
 // included; writeHelp adds the dry-run and record contract of the commands

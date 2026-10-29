@@ -1,8 +1,9 @@
 package cli
 
 import (
+	"errors"
+
 	"github.com/jmcampanini/ynab-cli/internal/selection"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
@@ -34,7 +35,7 @@ listing with --all-unapproved, then one bulk update per 100 transactions.
 				return err
 			}
 			if account != "" && !allUnapproved {
-				return status.Usage("--account narrows --all-unapproved; with IDs, name the transactions alone")
+				return errors.New("--account narrows --all-unapproved; with IDs, name the transactions alone")
 			}
 
 			s, err := a.openTransactionWrite(cmd, dryRun)

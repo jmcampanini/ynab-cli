@@ -1,15 +1,16 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/jmcampanini/ynab-cli/internal/categoryview"
+	"github.com/jmcampanini/ynab-cli/internal/dates"
 	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
@@ -62,12 +63,12 @@ func (f *targetFlags) validate(cmd *cobra.Command, create bool) error {
 		return nil
 	}
 	if flags.Changed("target-frequency") {
-		return status.Usage("--target-frequency requires --target")
+		return errors.New("--target-frequency requires --target")
 	}
 	if create {
 		for _, name := range []string{"target-date", "needs-whole-amount"} {
 			if flags.Changed(name) {
-				return status.Usage(fmt.Sprintf("--%s requires --target on create", name))
+				return fmt.Errorf("--%s requires --target on create", name)
 			}
 		}
 	}
@@ -97,7 +98,7 @@ func (f *targetFlags) resolve(cmd *cobra.Command, s *writeSession, save *ynab.Sa
 			return err
 		}
 		if amount <= 0 {
-			return status.Usage("--target must be positive")
+			return errors.New("--target must be positive")
 		}
 		save.SetTargetAmount(amount)
 	}
@@ -117,7 +118,7 @@ func (f *targetFlags) resolve(cmd *cobra.Command, s *writeSession, save *ynab.Sa
 }
 
 // targetDate parses YYYY-MM-DD, or YYYY-MM as the first of that month,
-// since by-date targets are month-granular. A bad form is a usage error.
+// since by-date targets are month-granular. An invalid form fails before any request.
 func targetDate(text string) (string, error) {
 	if parsed, err := time.Parse(time.DateOnly, text); err == nil {
 		return parsed.Format(time.DateOnly), nil
@@ -125,7 +126,7 @@ func targetDate(text string) (string, error) {
 	if parsed, err := time.Parse("2006-01", text); err == nil {
 		return parsed.Format(time.DateOnly), nil
 	}
-	return "", status.Usage(fmt.Sprintf("invalid --target-date %q: use YYYY-MM-DD or YYYY-MM", text))
+	return "", fmt.Errorf("invalid --target-date %q: use YYYY-MM-DD or YYYY-MM", text)
 }
 
 // previewCategory applies a save to a category as the API does, for a
@@ -174,7 +175,7 @@ func previewCategory(category ynab.Category, save ynab.SaveCategory, group ynab.
 // printCategory writes one category as 'categories get' does, followed
 // in human output by the summary line.
 func (s *writeSession) printCategory(cmd *cobra.Command, output outputFlags, category ynab.Category, group ynab.CategoryGroup, summary string) error {
-	apiMonth, err := input.Month("current", s.app.deps.now())
+	apiMonth, err := dates.Month("current", s.app.deps.now())
 	if err != nil {
 		return err
 	}

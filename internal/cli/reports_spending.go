@@ -10,7 +10,6 @@ import (
 	"github.com/jmcampanini/ynab-cli/internal/register"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
@@ -241,10 +240,10 @@ categories endpoint, which supplies the group names.
 				return err
 			}
 			if filters.Since != "" && filters.Until != "" && filters.Since > filters.Until {
-				return status.Usage(fmt.Sprintf("--since %s is after --until %s", filters.Since, filters.Until))
+				return fmt.Errorf("--since %s is after --until %s", filters.Since, filters.Until)
 			}
 			if filters.Since == "" && filters.Until == "" {
-				if filters.Month, err = input.Month(month, a.deps.now()); err != nil {
+				if filters.Month, err = dates.Month(month, a.deps.now()); err != nil {
 					return err
 				}
 			}
@@ -290,23 +289,22 @@ categories endpoint, which supplies the group names.
 				onPlan[account.ID] = account.OnPlan
 			}
 			report := newSpendingReport(by, transactions, onPlan, groupNames)
+			summary := report.summary(rangeWords(filters.Month, filters.Since, filters.Until), plan.CurrencyFormat)
+			report.records = limitRecords(&output, report.records)
 			out := cmd.OutOrStdout()
-			switch {
-			case output.jsonl:
-				return render.JSONL(out, report.records)
-			case output.csv:
-				return render.CSV(out, report.records)
+			if output.machine() {
+				return writeRecords(out, output, report.records)
 			}
 			if err := render.Table(out, report.columns(), report.rows(plan.CurrencyFormat)); err != nil {
 				return err
 			}
-			_, err = fmt.Fprintln(out, report.summary(rangeWords(filters.Month, filters.Since, filters.Until), plan.CurrencyFormat))
+			_, err = fmt.Fprintln(out, summary)
 			return err
 		}),
 	}
-	output.bind(command, true)
-	by = byCategory
+	output.bindRead(command, true)
 	bindEnumFlag(command, &by, "by", "grouping", "Group rows by category or payee", byCategory, byPayee)
+	useCommandDefault(command.Flags().Lookup("by"))
 	command.Flags().StringVar(&since, "since", "", "Earliest date: YYYY-MM-DD, today, yesterday")
 	command.Flags().StringVar(&until, "until", "", "Latest date: YYYY-MM-DD, today, yesterday")
 	bindMonthFlag(command, &month)

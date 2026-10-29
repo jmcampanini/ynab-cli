@@ -26,12 +26,6 @@ func (e *exitError) Error() string { return e.err.Error() }
 
 func (e *exitError) Unwrap() error { return e.err }
 
-// Usage marks a failure raised by a runner that is still a usage
-// mistake, such as an empty --config value.
-func Usage(message string) error {
-	return &exitError{code: ExitUsage, err: errors.New(message)}
-}
-
 // WritesDisabled is the failure of a mutating command run without
 // allow_writes, which exits ExitWritesDisabled before any request.
 func WritesDisabled(configPath string) error {

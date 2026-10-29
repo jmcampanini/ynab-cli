@@ -30,11 +30,9 @@ func TestScheduledListRendersSplits(t *testing.T) {
 	if table != wantTable {
 		t.Errorf("scheduled list =\n%s\nwant\n%s", table, wantTable)
 	}
-	wantCSV := `id,parent_id,next_date,first_date,frequency,account,account_id,payee,payee_id,category,category_id,memo,amount,flag_color,flag_name,transfer_account,transfer_account_id
-st1,,2026-10-01,2024-02-01,monthly,Chase Checking,a1,Landlord,p1,Rent,c2,,-1500.00,,,,
-st2,,2027-01-15,2027-01-15,yearly,Chase Checking,a1,Insurance Co,p8,Split,,annual,-600.00,blue,,,
-ss1,st2,2027-01-15,2027-01-15,yearly,Chase Checking,a1,,,Dining Out,c3,,-100.00,blue,,,
-ss2,st2,2027-01-15,2027-01-15,yearly,Chase Checking,a1,,,Internet,c1,modem,-500.00,blue,,,
+	wantCSV := `id,next_date,first_date,frequency,account,account_id,payee,payee_id,category,category_id,memo,amount,flag_color,flag_name,transfer_account,transfer_account_id,subtransactions
+st1,2026-10-01,2024-02-01,monthly,Chase Checking,a1,Landlord,p1,Rent,c2,,-1500.00,,,,,
+st2,2027-01-15,2027-01-15,yearly,Chase Checking,a1,Insurance Co,p8,Split,,annual,-600.00,blue,,,,"[{""id"":""ss1"",""category"":""Dining Out"",""category_id"":""c3"",""amount"":-100.00},{""id"":""ss2"",""category"":""Internet"",""category_id"":""c1"",""memo"":""modem"",""amount"":-500.00}]"
 `
 	if csv != wantCSV {
 		t.Errorf("scheduled list --csv =\n%s\nwant\n%s", csv, wantCSV)

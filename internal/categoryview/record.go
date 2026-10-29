@@ -27,7 +27,7 @@ type Record struct {
 }
 
 // Target is the target object of a category record, carrying the
-// API's raw codes. CSV flattens it into target_* columns.
+// API's raw codes. CSV keeps the object in one compact JSON cell.
 type Target struct {
 	Type             string       `json:"type"`
 	Amount           ynab.Amount  `json:"amount"`

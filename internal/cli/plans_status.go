@@ -6,7 +6,6 @@ import (
 
 	"github.com/jmcampanini/ynab-cli/internal/categoryview"
 	"github.com/jmcampanini/ynab-cli/internal/dates"
-	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -136,7 +135,7 @@ or not anything needs attention.
   ynab plans status --jsonl | jq .overspent_count`,
 		Args: cobra.NoArgs,
 		RunE: run(func(cmd *cobra.Command, _ []string) error {
-			apiMonth, err := input.Month("current", a.deps.now())
+			apiMonth, err := dates.Month("current", a.deps.now())
 			if err != nil {
 				return err
 			}
@@ -174,12 +173,12 @@ or not anything needs attention.
 				return err
 			}
 			out := cmd.OutOrStdout()
-			if output.jsonl {
-				return render.JSONL(out, []statusRecord{status.record})
+			if output.machine() {
+				return writeRecords(out, output, []statusRecord{status.record})
 			}
 			return render.Fields(out, status.fields(plan.CurrencyFormat))
 		}),
 	}
-	output.bind(command, false)
+	output.bindRead(command, false)
 	return command
 }

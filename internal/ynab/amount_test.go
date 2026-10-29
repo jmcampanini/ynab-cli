@@ -2,6 +2,7 @@ package ynab
 
 import (
 	"encoding/json"
+	"math"
 	"testing"
 )
 
@@ -11,6 +12,40 @@ func TestAmountString(t *testing.T) {
 		if got := amount.String(); got != want {
 			t.Errorf("Amount(%d).String() = %q, want %q", amount, got, want)
 		}
+	}
+}
+
+func TestAmountBoundaryRendering(t *testing.T) {
+	cases := []struct {
+		name   string
+		amount Amount
+		want   [4]string
+	}{
+		{
+			name: "maximum", amount: math.MaxInt64,
+			want: [4]string{"9223372036854776", "9223372036854775.8", "9223372036854775.81", "9223372036854775.807"},
+		},
+		{
+			name: "negative maximum", amount: -math.MaxInt64,
+			want: [4]string{"-9223372036854776", "-9223372036854775.8", "-9223372036854775.81", "-9223372036854775.807"},
+		},
+		{
+			name: "minimum", amount: math.MinInt64,
+			want: [4]string{"-9223372036854776", "-9223372036854775.8", "-9223372036854775.81", "-9223372036854775.808"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			for digits, want := range tc.want {
+				if got := tc.amount.Decimal(digits); got != want {
+					t.Errorf("Decimal(%d) = %q, want %q", digits, got, want)
+				}
+			}
+			got, err := json.Marshal(tc.amount)
+			if err != nil || string(got) != tc.want[2] {
+				t.Errorf("json.Marshal() = %s, %v, want %s", got, err, tc.want[2])
+			}
+		})
 	}
 }
 

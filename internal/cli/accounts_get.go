@@ -40,13 +40,13 @@ one object.
 
 			record := newAccountRecord(account)
 			out := cmd.OutOrStdout()
-			if output.jsonl {
-				return render.JSONL(out, []accountRecord{record})
+			if output.machine() {
+				return writeRecords(out, output, []accountRecord{record})
 			}
 			return render.Fields(out, accountFields(record, plan.CurrencyFormat))
 		}),
 	}
-	output.bind(command, false)
+	output.bindRead(command, false)
 	command.ValidArgsFunction = a.completeAccounts()
 	return command
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/jmcampanini/ynab-cli/internal/render"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/spf13/cobra"
 )
 
@@ -45,7 +44,7 @@ then one or two writes, the source first.
 				return err
 			}
 			if source.same(moneySource{category: target}) {
-				return status.Usage(fmt.Sprintf("--from names %s, the category to cover", target.qualifiedName()))
+				return fmt.Errorf("--from names %s, the category to cover", target.qualifiedName())
 			}
 			shortfall := -target.category.Available
 			if err := ms.checkAvailable(source, shortfall, force); err != nil {

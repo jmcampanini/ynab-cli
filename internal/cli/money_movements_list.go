@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/jmcampanini/ynab-cli/internal/input"
+	"github.com/jmcampanini/ynab-cli/internal/dates"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -31,7 +31,7 @@ categories), then the money movements endpoint.
 			apiMonth := ""
 			if cmd.Flags().Changed("month") {
 				var err error
-				if apiMonth, err = input.Month(month, a.deps.now()); err != nil {
+				if apiMonth, err = dates.Month(month, a.deps.now()); err != nil {
 					return err
 				}
 			}
@@ -63,12 +63,10 @@ categories), then the money movements endpoint.
 				records[i] = newMoneyMovementRecord(movement, categories)
 			}
 
+			records = limitRecords(&output, records)
 			out := cmd.OutOrStdout()
-			switch {
-			case output.jsonl:
-				return render.JSONL(out, records)
-			case output.csv:
-				return render.CSV(out, records)
+			if output.machine() {
+				return writeRecords(out, output, records)
 			}
 			columns := []render.Column{{Name: "MONTH"}, {Name: "MOVED AT"}, {Name: "FROM"}, {Name: "TO"}, {Name: "AMOUNT", Right: true}, {Name: "NOTE"}}
 			rows := make([][]render.Cell, len(records))
@@ -85,7 +83,7 @@ categories), then the money movements endpoint.
 			return err
 		}),
 	}
-	output.bind(command, true)
+	output.bindRead(command, true)
 	command.Flags().StringVar(&month, "month", "", "Month: current, YYYY-MM, YYYY-MM-01")
 	return command
 }

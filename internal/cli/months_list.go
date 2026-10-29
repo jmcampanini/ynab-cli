@@ -42,12 +42,10 @@ the plans endpoint, then the months endpoint.
 				records[i] = newMonthRecord(month)
 			}
 
+			records = limitRecords(&output, records)
 			out := cmd.OutOrStdout()
-			switch {
-			case output.jsonl:
-				return render.JSONL(out, records)
-			case output.csv:
-				return render.CSV(out, records)
+			if output.machine() {
+				return writeRecords(out, output, records)
 			}
 			columns := []render.Column{
 				{Name: "MONTH"},
@@ -70,6 +68,6 @@ the plans endpoint, then the months endpoint.
 			return err
 		}),
 	}
-	output.bind(command, true)
+	output.bindRead(command, true)
 	return command
 }

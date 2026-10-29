@@ -1,10 +1,10 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jmcampanini/ynab-cli/internal/render"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
@@ -35,7 +35,7 @@ delete a category afterwards; it can hide one only in the app.
 		Args: cobra.ExactArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
 			if args[0] == "" {
-				return status.Usage("NAME must not be empty")
+				return errors.New("NAME must not be empty")
 			}
 			if err := target.validate(cmd, true); err != nil {
 				return err

@@ -1,11 +1,11 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jmcampanini/ynab-cli/internal/categoryview"
 	"github.com/jmcampanini/ynab-cli/internal/render"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
@@ -38,9 +38,9 @@ one write per category, the source first.
 		RunE: run(func(cmd *cobra.Command, args []string) error {
 			switch {
 			case len(args) > 0 && allUnderfunded:
-				return status.Usage("give categories or --all-underfunded, not both")
+				return errors.New("give categories or --all-underfunded, not both")
 			case len(args) == 0 && !allUnderfunded:
-				return status.Usage("give at least one category or --all-underfunded")
+				return errors.New("give at least one category or --all-underfunded")
 			}
 
 			ms, err := a.openMonth(cmd, dryRun, monthText)
@@ -81,7 +81,7 @@ one write per category, the source first.
 				}
 				for _, target := range targets {
 					if source.same(moneySource{category: target}) {
-						return status.Usage(fmt.Sprintf("--from names %s, one of the categories to fund", target.qualifiedName()))
+						return fmt.Errorf("--from names %s, one of the categories to fund", target.qualifiedName())
 					}
 				}
 			}

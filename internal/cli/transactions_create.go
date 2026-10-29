@@ -8,7 +8,6 @@ import (
 
 	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
@@ -29,7 +28,7 @@ type splitLine struct {
 func parseSplit(text string) (splitLine, error) {
 	category, rest, found := strings.Cut(text, "=")
 	if !found || category == "" || rest == "" {
-		return splitLine{}, status.Usage(fmt.Sprintf("invalid --split %q: use CATEGORY=AMOUNT or CATEGORY=AMOUNT:memo", text))
+		return splitLine{}, fmt.Errorf("invalid --split %q: use CATEGORY=AMOUNT or CATEGORY=AMOUNT:memo", text)
 	}
 	amount, memo, _ := strings.Cut(rest, ":")
 	return splitLine{amount: amount, category: category, memo: memo}, nil
@@ -76,10 +75,10 @@ the create. A dry run makes every read and skips the create.
 		Args: cobra.NoArgs,
 		RunE: run(func(cmd *cobra.Command, _ []string) error {
 			if len(importID) > maxImportIDLength {
-				return status.Usage(fmt.Sprintf("--import-id is %d characters; the API allows at most %d", len(importID), maxImportIDLength))
+				return fmt.Errorf("--import-id is %d characters; the API allows at most %d", len(importID), maxImportIDLength)
 			}
 			if len(splits) > 0 && cmd.Flags().Changed("category") {
-				return status.Usage("--split and --category cannot be combined; a split's lines carry the categories")
+				return errors.New("--split and --category cannot be combined; a split's lines carry the categories")
 			}
 			lines := make([]splitLine, len(splits))
 			for i, text := range splits {
@@ -170,7 +169,7 @@ func (s *writeSession) resolveSplits(cmd *cobra.Command, lines []splitLine, tota
 		}
 	}
 	if sum != total {
-		return nil, status.Usage(fmt.Sprintf("--split lines total %s but --amount is %s", sum, total))
+		return nil, fmt.Errorf("--split lines total %s but --amount is %s", sum, total)
 	}
 	return subtransactions, nil
 }

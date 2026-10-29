@@ -1,8 +1,14 @@
-- Read [plans/domain-map.md](plans/domain-map.md) before changing behavior, names, or scope. It owns the nouns, verbs, and settled decisions.
-- Read [plans/milestones.md](plans/milestones.md) to find the current slice. Each milestone has a GitHub issue describing its implementation; work the issue, not beyond it.
-- Follow the Go and CLI RFCs in jstack, linked into `~/.jstack/rfcs/`: `go-build`, `go-layout`, `go-release`, and every `cli-*` RFC.
-- Command help is the canonical user-facing documentation; the README is a landing page. Both stay consistent with observable behavior.
-- Run repository tasks with `mise run <task>`; do not invoke pinned tools directly. Use `mise run check` for local and CI verification. Keep formatting and dependency updates in `mise run fmt` and `mise run tidy`.
-- Bump a tool with `mise upgrade --bump <tool>`, then run `mise lock` and `mise run check`. When bumping Go, keep the `go.mod` Go version aligned with the pin.
-- The `output-formats` help topic in `internal/cli/output_formats.go` is written by hand. Update it in the same change as any edit to the record structs it describes: `planRecord`, `accountRecord`, and `configRecord`.
-- Say `plan`, never `budget`. Say `assigned`, `available`, `ready to assign`, and `target` in user-facing text, as the domain map's terminology table defines them.
+- Follow the applicable [jstack RFCs](https://github.com/jmcampanini/jstack/tree/main/rfcs), available locally under `~/.jstack/rfcs/`.
+- Treat command help as the canonical user-facing documentation.
+- Keep the README as a landing page.
+- Keep command help and the README consistent with observable behavior.
+- Run repository tasks with `mise run <task>` instead of invoking pinned tools directly.
+- Use `mise run check` for local and CI verification.
+- Apply formatting with `mise run fmt`.
+- Apply dependency cleanup with `mise run tidy`.
+- Upgrade a tool pin with this sequence:
+  1. Run `mise upgrade --bump <tool>`.
+  2. Run `mise lock`.
+  3. Run `mise run check`.
+- Update the handwritten `output-formats` help topic in `internal/cli/output_formats.go` in the same change as any record schema it describes.
+- Use `plan`, `assigned`, `available`, `ready to assign`, and `target` in user-facing text instead of the API's older terminology.

@@ -20,7 +20,7 @@ func TestWritesExitThreeWithoutAllowWrites(t *testing.T) {
 		{"transactions", "categorize", "--category", "Rent", "t5"},
 		{"transactions", "clear", "t3"},
 		{"transactions", "unclear", "t3"},
-		{"transactions", "flag", "--color", "red", "t3"},
+		{"transactions", "flag", "--flag", "red", "t3"},
 		{"transactions", "import"},
 	}
 	for _, args := range cases {
@@ -112,8 +112,8 @@ dry run, nothing changed: would approve 2 transactions
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(csv, "id,parent_id,") || !strings.HasSuffix(strings.Split(csv, "\n")[0], ",dry_run") || strings.Count(csv, ",true\n") != 3 {
-		t.Errorf("update --dry-run --csv =\n%s\nwant a dry_run column true on the parent and both lines", csv)
+	if !strings.HasPrefix(csv, "id,date,") || !strings.HasSuffix(strings.Split(csv, "\n")[0], ",dry_run") || strings.Count(csv, ",true\n") != 1 {
+		t.Errorf("update --dry-run --csv =\n%s\nwant one dry_run row with split lines in its subtransactions cell", csv)
 	}
 }
 
@@ -218,8 +218,8 @@ func TestBulkFieldCommandsSendTheirBodies(t *testing.T) {
 		{[]string{"approve", "--all-unapproved", "--account", "Visa"}, `{"transactions":[{"approved":true,"id":"t3"}]}`, "approved 1 transaction"},
 		{[]string{"clear", "t3", "t3"}, `{"transactions":[{"cleared":"cleared","id":"t3"}]}`, "cleared 1 transaction"},
 		{[]string{"unclear", "t9", "--force"}, `{"transactions":[{"cleared":"uncleared","id":"t9"}]}`, "uncleared 1 transaction"},
-		{[]string{"flag", "--color", "red", "t5"}, `{"transactions":[{"flag_color":"red","id":"t5"}]}`, "flagged 1 transaction"},
-		{[]string{"flag", "--color", "none", "t3"}, `{"transactions":[{"flag_color":null,"id":"t3"}]}`, "unflagged 1 transaction"},
+		{[]string{"flag", "--flag", "red", "--color", "never", "t5"}, `{"transactions":[{"flag_color":"red","id":"t5"}]}`, "flagged 1 transaction"},
+		{[]string{"flag", "--flag", "none", "t3"}, `{"transactions":[{"flag_color":null,"id":"t3"}]}`, "unflagged 1 transaction"},
 	}
 	for _, tc := range cases {
 		t.Run(strings.Join(tc.args, " "), func(t *testing.T) {
@@ -290,8 +290,8 @@ func TestUpdateRefusesCategoryOnTransferBetweenPlanAccounts(t *testing.T) {
 
 	_, err := h.execute(t, "transactions", "update", "t3", "--transfer-to", "Chase Checking", "--category", "Rent", "--allow-writes")
 
-	if err == nil || status.Code(err) != status.ExitUsage || !strings.Contains(err.Error(), "--category is not allowed") || len(h.writes) != 0 {
-		t.Errorf("update = %v (exit %d), writes %v; want a usage error before writing", err, status.Code(err), h.writes)
+	if err == nil || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), "--category is not allowed") || len(h.writes) != 0 {
+		t.Errorf("update = %v (exit %d), writes %v; want exit 1 before writing", err, status.Code(err), h.writes)
 	}
 }
 
@@ -346,7 +346,7 @@ func TestBulkUpdatesBatchAndReportPartialFailure(t *testing.T) {
 	}
 
 	h := newHarness(t)
-	out, stderr, err := h.executeStreams(t, append([]string{"transactions", "flag", "--color", "green", "--allow-writes", "--jsonl"}, ids...)...)
+	out, stderr, err := h.executeStreams(t, append([]string{"transactions", "flag", "--flag", "green", "--allow-writes", "--jsonl"}, ids...)...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -362,7 +362,7 @@ func TestBulkUpdatesBatchAndReportPartialFailure(t *testing.T) {
 
 	h = newHarness(t)
 	ids[150] = "boom"
-	out, _, err = h.executeStreams(t, append([]string{"transactions", "flag", "--color", "green", "--allow-writes"}, ids...)...)
+	out, _, err = h.executeStreams(t, append([]string{"transactions", "flag", "--flag", "green", "--allow-writes"}, ids...)...)
 	if err == nil || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), "batch 2 of 3 failed after 100 transactions were applied") || !strings.Contains(err.Error(), "150 transactions not changed: x101 x102") || !strings.HasSuffix(err.Error(), " x250") {
 		t.Errorf("failing batch = %v (exit %d), want exit 1 naming the batch", err, status.Code(err))
 	}
@@ -371,7 +371,7 @@ func TestBulkUpdatesBatchAndReportPartialFailure(t *testing.T) {
 	}
 
 	h = newHarness(t)
-	_, stderr, err = h.executeStreams(t, "transactions", "flag", "--color", "green", "--allow-writes", "t3")
+	_, stderr, err = h.executeStreams(t, "transactions", "flag", "--flag", "green", "--allow-writes", "t3")
 	if err != nil || stderr != "" {
 		t.Errorf("one batch: stderr = %q, err %v; want no progress", stderr, err)
 	}
@@ -390,36 +390,37 @@ func lastLine(text string) string {
 	return lines[len(lines)-1]
 }
 
-func TestWriteUsageErrorsExitTwoWithoutWriting(t *testing.T) {
+func TestInvalidWritesUseTheCorrectExitStatusWithoutWriting(t *testing.T) {
 	cases := []struct {
-		args []string
-		want string
+		args     []string
+		want     string
+		wantExit int
 	}{
-		{[]string{"create", "--date", "today", "--amount", "1"}, "account"},
-		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--split", "Rent=-1", "--category", "Rent"}, "--split and --category"},
-		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--split", "Rent"}, "invalid --split"},
-		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--split", "Rent=-2"}, "--split lines total -2.00 but --amount is -1.00"},
-		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--import-id", strings.Repeat("x", 37)}, "at most 36"},
-		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "1,000"}, "invalid amount"},
-		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "1.234"}, "at most 2 decimal places"},
-		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--payee", "x", "--transfer-to", "Visa"}, "payee"},
-		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--transfer-to", "Chase Checking", "--category", "Rent"}, "--category is not allowed"},
-		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--payee", "Transfer : Chase Checking", "--category", "Rent"}, "--category is not allowed"},
-		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--payee", ""}, "--payee needs"},
-		{[]string{"create", "--account", "Visa", "--date", "next week", "--amount", "-1"}, "invalid date"},
-		{[]string{"update", "t3"}, "at least one field flag"},
-		{[]string{"update", "t3", "--split", "Rent=-1"}, "unknown flag"},
-		{[]string{"update", "t3", "--import-id", "x"}, "unknown flag"},
-		{[]string{"approve"}, "--all-unapproved"},
-		{[]string{"approve", "t3", "--all-unapproved"}, "not both"},
-		{[]string{"approve", "t3", "--account", "Visa"}, "--account"},
-		{[]string{"categorize", "t3"}, "category"},
-		{[]string{"categorize", "--category", "Rent"}, "--all-uncategorized"},
-		{[]string{"clear"}, "requires at least 1 arg"},
-		{[]string{"flag", "t3"}, "color"},
-		{[]string{"flag", "--color", "pink", "t3"}, "invalid --color"},
-		{[]string{"delete"}, "accepts 1 arg"},
-		{[]string{"import", "extra"}, "unknown command"},
+		{[]string{"create", "--date", "today", "--amount", "1"}, "account", status.ExitUsage},
+		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--split", "Rent=-1", "--category", "Rent"}, "--split and --category", status.ExitFailure},
+		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--split", "Rent"}, "invalid --split", status.ExitFailure},
+		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--split", "Rent=-2"}, "--split lines total -2.00 but --amount is -1.00", status.ExitFailure},
+		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--import-id", strings.Repeat("x", 37)}, "at most 36", status.ExitFailure},
+		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "1,000"}, "invalid amount", status.ExitFailure},
+		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "1.234"}, "at most 2 decimal places", status.ExitFailure},
+		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--payee", "x", "--transfer-to", "Visa"}, "payee", status.ExitUsage},
+		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--transfer-to", "Chase Checking", "--category", "Rent"}, "--category is not allowed", status.ExitFailure},
+		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--payee", "Transfer : Chase Checking", "--category", "Rent"}, "--category is not allowed", status.ExitFailure},
+		{[]string{"create", "--account", "Visa", "--date", "today", "--amount", "-1", "--payee", ""}, "--payee needs", status.ExitFailure},
+		{[]string{"create", "--account", "Visa", "--date", "next week", "--amount", "-1"}, "invalid date", status.ExitFailure},
+		{[]string{"update", "t3"}, "at least one field flag", status.ExitFailure},
+		{[]string{"update", "t3", "--split", "Rent=-1"}, "unknown flag", status.ExitUsage},
+		{[]string{"update", "t3", "--import-id", "x"}, "unknown flag", status.ExitUsage},
+		{[]string{"approve"}, "--all-unapproved", status.ExitFailure},
+		{[]string{"approve", "t3", "--all-unapproved"}, "not both", status.ExitFailure},
+		{[]string{"approve", "t3", "--account", "Visa"}, "--account", status.ExitFailure},
+		{[]string{"categorize", "t3"}, "category", status.ExitUsage},
+		{[]string{"categorize", "--category", "Rent"}, "--all-uncategorized", status.ExitFailure},
+		{[]string{"clear"}, "requires at least 1 arg", status.ExitUsage},
+		{[]string{"flag", "t3"}, "color", status.ExitUsage},
+		{[]string{"flag", "--flag", "pink", "t3"}, "invalid --flag", status.ExitUsage},
+		{[]string{"delete"}, "accepts 1 arg", status.ExitUsage},
+		{[]string{"import", "extra"}, "unknown command", status.ExitUsage},
 	}
 	for _, tc := range cases {
 		t.Run(strings.Join(tc.args, " "), func(t *testing.T) {
@@ -427,11 +428,11 @@ func TestWriteUsageErrorsExitTwoWithoutWriting(t *testing.T) {
 
 			out, err := h.execute(t, append([]string{"transactions", "--allow-writes"}, tc.args...)...)
 
-			if err == nil || out != "" || status.Code(err) != status.ExitUsage || !strings.Contains(err.Error(), tc.want) {
-				t.Errorf("execute = %q, %v (exit %d), want a usage error mentioning %q", out, err, status.Code(err), tc.want)
+			if err == nil || out != "" || status.Code(err) != tc.wantExit || !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("execute = %q, %v (exit %d), want exit %d mentioning %q", out, err, status.Code(err), tc.wantExit, tc.want)
 			}
 			if len(h.writes) != 0 {
-				t.Errorf("usage error wrote: %v", h.writes)
+				t.Errorf("invalid input wrote: %v", h.writes)
 			}
 		})
 	}
@@ -532,7 +533,7 @@ func TestSplitDateAndAmountChangesFailInDryAndRealRuns(t *testing.T) {
 func TestShortBulkAnswerFailsAndPrintsWhatWasApplied(t *testing.T) {
 	h := newHarness(t)
 
-	out, err := h.execute(t, "transactions", "flag", "--color", "red", "t3", "drop", "--allow-writes")
+	out, err := h.execute(t, "transactions", "flag", "--flag", "red", "t3", "drop", "--allow-writes")
 
 	if err == nil || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), "returned 1 of 2 records; missing: drop") || !strings.Contains(err.Error(), "1 transaction not changed: drop") {
 		t.Errorf("flag with a dropped record = %v (exit %d)", err, status.Code(err))

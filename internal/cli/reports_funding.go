@@ -6,7 +6,6 @@ import (
 
 	"github.com/jmcampanini/ynab-cli/internal/categoryview"
 	"github.com/jmcampanini/ynab-cli/internal/dates"
-	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -150,7 +149,7 @@ Future-refill warnings include categories omitted by --underfunded.
   ynab reports funding --jsonl | jq 'select(.percent_complete < 100)'`,
 		Args: cobra.NoArgs,
 		RunE: run(func(cmd *cobra.Command, _ []string) error {
-			apiMonth, err := input.Month(monthText, a.deps.now())
+			apiMonth, err := dates.Month(monthText, a.deps.now())
 			if err != nil {
 				return err
 			}
@@ -178,21 +177,20 @@ Future-refill warnings include categories omitted by --underfunded.
 			categories := listing.Records()
 			a.warnFutureRefill(cmd, categories, plan.CurrencyFormat)
 			report := newFundingReport(categories, underfundedOnly)
+			summary := report.summary(dates.ShortMonth(apiMonth), plan.CurrencyFormat)
+			report.records = limitRecords(&output, report.records)
 			out := cmd.OutOrStdout()
-			switch {
-			case output.jsonl:
-				return render.JSONL(out, report.records)
-			case output.csv:
-				return render.CSV(out, report.records)
+			if output.machine() {
+				return writeRecords(out, output, report.records)
 			}
 			if err := render.Table(out, fundingColumns, report.rows(plan.CurrencyFormat, a.palette(cmd))); err != nil {
 				return err
 			}
-			_, err = fmt.Fprintln(out, report.summary(dates.ShortMonth(apiMonth), plan.CurrencyFormat))
+			_, err = fmt.Fprintln(out, summary)
 			return err
 		}),
 	}
-	output.bind(command, true)
+	output.bindRead(command, true)
 	bindMonthFlag(command, &monthText)
 	command.Flags().BoolVar(&underfundedOnly, "underfunded", false, "Only targets still needing money")
 	return command

@@ -93,12 +93,12 @@ func TestCategoriesListMachineFormats(t *testing.T) {
 	if jsonl != wantJSONL {
 		t.Errorf("jsonl =\n%s\nwant\n%s", jsonl, wantJSONL)
 	}
-	wantCSV := `id,name,group,group_id,month,hidden,internal,note,assigned,activity,available,target_type,target_amount,target_date,target_cadence,target_cadence_frequency,target_day,target_needs_whole_amount,target_created_month,target_percent_complete,target_months_to_assign,target_underfunded,target_overall_funded,target_overall_left,target_snoozed_at
-c1,Internet,Bills,g1,2026-09,false,false,Fiber,80.00,-79.99,0.01,NEED,80.00,,1,1,,true,2025-08,100,1,0.00,80.00,0.00,
-c2,Rent,Bills,g1,2026-09,false,false,,1500.00,-1500.00,0.00,MF,1500.00,,1,1,,,2024-01,100,1,0.00,1500.00,0.00,
-c3,Dining Out,Fun,g2,2026-09,false,false,,200.00,-225.00,-25.00,,,,,,,,,,,,,,
-c6,Visa,Credit Card Payments,g4,2026-09,false,false,,97.81,97.81,97.81,,,,,,,,,,,,,,
-c7,Inflow: Ready to Assign,Internal Master Category,g5,2026-09,false,true,,0.00,0.00,0.00,,,,,,,,,,,,,,
+	wantCSV := `id,name,group,group_id,month,hidden,internal,note,assigned,activity,available,target
+c1,Internet,Bills,g1,2026-09,false,false,Fiber,80.00,-79.99,0.01,"{""type"":""NEED"",""amount"":80.00,""cadence"":1,""cadence_frequency"":1,""needs_whole_amount"":true,""created_month"":""2025-08"",""percent_complete"":100,""months_to_assign"":1,""underfunded"":0.00,""overall_funded"":80.00,""overall_left"":0.00}"
+c2,Rent,Bills,g1,2026-09,false,false,,1500.00,-1500.00,0.00,"{""type"":""MF"",""amount"":1500.00,""cadence"":1,""cadence_frequency"":1,""created_month"":""2024-01"",""percent_complete"":100,""months_to_assign"":1,""underfunded"":0.00,""overall_funded"":1500.00,""overall_left"":0.00}"
+c3,Dining Out,Fun,g2,2026-09,false,false,,200.00,-225.00,-25.00,
+c6,Visa,Credit Card Payments,g4,2026-09,false,false,,97.81,97.81,97.81,
+c7,Inflow: Ready to Assign,Internal Master Category,g5,2026-09,false,true,,0.00,0.00,0.00,
 `
 	if csv != wantCSV {
 		t.Errorf("csv =\n%s\nwant\n%s", csv, wantCSV)

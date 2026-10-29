@@ -42,8 +42,8 @@ one object.
 
 			record := newScheduledRecord(scheduled, selection.NewAccountNames(accounts))
 			out := cmd.OutOrStdout()
-			if output.jsonl {
-				return render.JSONL(out, []scheduledRecord{record})
+			if output.machine() {
+				return writeRecords(out, output, []scheduledRecord{record})
 			}
 			currency := plan.CurrencyFormat
 			err = render.Fields(out, [][2]string{
@@ -72,6 +72,6 @@ one object.
 			return render.Table(out, render.SplitColumns, rows)
 		}),
 	}
-	output.bind(command, false)
+	output.bindRead(command, false)
 	return command
 }

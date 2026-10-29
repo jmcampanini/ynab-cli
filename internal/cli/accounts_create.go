@@ -1,12 +1,12 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
@@ -47,7 +47,7 @@ delete an account, so a mistaken create must be fixed in the YNAB app.
 		Args: cobra.ExactArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
 			if args[0] == "" {
-				return status.Usage("NAME must not be empty")
+				return errors.New("NAME must not be empty")
 			}
 
 			s, err := a.openWrite(cmd, dryRun)

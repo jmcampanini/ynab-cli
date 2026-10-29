@@ -59,25 +59,27 @@ func (a Amount) decimal(fractionDigits int, decimalSeparator, groupSeparator str
 		fractionDigits = 2
 	}
 	negative := a < 0
-	milliunits := int64(a)
+	// Unsigned magnitude also represents the absolute value of MinInt64
+	// and leaves room for the rounding increment at either signed limit.
+	milliunits := uint64(a)
 	if negative {
 		milliunits = -milliunits
 	}
 
-	divisor := int64(1)
+	divisor := uint64(1)
 	for range 3 - fractionDigits {
 		divisor *= 10
 	}
 	scaled := (milliunits + divisor/2) / divisor
-	scale := int64(1)
+	scale := uint64(1)
 	for range fractionDigits {
 		scale *= 10
 	}
 	whole, fraction := scaled/scale, scaled%scale
 
-	text := groupThousands(strconv.FormatInt(whole, 10), groupSeparator)
+	text := groupThousands(strconv.FormatUint(whole, 10), groupSeparator)
 	if fractionDigits > 0 {
-		fractionText := strconv.FormatInt(fraction, 10)
+		fractionText := strconv.FormatUint(fraction, 10)
 		text += decimalSeparator + strings.Repeat("0", fractionDigits-len(fractionText)) + fractionText
 	}
 	if negative {

@@ -71,20 +71,16 @@ func TestTransactionsListMachineFormats(t *testing.T) {
 		t.Errorf("jsonl = %d rows, want 9 without parent_id:\n%s", strings.Count(jsonl, "\n"), jsonl)
 	}
 
-	wantCSV := `id,parent_id,date,account,account_id,payee,payee_id,category,category_id,memo,amount,cleared,approved,flag_color,flag_name,transfer_account,transfer_account_id,transfer_transaction_id,matched_transaction_id,import_id,import_payee_name,import_payee_name_original,debt_transaction_type
-t7,,2026-08-01,Chase Checking,a1,Employer,p6,Inflow: Ready to Assign,c7,,3000.00,reconciled,true,,,,,,,,,,
-t6,,2026-08-20,Chase Checking,a1,Landlord,p1,Rent,c2,August rent,-1500.00,reconciled,true,,,,,,,,,,
-t1,,2026-09-02,Chase Checking,a1,Costco,p2,Split,,weekly run,-100.00,cleared,true,,,,,,,,,,
-s1,t1,2026-09-02,Chase Checking,a1,,,Dining Out,c3,,-60.00,cleared,true,,,,,,,,,,
-s2,t1,2026-09-02,Chase Checking,a1,,,Internet,c1,router,-40.00,cleared,true,,,,,,,,,,
-t2,,2026-09-05,Chase Checking,a1,Transfer : Visa,tp2,,,,-97.81,cleared,true,,,Visa,a2,t2b,,,,,
-t2b,,2026-09-05,Visa,a2,Transfer : Chase Checking,tp1,,,,97.81,cleared,true,,,Chase Checking,a1,t2,,,,,
-t3,,2026-09-10,Visa,a2,Amazon,p3,Dining Out,c3,,-12.34,uncleared,false,red,Reimbursable,,,,,YNAB:-12340:2026-09-10:1,AMAZON.COM,AMAZON.COM*1234,
-t5,,2026-09-11,Chase Checking,a1,New Shop,p5,,,new shop?,-20.00,uncleared,false,,,,,,,YNAB:-20000:2026-09-11:1,NEW SHOP,NEW SHOP 42,
-t4,,2026-09-12,Chase Checking,a1,Unknown Vendor,p4,,,,-5.00,cleared,true,,,,,,,,,,
-t8,,2026-09-13,Chase Checking,a1,Costco,p2,Split,,,-25.00,cleared,false,,,,,,,,,,
-s3,t8,2026-09-13,Chase Checking,a1,Amazon,p3,Dining Out,c3,,-10.00,cleared,false,,,,,,,,,,
-s4,t8,2026-09-13,Chase Checking,a1,Unknown Vendor,p4,Internet,c1,cable,-15.00,cleared,false,,,,,,,,,,
+	wantCSV := `id,date,account,account_id,payee,payee_id,category,category_id,memo,amount,cleared,approved,flag_color,flag_name,transfer_account,transfer_account_id,transfer_transaction_id,matched_transaction_id,import_id,import_payee_name,import_payee_name_original,debt_transaction_type,subtransactions
+t7,2026-08-01,Chase Checking,a1,Employer,p6,Inflow: Ready to Assign,c7,,3000.00,reconciled,true,,,,,,,,,,,
+t6,2026-08-20,Chase Checking,a1,Landlord,p1,Rent,c2,August rent,-1500.00,reconciled,true,,,,,,,,,,,
+t1,2026-09-02,Chase Checking,a1,Costco,p2,Split,,weekly run,-100.00,cleared,true,,,,,,,,,,,"[{""id"":""s1"",""category"":""Dining Out"",""category_id"":""c3"",""amount"":-60.00},{""id"":""s2"",""category"":""Internet"",""category_id"":""c1"",""memo"":""router"",""amount"":-40.00}]"
+t2,2026-09-05,Chase Checking,a1,Transfer : Visa,tp2,,,,-97.81,cleared,true,,,Visa,a2,t2b,,,,,,
+t2b,2026-09-05,Visa,a2,Transfer : Chase Checking,tp1,,,,97.81,cleared,true,,,Chase Checking,a1,t2,,,,,,
+t3,2026-09-10,Visa,a2,Amazon,p3,Dining Out,c3,,-12.34,uncleared,false,red,Reimbursable,,,,,YNAB:-12340:2026-09-10:1,AMAZON.COM,AMAZON.COM*1234,,
+t5,2026-09-11,Chase Checking,a1,New Shop,p5,,,new shop?,-20.00,uncleared,false,,,,,,,YNAB:-20000:2026-09-11:1,NEW SHOP,NEW SHOP 42,,
+t4,2026-09-12,Chase Checking,a1,Unknown Vendor,p4,,,,-5.00,cleared,true,,,,,,,,,,,
+t8,2026-09-13,Chase Checking,a1,Costco,p2,Split,,,-25.00,cleared,false,,,,,,,,,,,"[{""id"":""s3"",""payee"":""Amazon"",""payee_id"":""p3"",""category"":""Dining Out"",""category_id"":""c3"",""amount"":-10.00},{""id"":""s4"",""payee"":""Unknown Vendor"",""payee_id"":""p4"",""category"":""Internet"",""category_id"":""c1"",""memo"":""cable"",""amount"":-15.00}]"
 `
 	if csv != wantCSV {
 		t.Errorf("csv =\n%s\nwant\n%s", csv, wantCSV)
@@ -153,20 +149,29 @@ func TestTransactionsListFilters(t *testing.T) {
 
 func TestTransactionsListRejectsBadFilterValues(t *testing.T) {
 	h := newHarness(t)
-	cases := [][]string{
-		{"--cleared", "pending"}, {"--flag", "pink"}, {"--min", "1,000"}, {"--max", "$5"}, {"--since", "last week"},
-		{"--until", "2026-13-01"}, {"--month", "September"}, {"--since", "2026-09-10", "--until", "2026-09-01"},
-		{"--min", "9223372036854776"},
+	cases := []struct {
+		args     []string
+		wantExit int
+	}{
+		{[]string{"--cleared", "pending"}, status.ExitUsage},
+		{[]string{"--flag", "pink"}, status.ExitUsage},
+		{[]string{"--min", "1,000"}, status.ExitFailure},
+		{[]string{"--max", "$5"}, status.ExitFailure},
+		{[]string{"--since", "last week"}, status.ExitFailure},
+		{[]string{"--until", "2026-13-01"}, status.ExitFailure},
+		{[]string{"--month", "September"}, status.ExitFailure},
+		{[]string{"--since", "2026-09-10", "--until", "2026-09-01"}, status.ExitFailure},
+		{[]string{"--min", "9223372036854776"}, status.ExitFailure},
 	}
 
-	for _, args := range cases {
-		out, err := h.execute(t, append([]string{"transactions", "list"}, args...)...)
-		if err == nil || out != "" || status.Code(err) != status.ExitUsage {
-			t.Errorf("transactions list %v = %q, %v (exit %d), want a usage error", args, out, err, status.Code(err))
+	for _, tc := range cases {
+		out, err := h.execute(t, append([]string{"transactions", "list"}, tc.args...)...)
+		if err == nil || out != "" || status.Code(err) != tc.wantExit {
+			t.Errorf("transactions list %v = %q, %v (exit %d), want exit %d", tc.args, out, err, status.Code(err), tc.wantExit)
 		}
 	}
 	if len(h.requests) != 0 {
-		t.Errorf("usage errors made requests: %v", h.requests)
+		t.Errorf("invalid filters made requests: %v", h.requests)
 	}
 }
 
@@ -285,12 +290,10 @@ func TestTransactionsReviewMergesTheTwoListings(t *testing.T) {
 	if jsonl != wantJSONL {
 		t.Errorf("review jsonl =\n%s\nwant\n%s", jsonl, wantJSONL)
 	}
-	wantCSVTail := `t8,,2026-09-13,Chase Checking,a1,Costco,p2,Split,,,-25.00,cleared,false,,,,,,,,,,,approve
-s3,t8,2026-09-13,Chase Checking,a1,Amazon,p3,Dining Out,c3,,-10.00,cleared,false,,,,,,,,,,,approve
-s4,t8,2026-09-13,Chase Checking,a1,Unknown Vendor,p4,Internet,c1,cable,-15.00,cleared,false,,,,,,,,,,,approve
+	wantCSVTail := `t8,2026-09-13,Chase Checking,a1,Costco,p2,Split,,,-25.00,cleared,false,,,,,,,,,,,"[{""id"":""s3"",""payee"":""Amazon"",""payee_id"":""p3"",""category"":""Dining Out"",""category_id"":""c3"",""amount"":-10.00},{""id"":""s4"",""payee"":""Unknown Vendor"",""payee_id"":""p4"",""category"":""Internet"",""category_id"":""c1"",""memo"":""cable"",""amount"":-15.00}]",approve
 `
-	if !strings.Contains(csv, ",debt_transaction_type,needs\nt3,,") || !strings.HasSuffix(csv, wantCSVTail) {
-		t.Errorf("review csv = %s\nwant header ending in needs and split lines repeating it:\n%s", csv, wantCSVTail)
+	if !strings.Contains(csv, ",debt_transaction_type,subtransactions,needs\nt3,") || !strings.HasSuffix(csv, wantCSVTail) {
+		t.Errorf("review csv = %s\nwant header ending in needs and split lines in one cell:\n%s", csv, wantCSVTail)
 	}
 	want := []string{"/plans", "/plans/p1/accounts", "/plans/p1/transactions?type=unapproved", "/plans/p1/transactions?type=uncategorized"}
 	if !reflect.DeepEqual(h.requests[:4], want) {

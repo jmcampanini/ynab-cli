@@ -42,8 +42,8 @@ Columns: next date, frequency in the API's spelling (such as monthly or
 everyOtherWeek), account, payee, category, memo, and amount. A split
 shows its lines indented beneath it under the category "Split". Three
 requests: the plans endpoint, the accounts endpoint (which names transfer
-targets), then the scheduled transactions endpoint. --csv flattens a
-split to one row per line with the parent's id in parent_id.
+targets), then the scheduled transactions endpoint. --csv keeps split
+lines as compact JSON in the subtransactions cell.
 
 ` + planHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
 		Example: `  ynab scheduled list
@@ -73,12 +73,10 @@ split to one row per line with the parent's id in parent_id.
 				records[i] = newScheduledRecord(entry, names)
 			}
 
+			records = limitRecords(&output, records)
 			out := cmd.OutOrStdout()
-			switch {
-			case output.jsonl:
-				return render.JSONL(out, records)
-			case output.csv:
-				return render.CSV(out, scheduledCSVLines(records))
+			if output.machine() {
+				return writeRecords(out, output, records)
 			}
 			if err := render.Table(out, scheduledColumns, scheduledRows(records, plan.CurrencyFormat)); err != nil {
 				return err
@@ -87,27 +85,6 @@ split to one row per line with the parent's id in parent_id.
 			return err
 		}),
 	}
-	output.bind(command, true)
+	output.bindRead(command, true)
 	return command
-}
-
-// scheduledCSVLines flattens splits for CSV as csvLines does for
-// transactions.
-func scheduledCSVLines(records []scheduledRecord) []scheduledRecord {
-	var rows []scheduledRecord
-	for _, record := range records {
-		parent := record
-		parent.Subtransactions = nil
-		rows = append(rows, parent)
-		for _, line := range record.Subtransactions {
-			rows = append(rows, scheduledRecord{
-				Account: parent.Account, AccountID: parent.AccountID, FirstDate: parent.FirstDate,
-				FlagColor: parent.FlagColor, FlagName: parent.FlagName, Frequency: parent.Frequency, NextDate: parent.NextDate,
-				Amount: line.Amount, Category: line.Category, CategoryID: line.CategoryID, ID: line.ID,
-				Memo: line.Memo, ParentID: parent.ID, Payee: line.Payee, PayeeID: line.PayeeID,
-				TransferAccount: line.TransferAccount, TransferAccountID: line.TransferAccountID,
-			})
-		}
-	}
-	return rows
 }

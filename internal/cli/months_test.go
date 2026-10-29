@@ -104,17 +104,18 @@ Internal Master Category       $0.00       $0.00      $0.00
 	}
 }
 
-func TestInvalidMonthIsAUsageErrorBeforeAnyRequest(t *testing.T) {
+func TestInvalidMonthFailsBeforeAnyRequest(t *testing.T) {
 	h := newHarness(t)
 	cases := [][]string{
 		{"months", "get", "2026-08-15"}, {"months", "get", "august"},
+		{"months", "get", ""}, {"categories", "list", "--month", ""},
 		{"categories", "list", "--month", "2026-8"}, {"categories", "get", "Rent", "--month", "today"},
 	}
 
 	for _, args := range cases {
 		out, err := h.execute(t, args...)
-		if err == nil || out != "" || status.Code(err) != status.ExitUsage || !strings.Contains(err.Error(), "YYYY-MM") {
-			t.Errorf("execute(%v) = %q, %v (exit %d), want a usage error naming the forms", args, out, err, status.Code(err))
+		if err == nil || out != "" || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), "YYYY-MM") {
+			t.Errorf("execute(%v) = %q, %v (exit %d), want exit 1 naming the forms", args, out, err, status.Code(err))
 		}
 	}
 	if len(h.requests) != 0 {

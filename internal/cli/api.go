@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/status"
+	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
 
@@ -50,10 +52,10 @@ prints this help and exits 0.
 PATH is relative to https://api.ynab.com/v1 and may carry a query
 string; the token {plan} in it becomes the configured plan's ID. The
 body of a 2xx response goes to stdout as returned, or re-indented with
---pretty. For any other status the body still goes to stdout, the
-status goes to stderr, and the exit status is 1, so the API's own error
-detail is never lost. Requests count against the API's limit of 200 per
-hour per token like any other.
+--pretty. For any other status, stdout stays empty and the exit status
+is 1. The diagnostic on stderr names the HTTP status and the API's error
+detail when available, with the configured token redacted. Requests
+count against the API's limit of 200 per hour per token like any other.
 
 Each verb makes one request, plus the plans endpoint when PATH names
 {plan}. Every verb but get is a write and may take a request body. The
@@ -67,7 +69,7 @@ API's reference at https://api.ynab.com documents every path and body.
   ynab api post /plans/{plan}/payees --body-file payee.json --allow-writes
   ynab api delete /plans/{plan}/transactions/ID --allow-writes`,
 		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
+		RunE: run(func(cmd *cobra.Command, _ []string) error { return cmd.Help() }),
 	}
 	command.AddCommand(newAPIGet(a), newAPIPost(a), newAPIPatch(a), newAPIPut(a), newAPIDelete(a))
 	return command
@@ -93,7 +95,7 @@ func newAPIVerb(a *app, command *cobra.Command, method string, writes bool, opti
 	command.RunE = run(func(cmd *cobra.Command, args []string) error {
 		path := args[0]
 		if path == "" {
-			return status.Usage("PATH must not be empty")
+			return errors.New("PATH must not be empty")
 		}
 		if !strings.HasPrefix(path, "/") {
 			path = "/" + path
@@ -129,14 +131,36 @@ func newAPIVerb(a *app, command *cobra.Command, method string, writes bool, opti
 		if err != nil {
 			return err
 		}
-		if err := writeBody(out, response.Body, options.pretty); err != nil {
-			return err
-		}
 		if response.Status < 200 || response.Status > 299 {
-			return fmt.Errorf("HTTP %d %s", response.Status, http.StatusText(response.Status))
+			return apiResponseError(response, loaded.Config.Token)
 		}
-		return nil
+		return writeBody(out, response.Body, options.pretty)
 	})
+}
+
+// apiResponseError keeps failed responses off stdout and includes only the
+// documented error detail, never an arbitrary response body.
+func apiResponseError(response ynab.RawResponse, token string) error {
+	message := fmt.Sprintf("HTTP %d %s", response.Status, http.StatusText(response.Status))
+	var envelope struct {
+		Error struct {
+			Detail string `json:"detail"`
+			Name   string `json:"name"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(response.Body, &envelope); err == nil {
+		detail := envelope.Error.Detail
+		if detail == "" {
+			detail = envelope.Error.Name
+		}
+		if token != "" {
+			detail = strings.ReplaceAll(detail, token, "<redacted>")
+		}
+		if detail != "" {
+			message += fmt.Sprintf(": %q", detail)
+		}
+	}
+	return errors.New(message)
 }
 
 // requestBody reads the body from --body or --body-file and checks that
@@ -147,7 +171,7 @@ func requestBody(cmd *cobra.Command, body, bodyFile string) ([]byte, error) {
 	case cmd.Flags().Changed("body"):
 		payload = []byte(body)
 	case cmd.Flags().Changed("body-file") && bodyFile == "":
-		return nil, status.Usage("--body-file requires a file path or -")
+		return nil, errors.New("--body-file requires a file path or -")
 	case bodyFile == "-":
 		read, err := io.ReadAll(cmd.InOrStdin())
 		if err != nil {
@@ -164,7 +188,7 @@ func requestBody(cmd *cobra.Command, body, bodyFile string) ([]byte, error) {
 		return nil, nil
 	}
 	if !json.Valid(payload) {
-		return nil, status.Usage("the request body is not valid JSON")
+		return nil, errors.New("the request body is not valid JSON")
 	}
 	return payload, nil
 }

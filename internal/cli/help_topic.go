@@ -11,7 +11,8 @@ const topicAnnotation = "topic"
 func helpTopic(use, short, long string) *cobra.Command {
 	return &cobra.Command{
 		Use: use, Short: short, Long: long, Args: cobra.NoArgs,
+		GroupID:     "topics",
 		Annotations: map[string]string{topicAnnotation: "true"},
-		RunE:        func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
+		RunE:        run(func(cmd *cobra.Command, _ []string) error { return cmd.Help() }),
 	}
 }

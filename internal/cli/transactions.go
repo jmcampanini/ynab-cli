@@ -10,12 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// transactionRecord is the --jsonl and --csv shape of a transaction. A
-// split carries its lines in Subtransactions; CSV flattens them to one
-// row per line with ParentID set, so ParentID is empty in JSONL.
+// transactionRecord is one record in all machine output formats.
+// A split keeps its lines in Subtransactions, including in a CSV cell.
 type transactionRecord struct {
 	ID                      string                 `json:"id"`
-	ParentID                string                 `json:"parent_id,omitempty"`
 	Date                    string                 `json:"date"`
 	Account                 string                 `json:"account"`
 	AccountID               string                 `json:"account_id"`
@@ -97,29 +95,6 @@ func newTransactionRecord(tx ynab.Transaction, accounts selection.AccountNames) 
 	return record
 }
 
-// csvLines flattens splits for CSV: each parent row is followed by one
-// row per line carrying the parent's ID in parent_id and the parent's
-// date, account, cleared, approved, and flag.
-func csvLines(records []transactionRecord) []transactionRecord {
-	var rows []transactionRecord
-	for _, record := range records {
-		parent := record
-		parent.Subtransactions = nil
-		rows = append(rows, parent)
-		for _, line := range record.Subtransactions {
-			rows = append(rows, transactionRecord{
-				Account: parent.Account, AccountID: parent.AccountID, Approved: parent.Approved,
-				Cleared: parent.Cleared, Date: parent.Date, FlagColor: parent.FlagColor, FlagName: parent.FlagName,
-				Amount: line.Amount, Category: line.Category, CategoryID: line.CategoryID, ID: line.ID,
-				Memo: line.Memo, ParentID: parent.ID, Payee: line.Payee, PayeeID: line.PayeeID,
-				TransferAccount: line.TransferAccount, TransferAccountID: line.TransferAccountID,
-				TransferTransactionID: line.TransferTransactionID,
-			})
-		}
-	}
-	return rows
-}
-
 var transactionColumns = []render.Column{
 	{Name: "DATE"}, {Name: "ACCOUNT"}, {Name: "PAYEE"}, {Name: "CATEGORY"}, {Name: "MEMO"},
 	{Name: "AMOUNT", Right: true}, {Name: "CLEARED"}, {Name: "APPROVED"}, {Name: "FLAG"},
@@ -165,7 +140,7 @@ is available through 'ynab api put', but not through this group.
 
 ` + writeHelp + "\n\n" + planHelp + "\n\n" + dateHelp,
 		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
+		RunE: run(func(cmd *cobra.Command, _ []string) error { return cmd.Help() }),
 	}
 	command.AddCommand(newTransactionsList(a), newTransactionsGet(a), newTransactionsReview(a), newTransactionsCreate(a), newTransactionsUpdate(a), newTransactionsDelete(a), newTransactionsApprove(a), newTransactionsCategorize(a), newTransactionsClear(a), newTransactionsUnclear(a), newTransactionsFlag(a), newTransactionsImport(a))
 	return command
@@ -209,7 +184,7 @@ func writeTransactionFields(out io.Writer, record transactionRecord, currency *y
 // Help paragraphs only transactions members use.
 const dateFlagHelp = `Dates:
   --date accepts YYYY-MM-DD, today, or yesterday. today and yesterday
-  follow the local clock. Any other form is a usage error.`
+  follow the local clock. Any other form fails with exit status 1.`
 
 const bulkHelp = `Bulk updates:
   IDs are sent in one bulk update per 100 transactions, a limit this CLI

@@ -62,6 +62,22 @@ func (l Listing) Records() []Record {
 	return records
 }
 
+// First keeps the first n category records without changing their group
+// order. Group subtotals then describe only the displayed categories.
+func (l Listing) First(n int) Listing {
+	limited := Listing{hiddenOut: l.hiddenOut}
+	for _, group := range l.groups {
+		if n == 0 {
+			break
+		}
+		count := min(n, len(group.records))
+		group.records = group.records[:count]
+		limited.groups = append(limited.groups, group)
+		n -= count
+	}
+	return limited
+}
+
 // Summary is the count line under the table.
 func (l Listing) Summary() string {
 	text := render.CountNoun(len(l.Records()), "category", "categories")

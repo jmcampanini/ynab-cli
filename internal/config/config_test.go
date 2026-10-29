@@ -111,6 +111,28 @@ func TestDiscoveryToleratesAbsentFileAndExplicitFileMustExist(t *testing.T) {
 	}
 }
 
+func TestDiscoveryFallsBackForEmptyOrRelativeXDGConfigHome(t *testing.T) {
+	isolateEnv(t)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	path := filepath.Join(home, ".config", "ynab", "config.toml")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("plan = \"Fallback\"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, root := range []string{"", "relative-config"} {
+		t.Run(root, func(t *testing.T) {
+			t.Setenv("XDG_CONFIG_HOME", root)
+			loaded, err := Load("", flags(t))
+			if err != nil || loaded.Path != path || loaded.Config.Plan != "Fallback" {
+				t.Fatalf("Load() = %+v, %v; want %q", loaded, err, path)
+			}
+		})
+	}
+}
+
 func TestUnknownKeysAndBadValuesFail(t *testing.T) {
 	isolateEnv(t)
 	root := t.TempDir()

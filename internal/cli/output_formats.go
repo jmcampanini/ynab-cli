@@ -3,16 +3,43 @@ package cli
 import "github.com/spf13/cobra"
 
 func outputFormatsTopic() *cobra.Command {
-	return helpTopic("output-formats", "Record shapes for --jsonl and --csv", `--jsonl writes one JSON object per line: one per record for list
-commands, one line for get, status, and config. --csv, on list commands,
-writes a header row of the same field names and one row per record with
-the same values. Keys are lowercase snake_case. Amounts are JSON numbers
-with two decimals written from the API's exact milliunit value ("450.00");
+	return helpTopic("output-formats", "Record fields and machine output formats", `Remote read commands offer --json, --jsonl, and --csv. --json writes one
+object with a records array and fetch status: hasMore says that a limit
+omitted records, nextCursor is null because the API cannot resume a read,
+and complete is true after every required source read succeeds. --jsonl
+writes one JSON object per line. --csv writes one header and one row per
+record, with columns in the field order documented below. --no-header
+omits the CSV header. No matches produce an empty records array in JSON,
+no JSONL bytes, or only the CSV header. Failed source reads write nothing.
+
+Collection reads default to at most 1000 matching records. --limit N
+changes that maximum, including zero; --all returns every record matching
+the command's date range and filters. They are mutually exclusive. The
+cap applies after reading and filtering; it does not reduce API traffic.
+When records remain, JSON sets hasMore: true and nextCursor: null; other
+formats report these values on stderr. The exit status remains 0. There
+is no --cursor because the API's delta token tracks changes, not pages.
+Report summary totals cover the full matching collection. Singleton reads
+and mutating commands have no collection limits.
+
+Remote reads accept --output-file PATH with a machine format. The file is
+published only after the read, encoding, and file close succeed. An
+existing destination requires --overwrite; any failure leaves it as it
+was. The payload then goes to the file and stdout stays empty. There is
+no companion metadata file.
+
+Mutating commands retain --jsonl and, where their help lists it, --csv.
+Their machine output is the resulting records, without collection limits.
+Config supports --jsonl in addition to its default TOML. Machine formats
+never carry color, even with --color always. Diagnostics use stderr.
+
+Keys are lowercase snake_case inside records. Amounts are JSON numbers
+with two decimals written from the API's exact milliunit value (450.00);
 outflows are negative. Dates are YYYY-MM-DD, months YYYY-MM, timestamps
-RFC 3339. Absent optional fields are omitted in JSONL and empty in CSV.
-Enum values keep the API's spelling, such as "creditCard". Arrays such as
-a split's subtransactions are omitted from CSV, which flattens them to
-rows instead. Machine output never carries color.
+RFC 3339. Absent optional fields are omitted in JSON and JSONL and empty
+in CSV. Enum values keep the API's spelling, such as "creditCard". Nested
+objects and arrays, including targets and split lines, are compact JSON
+in one CSV cell. A split is one record in every machine format.
 
 Plan (plans list, plans get):
   id                 string
@@ -81,8 +108,7 @@ categories update, months assign, move, cover, fund):
                       arithmetically to assigned, available, and
                       underfunded; a category create or update's dry run
                       previews the target's type, amount, and date.
-  In CSV the target object becomes target_type, target_amount, and so
-  on, all empty when there is no target.
+  In CSV target is one compact JSON cell, empty without a target.
 
 Category group (category-groups list, create, rename):
   id               string
@@ -106,8 +132,6 @@ Month (months list, months get):
 Transaction (transactions list, get, review, create, update, delete,
 approve, categorize, clear, unclear, flag):
   id                          string; empty on a dry-run create
-  parent_id                   CSV only: the parent's id on a split line,
-                              empty on a transaction
   date                        YYYY-MM-DD
   account                     account name
   account_id                  string
@@ -149,10 +173,7 @@ approve, categorize, clear, unclear, flag):
   dry_run                     true on the output of a mutating command
                               run with --dry-run; omitted otherwise in
                               JSONL and false in CSV
-  In CSV each split line becomes its own row after the parent, with the
-  line's id, payee, category, memo, amount, and transfer fields, the
-  parent's id in parent_id, and the parent's date, account, cleared,
-  approved, and flag.
+  In CSV subtransactions is one compact JSON cell, empty without a split.
 
 Payee (payees list, payees get, payees create, payees rename):
   id                    string
@@ -164,7 +185,6 @@ Payee (payees list, payees get, payees create, payees rename):
 
 Scheduled transaction (scheduled list, scheduled get):
   id                    string
-  parent_id             CSV only, as for transactions
   next_date             YYYY-MM-DD
   first_date            YYYY-MM-DD
   frequency             never, daily, weekly, everyOtherWeek,
@@ -187,7 +207,7 @@ Scheduled transaction (scheduled list, scheduled get):
   subtransactions       array of lines with id, payee, payee_id,
                         category, category_id, memo, amount,
                         transfer_account, transfer_account_id; omitted
-                        unless a split. CSV flattens as for transactions.
+                        unless a split. CSV keeps the array in one cell.
 
 Money movement (money-movements list):
   id         string
@@ -250,6 +270,9 @@ Config (config --jsonl):
   token          "<redacted>" when set, "" otherwise
   sources        object of field to source; only with --provenance
 
-The api commands have no --jsonl or --csv: they print the API's response
-body as returned, with milliunit amounts and the API's field names.`)
+The api commands pass through successful raw response bodies rather than
+collecting records, so they have no record format, limit, or export flags.
+Their fields follow the YNAB API v1 schema at https://api.ynab.com/v1#/ and
+retain milliunit amounts and source field names. A non-2xx response leaves
+stdout empty and reports its status and detail on stderr.`)
 }

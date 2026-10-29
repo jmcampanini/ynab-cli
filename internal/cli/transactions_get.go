@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/spf13/cobra"
 )
@@ -42,12 +41,12 @@ names transfer targets), then the transaction.
 
 			record := newTransactionRecord(tx, selection.NewAccountNames(accounts))
 			out := cmd.OutOrStdout()
-			if output.jsonl {
-				return render.JSONL(out, []transactionRecord{record})
+			if output.machine() {
+				return writeRecords(out, output, []transactionRecord{record})
 			}
 			return writeTransactionFields(out, record, plan.CurrencyFormat)
 		}),
 	}
-	output.bind(command, false)
+	output.bindRead(command, false)
 	return command
 }

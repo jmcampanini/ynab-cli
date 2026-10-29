@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jmcampanini/ynab-cli/internal/categoryview"
-	"github.com/jmcampanini/ynab-cli/internal/input"
+	"github.com/jmcampanini/ynab-cli/internal/dates"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -37,7 +37,7 @@ month. With --month, a third request fetches that month.
   ynab categories list --csv > categories.csv`,
 		Args: cobra.NoArgs,
 		RunE: run(func(cmd *cobra.Command, _ []string) error {
-			apiMonth, err := input.Month(monthText, a.deps.now())
+			apiMonth, err := dates.Month(monthText, a.deps.now())
 			if err != nil {
 				return err
 			}
@@ -68,12 +68,11 @@ month. With --month, a third request fetches that month.
 			}
 
 			a.warnFutureRefill(cmd, listing.Records(), plan.CurrencyFormat)
+			records := limitRecords(&output, listing.Records())
+			listing = listing.First(len(records))
 			out := cmd.OutOrStdout()
-			switch {
-			case output.jsonl:
-				return render.JSONL(out, listing.Records())
-			case output.csv:
-				return render.CSV(out, listing.Records())
+			if output.machine() {
+				return writeRecords(out, output, records)
 			}
 			if err := render.Table(out, categoryview.Columns, listing.Rows(plan.CurrencyFormat, a.palette(cmd))); err != nil {
 				return err
@@ -82,7 +81,7 @@ month. With --month, a third request fetches that month.
 			return err
 		}),
 	}
-	output.bind(command, true)
+	output.bindRead(command, true)
 	bindMonthFlag(command, &monthText)
 	command.Flags().BoolVar(&includeHidden, "hidden", false, "Include hidden categories and groups")
 	return command

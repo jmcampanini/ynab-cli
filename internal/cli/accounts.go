@@ -77,7 +77,7 @@ a create cannot be undone.
 
 ` + writeHelp + "\n\n" + planHelp,
 		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
+		RunE: run(func(cmd *cobra.Command, _ []string) error { return cmd.Help() }),
 	}
 	command.AddCommand(newAccountsList(a), newAccountsGet(a), newAccountsCreate(a))
 	return command

@@ -7,11 +7,27 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 )
+
+// JSON writes one collection with its fetch status. The API has no cursor
+// for resuming a collection, so nextCursor is always null.
+func JSON[T any](w io.Writer, records []T, hasMore bool) error {
+	if records == nil {
+		records = []T{}
+	}
+	result := struct {
+		Records    []T     `json:"records"`
+		HasMore    bool    `json:"hasMore"`
+		NextCursor *string `json:"nextCursor"`
+		Complete   bool    `json:"complete"`
+	}{Records: records, HasMore: hasMore, Complete: true}
+	encoder := json.NewEncoder(w)
+	encoder.SetEscapeHTML(false)
+	return encoder.Encode(result)
+}
 
 // JSONL encodes each record on its own line without HTML escaping.
 func JSONL[T any](w io.Writer, records []T) error {
@@ -27,20 +43,20 @@ func JSONL[T any](w io.Writer, records []T) error {
 
 // CSV writes a header of the records' JSON field names and one row
 // per record with the same values JSONL would carry: strings unquoted,
-// numbers and booleans as JSON text, and absent values empty. A nested
-// object such as a category's target becomes one column per field, named
-// parent_child, all empty when the object is absent. Array fields are
-// left out; callers flatten them to rows first.
-func CSV[T any](w io.Writer, records []T) error {
-	fields := jsonFields(reflect.TypeFor[T](), "", nil)
+// numbers and booleans as JSON text, and absent values empty. Nested
+// objects and arrays occupy one cell as compact JSON.
+func CSV[T any](w io.Writer, records []T, noHeader ...bool) error {
+	fields := jsonFields(reflect.TypeFor[T]())
 	header := make([]string, len(fields))
 	for i, field := range fields {
 		header[i] = field.name
 	}
 
 	writer := csv.NewWriter(w)
-	if err := writer.Write(header); err != nil {
-		return err
+	if len(noHeader) == 0 || !noHeader[0] {
+		if err := writer.Write(header); err != nil {
+			return err
+		}
 	}
 	for _, record := range records {
 		value := reflect.ValueOf(record)
@@ -72,39 +88,17 @@ type jsonField struct {
 }
 
 // jsonFields returns the columns of a record type in declaration order,
-// so the CSV header and rows use the same columns JSONL carries. Fields
-// that JSON encodes as an object of their own fields are flattened with
-// the prefix "parent_"; fields that encode as arrays are skipped.
-func jsonFields(recordType reflect.Type, prefix string, path []int) []jsonField {
+// so the CSV header and rows use the same columns JSONL carries.
+func jsonFields(recordType reflect.Type) []jsonField {
 	var fields []jsonField
 	for _, field := range reflect.VisibleFields(recordType) {
 		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
-		if name == "" || name == "-" || field.Type.Kind() == reflect.Slice {
+		if name == "" || name == "-" || !field.IsExported() {
 			continue
 		}
-		index := append(slices.Clone(path), field.Index...)
-		if nested := objectType(field.Type); nested != nil {
-			fields = append(fields, jsonFields(nested, prefix+name+"_", index)...)
-			continue
-		}
-		fields = append(fields, jsonField{name: prefix + name, index: index})
+		fields = append(fields, jsonField{name: name, index: field.Index})
 	}
 	return fields
-}
-
-var jsonMarshaler = reflect.TypeFor[json.Marshaler]()
-
-// objectType returns the struct type JSON would encode as an object of its
-// fields, behind at most one pointer, or nil for scalars and for types
-// with their own encoding such as time.Time.
-func objectType(fieldType reflect.Type) reflect.Type {
-	if fieldType.Kind() == reflect.Pointer {
-		fieldType = fieldType.Elem()
-	}
-	if fieldType.Kind() != reflect.Struct || fieldType.Implements(jsonMarshaler) || reflect.PointerTo(fieldType).Implements(jsonMarshaler) {
-		return nil
-	}
-	return fieldType
 }
 
 // fieldValue walks an index path, dereferencing pointers, and reports
