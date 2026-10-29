@@ -417,7 +417,7 @@ func TestInvalidWritesUseTheCorrectExitStatusWithoutWriting(t *testing.T) {
 		{[]string{"categorize", "t3"}, "category", status.ExitUsage},
 		{[]string{"categorize", "--category", "Rent"}, "--all-uncategorized", status.ExitFailure},
 		{[]string{"clear"}, "requires at least 1 arg", status.ExitUsage},
-		{[]string{"flag", "t3"}, "color", status.ExitUsage},
+		{[]string{"flag", "t3"}, `required flag(s) "flag" not set`, status.ExitUsage},
 		{[]string{"flag", "--flag", "pink", "t3"}, "invalid --flag", status.ExitUsage},
 		{[]string{"delete"}, "accepts 1 arg", status.ExitUsage},
 		{[]string{"import", "extra"}, "unknown command", status.ExitUsage},
