@@ -4,7 +4,8 @@ import (
 	"fmt"
 
 	"github.com/jmcampanini/ynab-cli/internal/categoryview"
-	"github.com/jmcampanini/ynab-cli/internal/input"
+	"github.com/jmcampanini/ynab-cli/internal/config"
+	"github.com/jmcampanini/ynab-cli/internal/dates"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
@@ -29,11 +30,11 @@ from 'ynab categories list --month MONTH --jsonl'.
   ynab months get --jsonl | jq .ready_to_assign`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
-			monthText := "current"
+			monthText := config.DefaultMonth
 			if len(args) == 1 {
 				monthText = args[0]
 			}
-			apiMonth, err := input.Month(monthText, a.deps.now())
+			apiMonth, err := dates.Month(monthText, a.deps.now())
 			if err != nil {
 				return err
 			}
@@ -62,8 +63,8 @@ from 'ynab categories list --month MONTH --jsonl'.
 
 			a.warnFutureRefill(cmd, listing.Records(), plan.CurrencyFormat)
 			out := cmd.OutOrStdout()
-			if output.jsonl {
-				return render.JSONL(out, []monthRecord{record})
+			if output.machine() {
+				return writeRecords(out, output, []monthRecord{record})
 			}
 			currency := plan.CurrencyFormat
 			err = render.Fields(out, [][2]string{
@@ -88,6 +89,6 @@ from 'ynab categories list --month MONTH --jsonl'.
 			return err
 		}),
 	}
-	output.bind(command, false)
+	output.bindRead(command, false)
 	return command
 }

@@ -51,12 +51,10 @@ color is on. Two requests: the plans endpoint, then the accounts endpoint.
 				records = append(records, newAccountRecord(account))
 			}
 
+			records = limitRecords(&output, records)
 			out := cmd.OutOrStdout()
-			switch {
-			case output.jsonl:
-				return render.JSONL(out, records)
-			case output.csv:
-				return render.CSV(out, records)
+			if output.machine() {
+				return writeRecords(out, output, records)
 			}
 			if err := render.Table(out, accountColumns, accountRows(records, plan.CurrencyFormat, a.palette(cmd))); err != nil {
 				return err
@@ -69,7 +67,7 @@ color is on. Two requests: the plans endpoint, then the accounts endpoint.
 			return err
 		}),
 	}
-	output.bind(command, true)
+	output.bindRead(command, true)
 	command.Flags().BoolVar(&includeClosed, "closed", false, "Include closed accounts")
 	return command
 }

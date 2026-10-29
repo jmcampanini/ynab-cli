@@ -7,11 +7,11 @@ import (
 	"io"
 	"strings"
 
+	"github.com/jmcampanini/ynab-cli/internal/dates"
 	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/names"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
@@ -89,7 +89,7 @@ func (s *writeSession) categoryName(id string) string {
 // not become a payee. Several payees with that name is an error.
 func (s *writeSession) payee(ctx context.Context, query string) (id, name string, err error) {
 	if query == "" {
-		return "", "", status.Usage("--payee needs a payee ID or name")
+		return "", "", errors.New("--payee needs a payee ID or name")
 	}
 	if s.payees == nil {
 		payees, loadErr := s.client.Payees(ctx, s.plan.ID)
@@ -168,7 +168,7 @@ func (s *writeSession) transferTarget(payeeID string) (ynab.Account, bool) {
 // plan accounts, where the API would ignore it.
 func transferCategoryConflict(source, target ynab.Account) error {
 	if source.OnPlan && target.OnPlan {
-		return status.Usage(fmt.Sprintf("--category is not allowed on a transfer between the plan accounts %q and %q; the API ignores it", source.Name, target.Name))
+		return fmt.Errorf("--category is not allowed on a transfer between the plan accounts %q and %q; the API ignores it", source.Name, target.Name)
 	}
 	return nil
 }
@@ -288,17 +288,6 @@ func (s *writeSession) records(transactions []ynab.Transaction) []writeRecord {
 	return records
 }
 
-// writeCSVLines flattens splits as csvLines does, keeping the mark.
-func writeCSVLines(records []writeRecord) []writeRecord {
-	var rows []writeRecord
-	for _, record := range records {
-		for _, line := range csvLines([]transactionRecord{record.transactionRecord}) {
-			rows = append(rows, writeRecord{transactionRecord: line, DryRun: record.DryRun})
-		}
-	}
-	return rows
-}
-
 // summary is the closing line of a mutating command in human output:
 // what it did, or on a dry run what it would have done. past and base
 // are the verb's forms, such as "approved" and "approve".
@@ -326,7 +315,7 @@ func (s *writeSession) printTransactions(out io.Writer, output outputFlags, tran
 	case output.jsonl:
 		return render.JSONL(out, records)
 	case output.csv:
-		return render.CSV(out, writeCSVLines(records))
+		return render.CSV(out, records)
 	}
 
 	plainRecords := make([]transactionRecord, len(records))
@@ -510,9 +499,9 @@ func transactionIDs(transactions []ynab.Transaction) []string {
 func oneOfIDsOrAll(args []string, all string, allSet bool) error {
 	switch {
 	case len(args) > 0 && allSet:
-		return status.Usage(fmt.Sprintf("give transaction IDs or --%s, not both", all))
+		return fmt.Errorf("give transaction IDs or --%s, not both", all)
 	case len(args) == 0 && !allSet:
-		return status.Usage(fmt.Sprintf("give at least one transaction ID or --%s", all))
+		return fmt.Errorf("give at least one transaction ID or --%s", all)
 	}
 	return nil
 }
@@ -553,7 +542,7 @@ func (f *transactionFields) resolve(cmd *cobra.Command, s *writeSession) (change
 		change.AccountID = account.ID
 	}
 	if flags.Changed("date") {
-		if change.Date, err = input.Date(f.date, s.app.deps.now()); err != nil {
+		if change.Date, err = dates.Date(f.date, s.app.deps.now()); err != nil {
 			return change, nil, err
 		}
 	}
@@ -613,7 +602,7 @@ func (f *transactionFields) resolve(cmd *cobra.Command, s *writeSession) (change
 	return change, transfer, nil
 }
 
-// flagColorValue is the flag_color to send for a --flag or --color
+// flagColorValue is the flag_color to send for a --flag
 // value: null for none, which removes the flag, otherwise the color.
 func flagColorValue(color string) ynab.Nullable[string] {
 	if color == "none" {

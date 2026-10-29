@@ -1,12 +1,12 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
@@ -40,10 +40,10 @@ the update. The API cannot delete or hide a category.
 			flags := cmd.Flags()
 			fields := append([]string{"name", "note", "group", "no-target"}, targetFieldFlags...)
 			if !slices.ContainsFunc(fields, flags.Changed) {
-				return status.Usage("give at least one field flag to change")
+				return errors.New("give at least one field flag to change")
 			}
 			if flags.Changed("name") && name == "" {
-				return status.Usage("--name must not be empty")
+				return errors.New("--name must not be empty")
 			}
 			if err := target.validate(cmd, false); err != nil {
 				return err

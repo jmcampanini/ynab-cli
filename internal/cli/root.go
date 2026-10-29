@@ -56,20 +56,23 @@ type app struct {
 
 // newRoot constructs a fresh command tree without performing command work.
 func newRoot(deps dependencies) *cobra.Command {
-	a := &app{color: colorAuto, deps: deps}
+	a := &app{deps: deps}
+	var version bool
 	root := &cobra.Command{
 		Use: "ynab", Short: "Read and write a YNAB plan from the terminal",
-		Long: `ynab reads and writes a YNAB plan from the terminal and emits JSON lines
-and CSV for scripts and agents. Every command is 'ynab <noun> <verb>'; a
-bare noun prints its help. The command groups below cover the plan's
+		Long: `ynab reads and writes a YNAB plan from the terminal and emits JSON,
+JSONL, and CSV for scripts and agents. Plan commands use 'ynab <noun> <verb>';
+a bare noun prints its help. The command groups below cover the plan's
 data and the reports derived from it; anything the API offers beyond
 them goes through 'ynab api', which sends a raw request and prints the
 raw response. Writes stay disabled until allow_writes is set, and every
 write accepts --dry-run; see 'ynab transactions --help'.
 
 ynab needs a personal access token from https://app.ynab.com/settings/developer
-and network access to api.ynab.com. It runs no external programs and keeps
-nothing on disk. 'ynab completion bash|zsh|fish|powershell' prints a
+and network access to api.ynab.com. It runs no external programs. Data
+commands can save exports to a file selected with --output-file; existing
+files require --overwrite. See each command's help for its formats.
+'ynab completion bash|zsh|fish|powershell' prints a
 completion script that also completes account, category, and payee names
 from the plan.
 
@@ -79,7 +82,7 @@ Common tasks:
   List your plans:        ynab plans list
   Summarize the month:    ynab plans status
   List accounts:          ynab accounts list --plan Household
-  Export the register:    ynab transactions list --since 2026-08-01 --csv
+  Export the register:    ynab transactions list --all --since 2026-08-01 --csv
   Review the register:    ynab transactions review
   Preview an approval:    ynab transactions approve --all-unapproved --dry-run
   Preview a move:         ynab months move 50 --from Fun --to Bills --dry-run
@@ -100,12 +103,19 @@ Command groups:
   money-movements  Recorded money movements:       ynab money-movements --help
   reports          Funding and spending reports:   ynab reports --help
   api              Raw requests to the YNAB API:   ynab api --help`,
-		SilenceErrors: true, SilenceUsage: true, Version: Version,
+		SilenceErrors: true, SilenceUsage: true,
 		DisableSuggestions: true,
-		RunE:               func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
+		CompletionOptions:  cobra.CompletionOptions{DisableDefaultCmd: true},
+		RunE: run(func(cmd *cobra.Command, _ []string) error {
+			if version {
+				_, err := fmt.Fprintf(cmd.OutOrStdout(), "ynab version %s\n", Version)
+				return err
+			}
+			return cmd.Help()
+		}),
 	}
 	root.InitDefaultHelpFlag()
-	root.InitDefaultVersionFlag()
+	root.Flags().BoolVar(&version, "version", false, "Print the version")
 	// Cobra's closing usage line is shortened so the help of the
 	// longest-named groups fits 80 columns.
 	root.SetUsageTemplate(strings.Replace(root.UsageTemplate(),
@@ -113,11 +123,22 @@ Command groups:
 		`Use "{{.CommandPath}} [command] --help" for a command's help.`, 1))
 	root.PersistentFlags().String("config", "", "Read this TOML file instead of the discovered one")
 	root.PersistentFlags().Var(colorValue{mode: &a.color}, "color", "Color human output: auto, always, never")
+	useCommandDefault(root.PersistentFlags().Lookup("color"))
 	if err := pflagloader.Register[config.Config](root.PersistentFlags()); err != nil {
 		// Registration depends only on this package's static configuration type.
 		panic(err)
 	}
 	root.AddCommand(newConfig(), newPlans(a), newAccounts(a), newCategories(a), newCategoryGroups(a), newMonths(a), newTransactions(a), newPayees(a), newScheduled(a), newMoneyMovements(a), newReports(a), newAPI(a), exitCodesTopic(), outputFormatsTopic())
+	help := newHelp()
+	root.SetHelpCommand(help)
+	root.AddCommand(help, newCompletion())
+	root.AddGroup(&cobra.Group{ID: "commands", Title: "Commands:"}, &cobra.Group{ID: "topics", Title: "Help topics:"})
+	for _, command := range root.Commands() {
+		if command.GroupID == "" {
+			command.GroupID = "commands"
+		}
+	}
+	configureDefaults(root)
 	return root
 }
 
@@ -127,7 +148,7 @@ func Execute() int {
 	defer stop()
 	err := newRoot(defaultDependencies()).ExecuteContext(ctx)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ynab: %s\n", err)
+		fmt.Fprintf(os.Stderr, "ynab: %s\n", strings.NewReplacer("\r", `\r`, "\n", `\n`).Replace(err.Error()))
 	}
 	return status.Code(err)
 }

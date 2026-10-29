@@ -48,7 +48,7 @@ configured plan.
 
 ` + planHelp,
 		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
+		RunE: run(func(cmd *cobra.Command, _ []string) error { return cmd.Help() }),
 	}
 	command.AddCommand(newPlansList(a), newPlansGet(a), newPlansStatus(a))
 	return command

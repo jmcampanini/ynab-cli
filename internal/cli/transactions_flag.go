@@ -10,21 +10,20 @@ func newTransactionsFlag(a *app) *cobra.Command {
 	var dryRun bool
 	var color string
 	command := &cobra.Command{
-		Use: "flag --color COLOR|none ID...", Short: "Set or remove the flag on transactions",
+		Use: "flag --flag COLOR|none ID...", Short: "Set or remove the flag on transactions",
 		Long: `Set one flag color on the transactions named through one bulk update
 and print the stored records in the shape of 'transactions list'.
---color takes red, orange, yellow, green, blue, purple, or none, which
+--flag takes red, orange, yellow, green, blue, purple, or none, which
 removes the flag. A flag's custom name belongs to the color in the app
-and cannot be set here. On this command --color is the flag color, not
-the color mode the Output section describes, so human output always
-follows automatic detection.
+and cannot be set here. --color controls terminal styling, as on every
+other command.
 
 Requests: the plans endpoint, the accounts endpoint, then one bulk
 update per 100 transactions.
 
 ` + writeHelp + "\n\n" + bulkHelp + "\n\n" + planHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
-		Example: `  ynab transactions flag --color red 7a3e... --dry-run
-  ynab transactions flag --color none 7a3e... 9c1d... --allow-writes`,
+		Example: `  ynab transactions flag --flag red 7a3e... --dry-run
+  ynab transactions flag --flag none 7a3e... 9c1d... --allow-writes`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
 			s, err := a.openTransactionWrite(cmd, dryRun)
@@ -41,8 +40,8 @@ update per 100 transactions.
 		}),
 	}
 	output.bind(command, true)
-	bindEnumFlag(command, &color, "color", "color", "Flag color, or none to remove the flag", flagColors...)
+	bindEnumFlag(command, &color, "flag", "color", "Flag color, or none to remove the flag", flagColors...)
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Preview the records without changing them")
-	_ = command.MarkFlagRequired("color")
+	_ = command.MarkFlagRequired("flag")
 	return command
 }

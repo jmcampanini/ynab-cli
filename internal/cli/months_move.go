@@ -1,12 +1,12 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +32,7 @@ Three reads then one or two writes.
 		Args: cobra.ExactArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
 			if strings.EqualFold(from, readyToAssignOperand) && strings.EqualFold(to, readyToAssignOperand) {
-				return status.Usage("--from and --to are both ready-to-assign; nothing would move")
+				return errors.New("--from and --to are both ready-to-assign; nothing would move")
 			}
 
 			ms, err := a.openMonth(cmd, dryRun, monthText)
@@ -44,7 +44,7 @@ Three reads then one or two writes.
 				return err
 			}
 			if amount <= 0 {
-				return status.Usage("AMOUNT must be positive")
+				return errors.New("AMOUNT must be positive")
 			}
 			source, target, err := ms.endpoints(from, to)
 			if err != nil {
@@ -81,7 +81,7 @@ func (ms *monthSession) endpoints(from, to string) (source, target moneySource, 
 		return source, target, err
 	}
 	if source.same(target) {
-		return source, target, status.Usage(fmt.Sprintf("--from and --to both name %s; nothing would move", source.name()))
+		return source, target, fmt.Errorf("--from and --to both name %s; nothing would move", source.name())
 	}
 	return source, target, nil
 }

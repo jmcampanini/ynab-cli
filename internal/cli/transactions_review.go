@@ -89,18 +89,6 @@ func reviewRows(records []reviewRecord, currency *ynab.CurrencyFormat) [][]rende
 	return rows
 }
 
-// reviewCSVLines flattens splits as csvLines does, repeating needs on
-// each line.
-func reviewCSVLines(records []reviewRecord) []reviewRecord {
-	var rows []reviewRecord
-	for _, record := range records {
-		for _, line := range csvLines([]transactionRecord{record.transactionRecord}) {
-			rows = append(rows, reviewRecord{transactionRecord: line, Needs: record.Needs})
-		}
-	}
-	return rows
-}
-
 func newTransactionsReview(a *app) *cobra.Command {
 	var output outputFlags
 	command := &cobra.Command{
@@ -112,9 +100,9 @@ window applies. Exit 0 whether or not anything needs attention; the
 counts are the payload. Tracking-account transactions and transfers
 between plan accounts do not need categories; unapproved ones still
 appear for approval. Four requests: the plans endpoint, the accounts
-endpoint, then the unapproved and uncategorized listings. --jsonl and
---csv carry the transaction record plus needs; --csv flattens splits as
-'transactions list --csv' does.
+endpoint, then the unapproved and uncategorized listings. Machine output
+carries the transaction record plus needs; CSV keeps split lines as
+compact JSON in the subtransactions cell.
 
 ` + planHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
 		Example: `  ynab transactions review
@@ -143,20 +131,19 @@ endpoint, then the unapproved and uncategorized listings. --jsonl and
 			}
 
 			records := reviewList(unapproved, ynab.TransactionsNeedingCategory(uncategorized, accounts), selection.NewAccountNames(accounts))
+			summary := reviewSummary(records)
+			records = limitRecords(&output, records)
 			out := cmd.OutOrStdout()
-			switch {
-			case output.jsonl:
-				return render.JSONL(out, records)
-			case output.csv:
-				return render.CSV(out, reviewCSVLines(records))
+			if output.machine() {
+				return writeRecords(out, output, records)
 			}
 			if err := render.Table(out, reviewColumns, reviewRows(records, plan.CurrencyFormat)); err != nil {
 				return err
 			}
-			_, err = fmt.Fprintln(out, reviewSummary(records))
+			_, err = fmt.Fprintln(out, summary)
 			return err
 		}),
 	}
-	output.bind(command, true)
+	output.bindRead(command, true)
 	return command
 }

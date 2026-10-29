@@ -247,9 +247,6 @@ func TestEveryApplicationCommandDeclaresArgsAndGroupsAndTopicsAreRunnable(t *tes
 	var walk func(*cobra.Command)
 	walk = func(command *cobra.Command) {
 		for _, child := range command.Commands() {
-			if child.Name() == "help" || child.Name() == "completion" {
-				continue
-			}
 			if child.Args == nil {
 				t.Errorf("%s has no Args validator", child.CommandPath())
 			}
@@ -271,9 +268,6 @@ func TestEveryApplicationCommandHasShortAndWrappedHelp(t *testing.T) {
 	topics := 0
 	var walk func(*cobra.Command)
 	walk = func(command *cobra.Command) {
-		if command.Name() == "help" || command.Name() == "completion" {
-			return
-		}
 		if command.Short == "" {
 			t.Errorf("%s lacks short help", command.CommandPath())
 		}
@@ -330,10 +324,13 @@ func TestUsageErrorsExitTwoBeforeAnyRequest(t *testing.T) {
 	h := newHarness(t)
 	cases := [][]string{
 		{"unknown"}, {"plans", "extra"}, {"accounts", "list", "extra"}, {"accounts", "get"},
+		{"help", "unknown"}, {"help", "transactions", "unknown"}, {"completion"}, {"completion", "unknown"}, {"completion", "zsh", "extra"},
+		{"--help", "--unknown"}, {"--version", "--unknown"},
+		{"--version", "unexpected"},
 		{"accounts", "get", "a", "b"}, {"config", "extra"}, {"exit-codes", "extra"}, {"output-formats", "extra"},
 		{"accounts", "list", "--jsonl", "--csv"}, {"--color", "bold", "plans", "list"}, {"plans", "list", "--nope"},
-		{"config", "--config", ""}, {"transactions", "get"}, {"transactions", "review", "extra"}, {"payees", "get", "a", "b"},
-		{"scheduled", "get"}, {"money-movements", "list", "extra"}, {"plans", "status", "--csv"},
+		{"transactions", "get"}, {"transactions", "review", "extra"}, {"payees", "get", "a", "b"},
+		{"scheduled", "get"}, {"money-movements", "list", "extra"}, {"plans", "status", "--limit", "1"},
 		{"reports", "extra"}, {"reports", "spending", "--by", "nope"}, {"reports", "spending", "--month", "2026-08", "--since", "2026-08-01"},
 		{"api", "extra"}, {"api", "get"}, {"api", "get", "/user", "--body", "{}"}, {"api", "post", "/user", "--body", "{}", "--body-file", "x"},
 	}
@@ -393,5 +390,41 @@ func TestHelpAndVersionNeedNoTokenOrNetwork(t *testing.T) {
 	}
 	if len(h.requests) != 0 {
 		t.Errorf("help made requests: %v", h.requests)
+	}
+}
+
+func TestRootOwnsHelpCompletionAndVersion(t *testing.T) {
+	h := newHarness(t)
+	root := newRoot(h.deps)
+	if root.Version != "" {
+		t.Fatalf("root.Version = %q; version must use the application-owned flag", root.Version)
+	}
+	for _, name := range []string{"help", "completion"} {
+		command, remaining, err := root.Find([]string{name})
+		if err != nil || len(remaining) != 0 || command.Name() != name || command.Args == nil {
+			t.Fatalf("%s is not constructed with the command tree", name)
+		}
+	}
+	missing := filepath.Join(t.TempDir(), "missing.toml")
+	out, err := h.execute(t, "--config", missing, "--version")
+	if err != nil || out != "ynab version "+Version+"\n" {
+		t.Fatalf("version = %q, %v", out, err)
+	}
+	for _, shell := range []string{"bash", "zsh", "fish", "powershell"} {
+		out, err = h.execute(t, "--config", missing, "completion", shell)
+		if err != nil || out == "" {
+			t.Errorf("completion %s = %q, %v", shell, out, err)
+		}
+	}
+	out, err = h.execute(t, "--config", missing, "help")
+	if err != nil {
+		t.Fatal(err)
+	}
+	commands, topics, ok := strings.Cut(out, "Help topics:")
+	if !ok || strings.Contains(commands, "  exit-codes ") || !strings.Contains(topics, "  exit-codes ") || !strings.Contains(topics, "  output-formats ") {
+		t.Errorf("root help does not separate help topics:\n%s", out)
+	}
+	if len(h.requests) != 0 {
+		t.Errorf("help, version, and completion made requests: %v", h.requests)
 	}
 }

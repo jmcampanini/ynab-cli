@@ -2,7 +2,7 @@ package cli
 
 import (
 	"github.com/jmcampanini/ynab-cli/internal/categoryview"
-	"github.com/jmcampanini/ynab-cli/internal/input"
+	"github.com/jmcampanini/ynab-cli/internal/dates"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
 	"github.com/spf13/cobra"
@@ -37,7 +37,7 @@ amount each period and false to refill up to it.
   ynab categories get 7a3e... --jsonl`,
 		Args: cobra.ExactArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
-			apiMonth, err := input.Month(monthText, a.deps.now())
+			apiMonth, err := dates.Month(monthText, a.deps.now())
 			if err != nil {
 				return err
 			}
@@ -67,13 +67,13 @@ amount each period and false to refill up to it.
 			record := categoryview.NewRecord(category, group, apiMonth)
 			a.warnFutureRefill(cmd, []categoryview.Record{record}, plan.CurrencyFormat)
 			out := cmd.OutOrStdout()
-			if output.jsonl {
-				return render.JSONL(out, []categoryview.Record{record})
+			if output.machine() {
+				return writeRecords(out, output, []categoryview.Record{record})
 			}
 			return render.Fields(out, categoryFields(record, plan.CurrencyFormat))
 		}),
 	}
-	output.bind(command, false)
+	output.bindRead(command, false)
 	bindMonthFlag(command, &monthText)
 	command.ValidArgsFunction = a.completeCategories()
 	return command

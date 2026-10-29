@@ -62,12 +62,10 @@ consulted.
 				records = append(records, newPayeeRecord(payee, names))
 			}
 
+			records = limitRecords(&output, records)
 			out := cmd.OutOrStdout()
-			switch {
-			case output.jsonl:
-				return render.JSONL(out, records)
-			case output.csv:
-				return render.CSV(out, records)
+			if output.machine() {
+				return writeRecords(out, output, records)
 			}
 			rows := make([][]render.Cell, len(records))
 			for i, record := range records {
@@ -84,7 +82,7 @@ consulted.
 			return err
 		}),
 	}
-	output.bind(command, true)
+	output.bindRead(command, true)
 	command.Flags().BoolVar(&unused, "unused", false, "Only payees no transaction references")
 	return command
 }

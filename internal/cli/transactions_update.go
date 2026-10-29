@@ -1,9 +1,9 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +43,7 @@ each transaction's account.
 		Args: cobra.MinimumNArgs(1),
 		RunE: run(func(cmd *cobra.Command, args []string) error {
 			if !fields.given(cmd) {
-				return status.Usage("give at least one field flag to change")
+				return errors.New("give at least one field flag to change")
 			}
 
 			s, err := a.openTransactionWrite(cmd, dryRun)

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/jmcampanini/ynab-cli/internal/status"
 )
 
 func TestConfigRedactsTokenInEveryOutputPath(t *testing.T) {
@@ -48,5 +50,16 @@ func TestConfigRedactsTokenInEveryOutputPath(t *testing.T) {
 	}
 	if len(h.requests) != 0 {
 		t.Errorf("config made requests: %v", h.requests)
+	}
+}
+
+func TestExplicitEmptyConfigPathFailsBeforeAnyRequest(t *testing.T) {
+	h := newHarness(t)
+	out, err := h.execute(t, "config", "--config", "")
+	if err == nil || status.Code(err) != status.ExitFailure || out != "" || !strings.Contains(err.Error(), "--config requires a nonempty file path") {
+		t.Errorf("empty config = %q, %v (exit %d); want exit 1 with the path diagnostic", out, err, status.Code(err))
+	}
+	if len(h.requests) != 0 {
+		t.Errorf("empty config made requests: %v", h.requests)
 	}
 }

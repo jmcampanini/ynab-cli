@@ -49,12 +49,10 @@ Two requests: the plans endpoint, then the categories endpoint.
 				records = append(records, newCategoryGroupRecord(group, includeHidden))
 			}
 
+			records = limitRecords(&output, records)
 			out := cmd.OutOrStdout()
-			switch {
-			case output.jsonl:
-				return render.JSONL(out, records)
-			case output.csv:
-				return render.CSV(out, records)
+			if output.machine() {
+				return writeRecords(out, output, records)
 			}
 			columns := []render.Column{{Name: "NAME"}, {Name: "CATEGORIES", Right: true}, {Name: "ID"}}
 			rows := make([][]render.Cell, len(records))
@@ -74,7 +72,7 @@ Two requests: the plans endpoint, then the categories endpoint.
 			return err
 		}),
 	}
-	output.bind(command, true)
+	output.bindRead(command, true)
 	command.Flags().BoolVar(&includeHidden, "hidden", false, "Include hidden groups and count hidden categories")
 	return command
 }

@@ -42,12 +42,10 @@ value for plan. One request to the plans endpoint.
 				records[i] = newPlanRecord(plan, configured[plan.ID])
 			}
 
+			records = limitRecords(&output, records)
 			out := cmd.OutOrStdout()
-			switch {
-			case output.jsonl:
-				return render.JSONL(out, records)
-			case output.csv:
-				return render.CSV(out, records)
+			if output.machine() {
+				return writeRecords(out, output, records)
 			}
 			columns := []render.Column{{Name: " "}, {Name: "NAME"}, {Name: "ID"}, {Name: "LAST MODIFIED"}, {Name: "FIRST MONTH"}, {Name: "LAST MONTH"}}
 			rows := make([][]render.Cell, len(records))
@@ -65,6 +63,6 @@ value for plan. One request to the plans endpoint.
 			return err
 		}),
 	}
-	output.bind(command, true)
+	output.bindRead(command, true)
 	return command
 }

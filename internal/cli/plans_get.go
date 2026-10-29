@@ -32,8 +32,8 @@ One request to the plans endpoint. --jsonl prints one object.
 
 			record := newPlanRecord(plan, true)
 			out := cmd.OutOrStdout()
-			if output.jsonl {
-				return render.JSONL(out, []planRecord{record})
+			if output.machine() {
+				return writeRecords(out, output, []planRecord{record})
 			}
 			currency, dateFormat := "unavailable", "unavailable"
 			if plan.CurrencyFormat != nil {
@@ -53,6 +53,6 @@ One request to the plans endpoint. --jsonl prints one object.
 			})
 		}),
 	}
-	output.bind(command, false)
+	output.bindRead(command, false)
 	return command
 }

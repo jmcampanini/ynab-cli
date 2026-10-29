@@ -1,11 +1,6 @@
 # Security Policy
 
 
-## Supported versions
-
-ynab-cli is supported only at the latest commit on the `main` branch. There are no stable releases or supported older versions.
-
-
 ## Reporting a vulnerability
 
 Report suspected vulnerabilities through [GitHub private vulnerability reporting](https://github.com/jmcampanini/ynab-cli/security/advisories/new).
@@ -16,6 +11,6 @@ When possible, include in the private report:
 
 - the affected behavior and its potential impact;
 - reproduction steps;
-- the affected revision: the output of `ynab --version`, or the commit you installed from.
+- the affected version or revision: the output of `ynab --version`, or the commit you installed from.
 
 Reports are handled on a best-effort basis. There is no guaranteed response, remediation, or disclosure timeline.

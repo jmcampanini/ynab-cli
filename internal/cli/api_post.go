@@ -13,8 +13,8 @@ func newAPIPost(a *app) *cobra.Command {
 		Long: `Send a POST request to PATH, relative to /v1 with {plan}
 replaced by the configured plan's ID, and print the response body as
 returned. See 'ynab api --help' for the contract: raw milliunits and API
-field names, --pretty, and the exit status 1 with the body on stdout and
-the status on stderr for a non-2xx response.
+field names, and --pretty. A non-2xx response exits 1 with an HTTP status
+and available API error detail on stderr; stdout stays empty.
 
 ` + apiBodyHelp,
 		Example: "  ynab api post /plans/{plan}/payees --body '{\"payee\":{\"name\":\"Bakery\"}}' \\\n    --allow-writes",

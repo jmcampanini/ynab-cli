@@ -5,6 +5,8 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"github.com/jmcampanini/go-config-loader/configloader"
@@ -50,15 +52,16 @@ func Load(path string, flags *pflag.FlagSet) (Loaded, error) {
 	var fileLoader configloader.ConfigLoader[Config]
 	var err error
 	if path == "" {
-		helper, helperErr := configloader.NewFileHelper("ynab", "config.toml")
-		if helperErr != nil {
-			return Loaded{}, helperErr
+		root := os.Getenv("XDG_CONFIG_HOME")
+		if !filepath.IsAbs(root) {
+			home, homeErr := os.UserHomeDir()
+			if homeErr != nil {
+				return Loaded{}, fmt.Errorf("discover config: %w", homeErr)
+			}
+			root = filepath.Join(home, ".config")
 		}
-		discovered := helper.XDGConfigFile()
-		if len(discovered) > 0 {
-			path = discovered[0]
-		}
-		fileLoader, err = configloader.NewMergeAllFilesLoader[Config](discovered)
+		path = filepath.Join(root, "ynab", "config.toml")
+		fileLoader, err = configloader.NewMergeAllFilesLoader[Config]([]string{path})
 	} else {
 		fileLoader, err = configloader.NewRequiredFileLoader[Config](path)
 	}

@@ -1,11 +1,11 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/render"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +41,7 @@ endpoint, the month, then the write.
 				return err
 			}
 			if (add || subtract) && amount <= 0 {
-				return status.Usage("--add and --subtract take a positive amount")
+				return errors.New("--add and --subtract take a positive amount")
 			}
 			target, err := ms.category(args[0])
 			if err != nil {

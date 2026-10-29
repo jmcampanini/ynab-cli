@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jmcampanini/ynab-cli/internal/dates"
 	"github.com/jmcampanini/ynab-cli/internal/input"
 	"github.com/jmcampanini/ynab-cli/internal/register"
 	"github.com/jmcampanini/ynab-cli/internal/render"
 	"github.com/jmcampanini/ynab-cli/internal/selection"
-	"github.com/jmcampanini/ynab-cli/internal/status"
 	"github.com/jmcampanini/ynab-cli/internal/ynab"
 	"github.com/spf13/cobra"
 )
@@ -130,9 +130,8 @@ and plan listings, with --since, --until, and one of --unapproved or
 --uncategorized applied by the API and the rest applied here. Three
 requests: the plans endpoint, the accounts endpoint (which names transfer
 targets and resolves --account), then the listing. --category and --payee
-each add one request to resolve the name. --csv prints the parent row
-followed by one row per split line with the parent's id in parent_id.
-To total whole transactions, include only rows with an empty parent_id.
+each add one request to resolve the name. --csv keeps a split's lines as
+compact JSON in the subtransactions cell, with one row per transaction.
 
 ` + planHelp + "\n\n" + dateHelp + "\n\n" + monthHelp + "\n\n" + configHelp + "\n\n" + outputHelp,
 		Example: `  ynab transactions list --since 2026-08-01 --until 2026-08-31 --csv
@@ -152,10 +151,10 @@ To total whole transactions, include only rows with an empty parent_id.
 				return err
 			}
 			if filters.Since != "" && filters.Until != "" && filters.Since > filters.Until {
-				return status.Usage(fmt.Sprintf("--since %s is after --until %s", filters.Since, filters.Until))
+				return fmt.Errorf("--since %s is after --until %s", filters.Since, filters.Until)
 			}
 			if cmd.Flags().Changed("month") {
-				if filters.Month, err = input.Month(month, a.deps.now()); err != nil {
+				if filters.Month, err = dates.Month(month, a.deps.now()); err != nil {
 					return err
 				}
 			}
@@ -227,21 +226,20 @@ To total whole transactions, include only rows with an empty parent_id.
 				records = append(records, newTransactionRecord(tx, names))
 			}
 
+			summary := transactionSummary(len(records), total, filters.byName(), plan.CurrencyFormat)
+			records = limitRecords(&output, records)
 			out := cmd.OutOrStdout()
-			switch {
-			case output.jsonl:
-				return render.JSONL(out, records)
-			case output.csv:
-				return render.CSV(out, csvLines(records))
+			if output.machine() {
+				return writeRecords(out, output, records)
 			}
 			if err := render.Table(out, transactionColumns, transactionRows(records, plan.CurrencyFormat)); err != nil {
 				return err
 			}
-			_, err = fmt.Fprintln(out, transactionSummary(len(records), total, filters.byName(), plan.CurrencyFormat))
+			_, err = fmt.Fprintln(out, summary)
 			return err
 		}),
 	}
-	output.bind(command, true)
+	output.bindRead(command, true)
 	command.Flags().StringVar(&account, "account", "", "Account ID or exact name")
 	command.Flags().StringVar(&category, "category", "", "Category ID, exact name, or \"Group: Name\"")
 	command.Flags().StringVar(&payee, "payee", "", "Payee ID or exact name")
@@ -262,14 +260,14 @@ To total whole transactions, include only rows with an empty parent_id.
 }
 
 // optionalAmountFlag parses an amount flag at milliunit precision, nil
-// when the flag is unset. A bad value is a usage error.
+// when the flag is unset. An invalid value fails before any request.
 func optionalAmountFlag(text string) (*ynab.Amount, error) {
 	if text == "" {
 		return nil, nil
 	}
 	amount, err := ynab.ParseAmount(text, 3)
 	if err != nil {
-		return nil, status.Usage(err.Error())
+		return nil, err
 	}
 	return &amount, nil
 }

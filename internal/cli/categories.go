@@ -16,7 +16,7 @@ hide, or reorder categories.
 
 ` + writeHelp + "\n\n" + planHelp + "\n\n" + monthHelp,
 		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
+		RunE: run(func(cmd *cobra.Command, _ []string) error { return cmd.Help() }),
 	}
 	command.AddCommand(newCategoriesList(a), newCategoriesGet(a), newCategoriesCreate(a), newCategoriesUpdate(a))
 	return command

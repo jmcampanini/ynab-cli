@@ -1,6 +1,9 @@
 package cli
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -33,16 +36,16 @@ func TestAPIGetSubstitutesThePlanAndPassesTheBodyThrough(t *testing.T) {
 	}
 }
 
-func TestAPINon2xxPrintsTheBodyAndExitsOne(t *testing.T) {
+func TestAPINon2xxLeavesStdoutEmptyAndExitsOne(t *testing.T) {
 	h := newHarness(t)
 
 	out, err := h.execute(t, "api", "get", "/nope")
 
-	if out != `{"error":{"id":"404.2","name":"resource_not_found","detail":"Resource not found"}}`+"\n" {
-		t.Errorf("stdout = %q, want the error body as served", out)
+	if out != "" {
+		t.Errorf("stdout = %q, want no error payload", out)
 	}
-	if err == nil || status.Code(err) != status.ExitFailure || err.Error() != "HTTP 404 Not Found" {
-		t.Errorf("err = %v (exit %d), want HTTP 404 Not Found with exit 1", err, status.Code(err))
+	if err == nil || status.Code(err) != status.ExitFailure || err.Error() != `HTTP 404 Not Found: "Resource not found"` {
+		t.Errorf("err = %v (exit %d), want HTTP 404 Not Found with detail and exit 1", err, status.Code(err))
 	}
 	if want := []string{"/nope"}; !reflect.DeepEqual(h.requests, want) {
 		t.Errorf("requests = %v, want %v (no plan lookup without {plan})", h.requests, want)
@@ -71,8 +74,8 @@ func TestAPIWritesGoThroughTheGate(t *testing.T) {
 
 	h.requests, h.writes = nil, nil
 	out, err = h.execute(t, "api", "post", "/plans/{plan}/x", "--body", `{"a":1}`, "--allow-writes")
-	if err == nil || status.Code(err) != status.ExitFailure || !strings.Contains(out, "resource_not_found") {
-		t.Errorf("post to an unknown path = %q, %v (exit %d), want the 404 body and exit 1", out, err, status.Code(err))
+	if err == nil || status.Code(err) != status.ExitFailure || out != "" || !strings.Contains(err.Error(), "Resource not found") {
+		t.Errorf("post to an unknown path = %q, %v (exit %d), want empty stdout, the 404 diagnostic, and exit 1", out, err, status.Code(err))
 	}
 	if want := []string{`POST /plans/p1/x {"a":1}`}; !reflect.DeepEqual(h.writes, want) {
 		t.Errorf("writes = %v, want %v", h.writes, want)
@@ -104,7 +107,46 @@ func TestAPIBodyComesFromAFileOrStdinAndMustBeJSON(t *testing.T) {
 	if !strings.HasSuffix(fromStdin, "\n{\"from\":\"stdin\"}\n") {
 		t.Errorf("--body-file - dry run =\n%s", fromStdin)
 	}
-	if err == nil || status.Code(err) != status.ExitUsage || out != "" || len(h.requests) != 0 {
-		t.Errorf("--body 'not json' = %q, %v (exit %d), requests %v; want a usage error before any request", out, err, status.Code(err), h.requests)
+	if err == nil || status.Code(err) != status.ExitFailure || out != "" || len(h.requests) != 0 {
+		t.Errorf("--body 'not json' = %q, %v (exit %d), requests %v; want exit 1 before any request", out, err, status.Code(err), h.requests)
+	}
+}
+
+func TestAPIFailureDoesNotEmitResponseRecordsOrLeakToken(t *testing.T) {
+	cases := []struct {
+		name      string
+		code      int
+		body      string
+		truncated bool
+		want      string
+	}{
+		{"error detail", http.StatusBadRequest, `{"error":{"detail":"rejected good-token\ntry again"}}`, false, `HTTP 400 Bad Request: "rejected <redacted>\ntry again"`},
+		{"error name", http.StatusBadRequest, `{"error":{"name":"invalid_request"}}`, false, `HTTP 400 Bad Request: "invalid_request"`},
+		{"unexpected JSON", http.StatusBadRequest, `{"token":"good-token"}`, false, "HTTP 400 Bad Request"},
+		{"malformed JSON", http.StatusBadRequest, `{"error":{"detail":"good-token`, false, "HTTP 400 Bad Request"},
+		{"HTML error", http.StatusBadGateway, `<h1>good-token</h1>`, false, "HTTP 502 Bad Gateway"},
+		{"partial success body", http.StatusOK, `{"data":{"id":"one"}}`, true, "unexpected EOF"},
+		{"partial error body", http.StatusInternalServerError, `{"error":{"detail":"good-token"}}`, true, "unexpected EOF"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newHarness(t)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				if tc.truncated {
+					w.Header().Set("Content-Length", "10000")
+				}
+				w.WriteHeader(tc.code)
+				_, _ = io.WriteString(w, tc.body)
+			}))
+			t.Cleanup(server.Close)
+			h.deps.baseURL = server.URL
+			out, err := h.execute(t, "api", "get", "/response", "--pretty")
+			if err == nil || status.Code(err) != status.ExitFailure || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error = %v (exit %d); want exit 1 containing %q", err, status.Code(err), tc.want)
+			}
+			if out != "" || strings.Contains(err.Error(), "good-token") || strings.ContainsAny(err.Error(), "\r\n") {
+				t.Errorf("stdout = %q, error = %q; want no payload, token, or diagnostic newline", out, err)
+			}
+		})
 	}
 }

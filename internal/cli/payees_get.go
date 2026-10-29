@@ -44,8 +44,8 @@ payees endpoint. --jsonl prints one object.
 
 			record := newPayeeRecord(payee, selection.NewAccountNames(accounts))
 			out := cmd.OutOrStdout()
-			if output.jsonl {
-				return render.JSONL(out, []payeeRecord{record})
+			if output.machine() {
+				return writeRecords(out, output, []payeeRecord{record})
 			}
 			return render.Fields(out, [][2]string{
 				{"id", record.ID},
@@ -55,7 +55,7 @@ payees endpoint. --jsonl prints one object.
 			})
 		}),
 	}
-	output.bind(command, false)
+	output.bindRead(command, false)
 	command.ValidArgsFunction = a.completePayees()
 	return command
 }

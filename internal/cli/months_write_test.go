@@ -154,9 +154,9 @@ moved $10.00 from Credit Card Payments: Visa to Bills: Rent in 2026-09
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantDry := `id,name,group,group_id,month,hidden,internal,note,assigned,activity,available,target_type,target_amount,target_date,target_cadence,target_cadence_frequency,target_day,target_needs_whole_amount,target_created_month,target_percent_complete,target_months_to_assign,target_underfunded,target_overall_funded,target_overall_left,target_snoozed_at,dry_run
-c6,Visa,Credit Card Payments,g4,2026-09,false,false,,-2.19,97.81,-2.19,,,,,,,,,,,,,,,true
-c5,Internet,Wishes,g3,2026-09,true,false,,100.00,0.00,200.00,TBD,500.00,2027-01-01,,,,,2026-05,20,4,0.00,100.00,400.00,,true
+	wantDry := `id,name,group,group_id,month,hidden,internal,note,assigned,activity,available,target,dry_run
+c6,Visa,Credit Card Payments,g4,2026-09,false,false,,-2.19,97.81,-2.19,,true
+c5,Internet,Wishes,g3,2026-09,true,false,,100.00,0.00,200.00,"{""type"":""TBD"",""amount"":500.00,""date"":""2027-01-01"",""created_month"":""2026-05"",""percent_complete"":20,""months_to_assign"":4,""underfunded"":0.00,""overall_funded"":100.00,""overall_left"":400.00}",true
 `
 	if dry != wantDry {
 		t.Errorf("move --dry-run --csv =\n%s\nwant\n%s", dry, wantDry)

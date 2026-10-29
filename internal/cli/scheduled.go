@@ -7,12 +7,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// scheduledRecord is the --jsonl and --csv shape of a scheduled
-// transaction. A split carries its lines in Subtransactions; CSV flattens
-// them to one row per line with ParentID set.
+// scheduledRecord is one record in all machine output formats.
+// A split keeps its lines in Subtransactions, including in a CSV cell.
 type scheduledRecord struct {
 	ID                string                          `json:"id"`
-	ParentID          string                          `json:"parent_id,omitempty"`
 	NextDate          string                          `json:"next_date"`
 	FirstDate         string                          `json:"first_date"`
 	Frequency         string                          `json:"frequency"`
@@ -92,7 +90,7 @@ scheduled transactions, though it returns the lines of existing ones.
 
 ` + planHelp,
 		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
+		RunE: run(func(cmd *cobra.Command, _ []string) error { return cmd.Help() }),
 	}
 	command.AddCommand(newScheduledList(a), newScheduledGet(a))
 	return command
