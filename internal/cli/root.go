@@ -116,11 +116,16 @@ Command groups:
 	}
 	root.InitDefaultHelpFlag()
 	root.Flags().BoolVar(&version, "version", false, "Print the version")
-	// Cobra's closing usage line is shortened so the help of the
-	// longest-named groups fits 80 columns.
-	root.SetUsageTemplate(strings.Replace(root.UsageTemplate(),
+	// Cobra's usage template is adjusted so help fits 80 columns: the
+	// closing line is shortened for the longest-named groups, and flag
+	// usage wraps, which Cobra leaves unwrapped by default. pflag wraps a
+	// line that reaches its limit, so a limit of 81 keeps a line of
+	// exactly 80 columns whole.
+	root.SetUsageTemplate(strings.NewReplacer(
 		`Use "{{.CommandPath}} [command] --help" for more information about a command.`,
-		`Use "{{.CommandPath}} [command] --help" for a command's help.`, 1))
+		`Use "{{.CommandPath}} [command] --help" for a command's help.`,
+		`.FlagUsages |`, `.FlagUsagesWrapped 81 |`,
+	).Replace(root.UsageTemplate()))
 	root.PersistentFlags().String("config", "", "Read this TOML file instead of the discovered one")
 	root.PersistentFlags().Var(colorValue{mode: &a.color}, "color", "Color human output: auto, always, never")
 	useCommandDefault(root.PersistentFlags().Lookup("color"))
