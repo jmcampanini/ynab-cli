@@ -44,38 +44,3 @@ release:
     name: ynab-cli
   draft: false
   prerelease: auto
-
-homebrew_casks:
-  - name: ynab
-    homepage: https://github.com/jmcampanini/ynab-cli
-    description: Read and write a YNAB plan from the terminal
-    binaries:
-      - ynab
-    generate_completions_from_executable:
-      executable: ynab
-      args:
-        - completion
-      shells:
-        - bash
-        - zsh
-        - fish
-    directory: Casks
-    commit_msg_template: "Update ynab to {{ .Tag }}"
-    commit_author:
-      name: github-actions[bot]
-      email: 41898282+github-actions[bot]@users.noreply.github.com
-    skip_upload: auto
-    repository:
-      owner: jmcampanini
-      name: homebrew-tap
-      branch: main
-      git:
-        url: ssh://git@github.com/jmcampanini/homebrew-tap.git
-        private_key: "{{ envOrDefault \"HOMEBREW_TAP_DEPLOY_KEY\" \"\" }}"
-    hooks:
-      pre:
-        # Homebrew runs completion generation before postflight; Gatekeeper must allow the unsigned binary to execute first.
-        install_steps: |
-          on_macos do
-            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/ynab"]
-          end

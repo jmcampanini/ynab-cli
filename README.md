@@ -14,13 +14,6 @@ mise use -g github:jmcampanini/ynab-cli
 mise upgrade github:jmcampanini/ynab-cli
 ```
 
-If replacing the HEAD formula, first run `brew uninstall --formula jmcampanini/ynab-cli/ynab`; install and upgrade with Homebrew through the shared tap:
-
-```sh
-brew install --cask jmcampanini/tap/ynab
-brew upgrade --cask jmcampanini/tap/ynab
-```
-
 Install or upgrade a [release archive](https://github.com/jmcampanini/ynab-cli/releases) with curl, shasum, and tar by selecting its version and platform below, verifying its checksum, and copying the binary into `~/.local/bin`, which must be on your `PATH`:
 
 ```sh
@@ -35,14 +28,6 @@ curl -fLO "${release}/${archive}" &&
   tar -xzf "${archive}" &&
   mkdir -p "$HOME/.local/bin" &&
   cp ynab "$HOME/.local/bin/ynab"
-```
-
-If replacing the cask, first run `brew uninstall --cask ynab`; install and upgrade the latest source commit with Homebrew's HEAD formula:
-
-```sh
-brew tap jmcampanini/ynab-cli https://github.com/jmcampanini/ynab-cli
-brew install --HEAD jmcampanini/ynab-cli/ynab
-brew upgrade --fetch-HEAD jmcampanini/ynab-cli/ynab
 ```
 
 Build from source with Git and mise, then copy the binary into `~/.local/bin`, which must be on your `PATH`:
